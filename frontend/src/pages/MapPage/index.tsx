@@ -3,10 +3,12 @@ import L from 'leaflet';
 import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import { useDateTime } from '@/hooks/useDateTime';
 import { useShadeMapSetup } from '@/hooks/useShadeMapSetup';
+import { astanaLocalToDate } from '@/utils/astanaTime';
 import type { ClickInfo } from '@/types/map';
 import type { GeocodingResult } from '@/services/geocoding';
 import MapView from '@/components/MapView';
 import ControlPanel from '@/components/ControlPanel';
+import TimeSliderBar from '@/components/TimeSliderBar';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 
@@ -31,10 +33,8 @@ export default function MapPage() {
     const sm = shadeMapRef.current;
     if (!sm) return;
 
-    const start = new Date(`${dt.dateStr}T00:00:00`);
-    start.setHours(SUN_EXPOSURE_CONFIG.startHour, 0, 0, 0);
-    const end = new Date(`${dt.dateStr}T00:00:00`);
-    end.setHours(SUN_EXPOSURE_CONFIG.endHour, 0, 0, 0);
+    const start = astanaLocalToDate(dt.dateStr, SUN_EXPOSURE_CONFIG.startHour, 0);
+    const end = astanaLocalToDate(dt.dateStr, SUN_EXPOSURE_CONFIG.endHour, 0);
 
     sm.setSunExposure(sunExposure, {
       startDate: start,
@@ -85,14 +85,17 @@ export default function MapPage() {
       <ControlPanel
         dateStr={dt.dateStr}
         onDateChange={dt.setDateStr}
-        sliderValue={dt.sliderValue}
-        sliderPct={dt.sliderPct}
-        timeLabel={dt.timeLabel}
-        onSliderChange={dt.setSlider}
         sunExposure={sunExposure}
         onModeChange={setSunExposure}
         zoom={zoom}
         loadingBuildings={loadingBuildings}
+      />
+
+      <TimeSliderBar
+        sliderValue={dt.sliderValue}
+        sliderPct={dt.sliderPct}
+        timeLabel={dt.timeLabel}
+        onSliderChange={dt.setSlider}
       />
 
       {clickInfo && (
