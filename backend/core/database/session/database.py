@@ -3,7 +3,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 # Project modules
-from database.config import alemdb_settings 
+from core.database.config import alemdb_settings 
 
 engine = create_engine(
     alemdb_settings.url, 
