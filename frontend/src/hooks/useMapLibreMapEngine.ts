@@ -19,6 +19,17 @@ interface UseMapLibreMapEngineOptions {
 }
 
 const BUILDING_SOURCE_ID = 'osm-buildings';
+const SUN_EDGES_SOURCE_ID = 'sun-edges';
+const SUN_EDGES_GLOW_LAYER_ID = 'sun-edges-glow';
+const SUN_EDGES_CORE_LAYER_ID = 'sun-edges-core';
+const MAX_VISIBLE_STATIC_FEATURES = 4500;
+
+const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
+  N: 0,
+  E: 90,
+  S: 180,
+  W: 270,
+};
 
 const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',
@@ -80,6 +91,96 @@ function toFeatureCollection(features: GeoJSON.Feature[]): GeoJSON.FeatureCollec
     type: 'FeatureCollection',
     features,
   };
+}
+
+function toRad(deg: number) {
+  return (deg * Math.PI) / 180;
+}
+
+function toDeg(rad: number) {
+  return (rad * 180) / Math.PI;
+}
+
+function norm360(deg: number) {
+  return ((deg % 360) + 360) % 360;
+}
+
+function angleDiff(a: number, b: number) {
+  const d = Math.abs(norm360(a) - norm360(b));
+  return d > 180 ? 360 - d : d;
+}
+
+function bearingFromAtoB(a: [number, number], b: [number, number]) {
+  const latMeters = 111_320;
+  const lngMeters = 111_320 * Math.cos(toRad((a[1] + b[1]) / 2));
+  const dx = (b[0] - a[0]) * lngMeters;
+  const dy = (b[1] - a[1]) * latMeters;
+  return norm360(toDeg(Math.atan2(dx, dy)));
+}
+
+function polygonOuterRing(feature: GeoJSON.Feature): [number, number][] | null {
+  const geometry = feature.geometry;
+  if (!geometry) return null;
+  if (geometry.type === 'Polygon') {
+    return (geometry.coordinates[0] ?? []) as [number, number][];
+  }
+  if (geometry.type === 'MultiPolygon') {
+    const firstPolygon = geometry.coordinates[0];
+    return (firstPolygon?.[0] ?? []) as [number, number][];
+  }
+  return null;
+}
+
+function centroidOfRing(ring: [number, number][]) {
+  if (!ring.length) return null;
+  const sum = ring.reduce(
+    (acc, [lng, lat]) => ({ lng: acc.lng + lng, lat: acc.lat + lat }),
+    { lng: 0, lat: 0 },
+  );
+  return { lng: sum.lng / ring.length, lat: sum.lat / ring.length };
+}
+
+function createSunEdgeFeatures(features: StaticFeature[]): GeoJSON.Feature[] {
+  const lineFeatures: GeoJSON.Feature[] = [];
+
+  for (const feature of features) {
+    const props = (feature.properties ?? {}) as {
+      id?: string;
+      bestSide?: string;
+    };
+    const bestSide = props.bestSide as 'N' | 'E' | 'S' | 'W' | undefined;
+    if (!bestSide) continue;
+
+    const ring = polygonOuterRing(feature);
+    if (!ring || ring.length < 4) continue;
+    const center = centroidOfRing(ring);
+    if (!center) continue;
+
+    const targetBearing = SIDE_BEARINGS[bestSide];
+    const maxDeviation = 45;
+
+    for (let i = 0; i < ring.length - 1; i += 1) {
+      const a = ring[i];
+      const b = ring[i + 1];
+      const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+      const outwardBearing = bearingFromAtoB([center.lng, center.lat], mid);
+      if (angleDiff(outwardBearing, targetBearing) > maxDeviation) continue;
+
+      lineFeatures.push({
+        type: 'Feature',
+        geometry: {
+          type: 'LineString',
+          coordinates: [a, b],
+        },
+        properties: {
+          id: props.id,
+          bestSide,
+        },
+      });
+    }
+  }
+
+  return lineFeatures;
 }
 
 function collectCoords(geometry: GeoJSON.Geometry): [number, number][] {
@@ -259,6 +360,7 @@ export function useMapLibreMapEngine({
       if (!currentMap || !currentMap.isStyleLoaded()) return;
 
       const source = currentMap.getSource(BUILDING_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      const sunEdgesSource = currentMap.getSource(SUN_EDGES_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
       if (!source) return;
 
       setZoom(currentMap.getZoom());
@@ -266,6 +368,7 @@ export function useMapLibreMapEngine({
       if (currentMap.getZoom() < MAP_CONFIG.buildingsMinZoom) {
         buildingsRef.current = [];
         source.setData(EMPTY_FEATURE_COLLECTION);
+        sunEdgesSource?.setData(EMPTY_FEATURE_COLLECTION);
         return;
       }
 
@@ -274,9 +377,13 @@ export function useMapLibreMapEngine({
           const staticFeatures = await ensureStaticFeaturesLoaded();
           if (isDisposedRef.current) return;
           const bounds = currentMap.getBounds();
-          const visible = staticFeatures.filter((feature) => featureIntersectsBounds(feature, bounds));
+          let visible = staticFeatures.filter((feature) => featureIntersectsBounds(feature, bounds));
+          if (visible.length > MAX_VISIBLE_STATIC_FEATURES) {
+            visible = visible.slice(0, MAX_VISIBLE_STATIC_FEATURES);
+          }
           buildingsRef.current = visible;
           source.setData(toFeatureCollection(visible));
+          sunEdgesSource?.setData(toFeatureCollection(createSunEdgeFeatures(visible)));
           return;
         } catch (err) {
           console.warn('Failed to load static buildings for MapLibre:', err);
@@ -323,10 +430,12 @@ export function useMapLibreMapEngine({
         featuresCacheRef.current = { key, data: features, ts: Date.now() };
         buildingsRef.current = features;
         source.setData(toFeatureCollection(features));
+        sunEdgesSource?.setData(EMPTY_FEATURE_COLLECTION);
       } catch (err) {
         console.warn('Failed to load buildings for MapLibre:', err);
         buildingsRef.current = [];
         source.setData(EMPTY_FEATURE_COLLECTION);
+        sunEdgesSource?.setData(EMPTY_FEATURE_COLLECTION);
       } finally {
         inflightRequestRef.current = null;
         if (!isDisposedRef.current) {
@@ -337,6 +446,10 @@ export function useMapLibreMapEngine({
 
     const handleLoad = () => {
       map.addSource(BUILDING_SOURCE_ID, {
+        type: 'geojson',
+        data: EMPTY_FEATURE_COLLECTION,
+      });
+      map.addSource(SUN_EDGES_SOURCE_ID, {
         type: 'geojson',
         data: EMPTY_FEATURE_COLLECTION,
       });
@@ -363,6 +476,36 @@ export function useMapLibreMapEngine({
           'line-color': '#22314d',
           'line-width': 1.2,
           'line-opacity': 0.9,
+        },
+      });
+
+      map.addLayer({
+        id: SUN_EDGES_GLOW_LAYER_ID,
+        type: 'line',
+        source: SUN_EDGES_SOURCE_ID,
+        minzoom: MAP_CONFIG.buildingsMinZoom,
+        layout: {
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffd54f',
+          'line-width': 8,
+          'line-opacity': 0.18,
+        },
+      });
+
+      map.addLayer({
+        id: SUN_EDGES_CORE_LAYER_ID,
+        type: 'line',
+        source: SUN_EDGES_SOURCE_ID,
+        minzoom: MAP_CONFIG.buildingsMinZoom,
+        layout: {
+          'line-cap': 'round',
+        },
+        paint: {
+          'line-color': '#ffeb3b',
+          'line-width': 3,
+          'line-opacity': 0.95,
         },
       });
 
