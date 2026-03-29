@@ -1,4 +1,4 @@
-SHELL := /bin/zsh
+SHELL := /bin/sh
 
 FRONTEND_DIR := frontend
 DOCKERFILE := dockerfiles/frontend.Dockerfile
