@@ -28,6 +28,17 @@ interface ContextMenuState {
   error: string | null;
 }
 
+type OverlayFeature = GeoJSON.Feature & {
+  __bbox?: {
+    minLng: number;
+    minLat: number;
+    maxLng: number;
+    maxLat: number;
+  };
+};
+
+const MAX_VISIBLE_STATIC_FEATURES = 4500;
+
 const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
   N: 0,
   E: 90,
@@ -71,6 +82,47 @@ function polygonOuterRing(feature: GeoJSON.Feature): [number, number][] | null {
     return (firstPolygon?.[0] ?? []) as [number, number][];
   }
   return null;
+}
+
+function collectCoords(geometry: GeoJSON.Geometry): [number, number][] {
+  if (geometry.type === 'Polygon') {
+    return geometry.coordinates.flat() as [number, number][];
+  }
+  if (geometry.type === 'MultiPolygon') {
+    return geometry.coordinates.flat(2) as [number, number][];
+  }
+  return [];
+}
+
+function buildFeatureBBox(feature: GeoJSON.Feature): OverlayFeature['__bbox'] {
+  const geometry = feature.geometry;
+  if (!geometry) return undefined;
+  const coords = collectCoords(geometry);
+  if (!coords.length) return undefined;
+
+  let minLng = Infinity;
+  let minLat = Infinity;
+  let maxLng = -Infinity;
+  let maxLat = -Infinity;
+  for (const [lng, lat] of coords) {
+    if (lng < minLng) minLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lng > maxLng) maxLng = lng;
+    if (lat > maxLat) maxLat = lat;
+  }
+
+  return { minLng, minLat, maxLng, maxLat };
+}
+
+function featureIntersectsBounds(feature: OverlayFeature, bounds: L.LatLngBounds): boolean {
+  const bbox = feature.__bbox;
+  if (!bbox) return false;
+  return !(
+    bbox.maxLng < bounds.getWest() ||
+    bbox.minLng > bounds.getEast() ||
+    bbox.maxLat < bounds.getSouth() ||
+    bbox.minLat > bounds.getNorth()
+  );
 }
 
 function centroidOfRing(ring: [number, number][]) {
@@ -286,14 +338,101 @@ export default function MapPage() {
     if (engine !== 'leaflet') return;
     let disposed = false;
     let rafId = 0;
-    let zoomHandlerAttached = false;
-    let zoomHandlerMap: L.Map | null = null;
-    let zoomHandler: (() => void) | null = null;
+    let mapEventHandlerAttached = false;
+    let mapWithHandlers: L.Map | null = null;
+    let onViewportChange: (() => void) | null = null;
+    let allStaticFeatures: OverlayFeature[] = [];
+
+    function renderVisibleStaticLayers() {
+      const map = mapRef.current;
+      if (!map || disposed || !allStaticFeatures.length) return;
+
+      const visibleBounds = map.getBounds().pad(0.18);
+      let visible = allStaticFeatures.filter((feature) => featureIntersectsBounds(feature, visibleBounds));
+      if (visible.length > MAX_VISIBLE_STATIC_FEATURES) {
+        visible = visible.slice(0, MAX_VISIBLE_STATIC_FEATURES);
+      }
+
+      staticDatasetLayerRef.current?.remove();
+      sunEdgesLayerRef.current?.remove();
+      const sunEdgesLayer = L.layerGroup();
+
+      staticDatasetLayerRef.current = L.geoJSON(visible as GeoJSON.Feature[], {
+        style: (feature) => {
+          const props = (feature?.properties ?? {}) as {
+            color?: string;
+          };
+
+          return {
+            color: '#1f2937',
+            weight: 1,
+            fillColor: props.color ?? '#f59e0b',
+            fillOpacity: 0.45,
+          };
+        },
+        onEachFeature: (feature, layer) => {
+          const props = (feature.properties ?? {}) as {
+            id?: string;
+            bestSide?: string;
+            sidePct?: Partial<Record<'N' | 'E' | 'S' | 'W', number>>;
+          };
+          const pct = props.sidePct ?? {};
+          const popup = [
+            `<b>${props.id ?? 'Building'}</b>`,
+            `Best side: <b>${props.bestSide ?? '-'}</b>`,
+            `N: ${pct.N ?? 0}% | E: ${pct.E ?? 0}%`,
+            `S: ${pct.S ?? 0}% | W: ${pct.W ?? 0}%`,
+          ].join('<br/>');
+          layer.bindPopup(popup);
+
+          const bestSide = props.bestSide as 'N' | 'E' | 'S' | 'W' | undefined;
+          if (!bestSide) return;
+
+          const ring = polygonOuterRing(feature as GeoJSON.Feature);
+          if (!ring || ring.length < 4) return;
+          const center = centroidOfRing(ring);
+          if (!center) return;
+          const targetBearing = SIDE_BEARINGS[bestSide];
+          const maxDeviation = 45;
+
+          for (let i = 0; i < ring.length - 1; i += 1) {
+            const a = ring[i];
+            const b = ring[i + 1];
+            const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
+            const outwardBearing = bearingFromAtoB([center.lng, center.lat], mid);
+
+            if (angleDiff(outwardBearing, targetBearing) > maxDeviation) continue;
+            const latLngs: [number, number][] = [
+              [a[1], a[0]],
+              [b[1], b[0]],
+            ];
+
+            L.polyline(latLngs, {
+              color: '#ffd54f',
+              weight: 8,
+              opacity: 0.18,
+              lineCap: 'round',
+            }).addTo(sunEdgesLayer);
+
+            L.polyline(latLngs, {
+              color: '#ffeb3b',
+              weight: 3,
+              opacity: 0.95,
+              lineCap: 'round',
+            }).addTo(sunEdgesLayer);
+          }
+        },
+      }).addTo(map);
+
+      sunEdgesLayerRef.current = sunEdgesLayer;
+      if (map.getZoom() >= MAP_CONFIG.buildingsMinZoom) {
+        sunEdgesLayer.addTo(map);
+      }
+    }
 
     async function loadStaticDatasetLayer() {
       const map = rawMapRef.current as L.Map | null;
       if (!map) return;
-
       try {
         const res = await fetch('/dataset/block-buildings.geojson');
         if (!res.ok) {
@@ -304,9 +443,13 @@ export default function MapPage() {
         const geojson = await res.json() as GeoJSON.FeatureCollection;
         if (disposed) return;
 
-        staticDatasetLayerRef.current?.remove();
-        sunEdgesLayerRef.current?.remove();
-        const sunEdgesLayer = L.layerGroup();
+        allStaticFeatures = geojson.features
+          .filter((feature) => feature.geometry?.type === 'Polygon' || feature.geometry?.type === 'MultiPolygon')
+          .map((feature) => {
+            const f = feature as OverlayFeature;
+            f.__bbox = buildFeatureBBox(f);
+            return f;
+          });
 
         staticDatasetLayerRef.current = L.geoJSON(geojson, {
           style: (feature) => {
@@ -401,6 +544,12 @@ export default function MapPage() {
 
         sunEdgesLayerRef.current = sunEdgesLayer;
         updateSunEdgesVisibility();
+        onViewportChange = renderVisibleStaticLayers;
+        mapWithHandlers = map;
+        mapEventHandlerAttached = true;
+        map.on('moveend', onViewportChange);
+        map.on('zoomend', onViewportChange);
+        renderVisibleStaticLayers();
       } catch (err) {
         console.error('Failed to load static dataset layer:', err);
       }
@@ -419,8 +568,9 @@ export default function MapPage() {
     return () => {
       disposed = true;
       if (rafId) window.cancelAnimationFrame(rafId);
-      if (zoomHandlerAttached && zoomHandlerMap && zoomHandler) {
-        zoomHandlerMap.off('zoomend', zoomHandler);
+      if (mapEventHandlerAttached && mapWithHandlers && onViewportChange) {
+        mapWithHandlers.off('moveend', onViewportChange);
+        mapWithHandlers.off('zoomend', onViewportChange);
       }
       staticDatasetLayerRef.current?.remove();
       sunEdgesLayerRef.current?.remove();
