@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import { MAP_CONFIG, SUN_EXPOSURE_CONFIG } from '@/config/map';
 import { useDateTime } from '@/hooks/useDateTime';
-import { useShadeMapSetup } from '@/hooks/useShadeMapSetup';
+import { useMapEngine } from '@/hooks/useMapEngine';
 import { astanaLocalToDate } from '@/utils/astanaTime';
 import type { ClickInfo } from '@/types/map';
 import type { GeocodingResult } from '@/services/geocoding';
@@ -15,6 +15,7 @@ import SearchBar from '@/components/SearchBar';
 import BuildingDetailsPanel from '@/components/BuildingDetailsPanel';
 import type { SelectedBuilding } from '@/types/building';
 import { findBuildingAtPoint, toSelectedBuilding } from '@/utils/buildings';
+import type { MapBounds, MapPoint } from '@/types/map-engine';
 
 interface ContextMenuState {
   x: number;
@@ -81,9 +82,8 @@ function centroidOfRing(ring: [number, number][]) {
   return { lng: sum.lng / ring.length, lat: sum.lat / ring.length };
 }
 
-function isMapReadyForShadeOps(mapRef: React.RefObject<L.Map | null>) {
-  const map = mapRef.current as (L.Map & { _mapPane?: HTMLElement }) | null;
-  return Boolean(map && map._mapPane);
+function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
+  return engineController.isReady();
 }
 
 export default function MapPage() {
@@ -99,21 +99,28 @@ export default function MapPage() {
   const selectedBuildingLayerRef = useRef<L.LayerGroup | null>(null);
   const suppressNextMapClickRef = useRef(false);
 
-  const { containerRef, mapRef, shadeMapRef, buildingsRef, zoom } = useShadeMapSetup({
+  const {
+    engine,
+    containerRef,
+    rawMapRef,
+    buildingsRef,
+    controller,
+    shadow,
+    zoom,
+  } = useMapEngine({
     initialDate: dt.date,
     onLoadingChange: setLoadingBuildings,
   });
 
   // Sync date/time → shade map
   useEffect(() => {
-    const sm = shadeMapRef.current;
-    if (!sm || !isMapReadyForShadeOps(mapRef)) return;
+    if (!shadow || !isMapReadyForShadeOps(controller)) return;
     try {
-      sm.setDate(dt.date);
+      shadow.setDate(dt.date);
     } catch {
-      // Ignore transient teardown races during HMR/unmount.
+      return;
     }
-  }, [dt.date, shadeMapRef, mapRef]);
+  }, [dt.date, shadow, controller]);
 
   function getDefaultSunExposureRange(dateStr: string) {
     return {
@@ -125,23 +132,19 @@ export default function MapPage() {
 
   // Sync sun exposure mode → shade map
   useEffect(() => {
-    const sm = shadeMapRef.current;
-    if (!sm || !isMapReadyForShadeOps(mapRef)) return;
+    if (!shadow || !isMapReadyForShadeOps(controller)) return;
 
-    sm.setSunExposure(sunExposure, {
+    shadow.setSunExposure(sunExposure, {
       ...getDefaultSunExposureRange(dt.dateStr),
     }).catch(() => {
-      // Ignore transient teardown races during HMR/unmount.
     });
-  }, [sunExposure, dt.dateStr, shadeMapRef, mapRef]);
+  }, [sunExposure, dt.dateStr, shadow, controller]);
 
   // Map click → check sun/shade at that pixel
   useEffect(() => {
-    const map = mapRef.current;
-    if (!map) return;
     let disposed = false;
 
-    function handleClick(e: L.LeafletMouseEvent) {
+    function handleClick(point: MapPoint) {
       if (suppressNextMapClickRef.current) {
         suppressNextMapClickRef.current = false;
         return;
@@ -149,38 +152,33 @@ export default function MapPage() {
 
       menuRequestIdRef.current += 1;
       setContextMenu(null);
-      const building = findBuildingAtPoint(buildingsRef.current, {
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
-      });
+      const building = findBuildingAtPoint(buildingsRef.current, point);
       setSelectedBuilding(building);
-      const sm = shadeMapRef.current;
-      if (!sm) return;
+      if (!shadow) return;
+      const screenPoint = controller.getContainerPoint(point);
+      if (!screenPoint) return;
+      setClickInfo({ lat: point.lat, lng: point.lng, inSun: null });
 
-      const { x, y } = map!.latLngToContainerPoint(e.latlng);
-      setClickInfo({ lat: e.latlng.lat, lng: e.latlng.lng, inSun: null });
-
-      sm.isPositionInSun(x, y)
-        .then((inSun) => setClickInfo({ lat: e.latlng.lat, lng: e.latlng.lng, inSun }))
+      shadow.isPositionInSun(screenPoint)
+        .then((inSun) => setClickInfo({ lat: point.lat, lng: point.lng, inSun }))
         .catch(() => setClickInfo(null));
     }
 
-    async function handleContextMenu(e: L.LeafletMouseEvent) {
-      if (disposed || !isMapReadyForShadeOps(mapRef)) return;
-      const m = mapRef.current;
-      const sm = shadeMapRef.current;
-      if (!m || !sm) return;
+    async function handleContextMenu(point: MapPoint) {
+      if (disposed || !isMapReadyForShadeOps(controller)) return;
+      if (!shadow) return;
 
       const requestId = menuRequestIdRef.current + 1;
       menuRequestIdRef.current = requestId;
 
       setClickInfo(null);
-      const { x, y } = m.latLngToContainerPoint(e.latlng);
+      const screenPoint = controller.getContainerPoint(point);
+      if (!screenPoint) return;
       setContextMenu({
-        x: x + 8,
-        y: y - 8,
-        lat: e.latlng.lat,
-        lng: e.latlng.lng,
+        x: screenPoint.x + 8,
+        y: screenPoint.y - 8,
+        lat: point.lat,
+        lng: point.lng,
         annualSunHours: null,
         dailySunHours: null,
         loadingInfo: true,
@@ -194,15 +192,15 @@ export default function MapPage() {
       const yearEnd = astanaLocalToDate(`${year}-12-31`, 23, 59);
 
       try {
-        if (disposed || !isMapReadyForShadeOps(mapRef)) return;
-        await sm.setSunExposure(true, { startDate: dayStart, endDate: dayEnd, iterations: 48 });
-        if (disposed || !isMapReadyForShadeOps(mapRef)) return;
-        const dailySunHours = await sm.getHoursOfSun(x, y);
+        if (disposed || !isMapReadyForShadeOps(controller)) return;
+        await shadow.setSunExposure(true, { startDate: dayStart, endDate: dayEnd, iterations: 48 });
+        if (disposed || !isMapReadyForShadeOps(controller)) return;
+        const dailySunHours = await shadow.getHoursOfSun(screenPoint);
 
-        if (disposed || !isMapReadyForShadeOps(mapRef)) return;
-        await sm.setSunExposure(true, { startDate: yearStart, endDate: yearEnd, iterations: 96 });
-        if (disposed || !isMapReadyForShadeOps(mapRef)) return;
-        const annualSunHours = await sm.getHoursOfSun(x, y);
+        if (disposed || !isMapReadyForShadeOps(controller)) return;
+        await shadow.setSunExposure(true, { startDate: yearStart, endDate: yearEnd, iterations: 96 });
+        if (disposed || !isMapReadyForShadeOps(controller)) return;
+        const annualSunHours = await shadow.getHoursOfSun(screenPoint);
 
         if (menuRequestIdRef.current !== requestId) return;
         setContextMenu((prev) => (prev
@@ -223,25 +221,26 @@ export default function MapPage() {
             }
           : null));
       } finally {
-        if (!disposed && isMapReadyForShadeOps(mapRef)) {
-          await sm.setSunExposure(sunExposure, {
+        if (!disposed && isMapReadyForShadeOps(controller)) {
+          await shadow.setSunExposure(sunExposure, {
             ...getDefaultSunExposureRange(dt.dateStr),
           });
         }
       }
     }
 
-    map.on('click', handleClick);
-    map.on('contextmenu', handleContextMenu);
+    const unsubscribeClick = controller.onClick(handleClick);
+    const unsubscribeContextMenu = controller.onContextMenu(handleContextMenu);
     return () => {
       disposed = true;
-      map.off('click', handleClick);
-      map.off('contextmenu', handleContextMenu);
+      unsubscribeClick();
+      unsubscribeContextMenu();
     };
-  }, [mapRef, shadeMapRef, buildingsRef, dt.dateStr, sunExposure]);
+  }, [shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
 
   useEffect(() => {
-    const map = mapRef.current;
+    if (engine !== 'leaflet') return;
+    const map = rawMapRef.current as L.Map | null;
     selectedBuildingLayerRef.current?.remove();
     selectedBuildingLayerRef.current = null;
 
@@ -273,22 +272,18 @@ export default function MapPage() {
         selectedBuildingLayerRef.current = null;
       }
     };
-  }, [mapRef, selectedBuilding]);
+  }, [engine, rawMapRef, selectedBuilding]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
-    const map = mapRef.current;
-    if (!map) return;
-
     const [south, north, west, east] = result.boundingBox;
-    map.flyToBounds(
-      [[south, west], [north, east]],
-      { duration: 1.2, padding: [40, 40] },
-    );
+    const bounds: MapBounds = { south, north, west, east };
+    controller.flyToBounds(bounds, { duration: 1.2, padding: [40, 40] });
   }
 
   // Load precomputed static dataset (best building side to receive sunlight)
   useEffect(() => {
+    if (engine !== 'leaflet') return;
     let disposed = false;
     let rafId = 0;
     let zoomHandlerAttached = false;
@@ -296,7 +291,7 @@ export default function MapPage() {
     let zoomHandler: (() => void) | null = null;
 
     async function loadStaticDatasetLayer() {
-      const map = mapRef.current;
+      const map = rawMapRef.current as L.Map | null;
       if (!map) return;
 
       try {
@@ -387,14 +382,15 @@ export default function MapPage() {
         }).addTo(map);
 
         function updateSunEdgesVisibility() {
-          if (!sunEdgesLayerRef.current || !mapRef.current) return;
-          const shouldShow = mapRef.current.getZoom() >= MAP_CONFIG.buildingsMinZoom;
+          const currentMap = rawMapRef.current as L.Map | null;
+          if (!sunEdgesLayerRef.current || !currentMap) return;
+          const shouldShow = currentMap.getZoom() >= MAP_CONFIG.buildingsMinZoom;
           if (shouldShow) {
-            if (!mapRef.current.hasLayer(sunEdgesLayerRef.current)) {
-              sunEdgesLayerRef.current.addTo(mapRef.current);
+            if (!currentMap.hasLayer(sunEdgesLayerRef.current)) {
+              sunEdgesLayerRef.current.addTo(currentMap);
             }
-          } else if (mapRef.current.hasLayer(sunEdgesLayerRef.current)) {
-            mapRef.current.removeLayer(sunEdgesLayerRef.current);
+          } else if (currentMap.hasLayer(sunEdgesLayerRef.current)) {
+            currentMap.removeLayer(sunEdgesLayerRef.current);
           }
         }
 
@@ -412,7 +408,7 @@ export default function MapPage() {
 
     function waitForMapAndLoad() {
       if (disposed) return;
-      if (!mapRef.current) {
+      if (!rawMapRef.current) {
         rafId = window.requestAnimationFrame(waitForMapAndLoad);
         return;
       }
@@ -431,7 +427,7 @@ export default function MapPage() {
       staticDatasetLayerRef.current = null;
       sunEdgesLayerRef.current = null;
     };
-  }, [mapRef]);
+  }, [engine, rawMapRef]);
 
   return (
     <div className="relative w-screen h-screen overflow-hidden">
@@ -478,7 +474,8 @@ export default function MapPage() {
             setContextMenu(null);
           }}
           onCenterMap={() => {
-            mapRef.current?.panTo([contextMenu.lat, contextMenu.lng], { animate: true, duration: 0.5 });
+            const point: MapPoint = { lat: contextMenu.lat, lng: contextMenu.lng };
+            controller.panTo(point, { animate: true, duration: 0.5 });
             menuRequestIdRef.current += 1;
             setContextMenu(null);
           }}
