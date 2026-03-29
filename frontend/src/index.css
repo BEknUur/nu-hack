@@ -59,3 +59,15 @@ html, body, #root {
   filter: invert(0.7);
   cursor: pointer;
 }
+
+.leaflet-container {
+  transition: filter 220ms ease;
+}
+
+.leaflet-container.map-3d-mode {
+  filter: saturate(1.08) contrast(1.04) brightness(0.98);
+}
+
+.leaflet-container.map-3d-mode .leaflet-control-container {
+  filter: none;
+}
