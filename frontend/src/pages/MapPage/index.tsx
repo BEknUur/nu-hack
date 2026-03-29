@@ -12,6 +12,9 @@ import TimeSliderBar from '@/components/TimeSliderBar';
 import MapContextMenu from '@/components/MapContextMenu';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
+import BuildingDetailsPanel from '@/components/BuildingDetailsPanel';
+import type { SelectedBuilding } from '@/types/building';
+import { findBuildingAtPoint, toSelectedBuilding } from '@/utils/buildings';
 
 interface ContextMenuState {
   x: number;
@@ -89,11 +92,14 @@ export default function MapPage() {
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [loadingBuildings, setLoadingBuildings] = useState(false);
+  const [selectedBuilding, setSelectedBuilding] = useState<SelectedBuilding | null>(null);
   const menuRequestIdRef = useRef(0);
   const staticDatasetLayerRef = useRef<L.GeoJSON | null>(null);
   const sunEdgesLayerRef = useRef<L.LayerGroup | null>(null);
+  const selectedBuildingLayerRef = useRef<L.LayerGroup | null>(null);
+  const suppressNextMapClickRef = useRef(false);
 
-  const { containerRef, mapRef, shadeMapRef, zoom } = useShadeMapSetup({
+  const { containerRef, mapRef, shadeMapRef, buildingsRef, zoom } = useShadeMapSetup({
     initialDate: dt.date,
     onLoadingChange: setLoadingBuildings,
   });
@@ -107,7 +113,7 @@ export default function MapPage() {
     } catch {
       // Ignore transient teardown races during HMR/unmount.
     }
-  }, [dt.date, shadeMapRef]);
+  }, [dt.date, shadeMapRef, mapRef]);
 
   function getDefaultSunExposureRange(dateStr: string) {
     return {
@@ -136,8 +142,18 @@ export default function MapPage() {
     let disposed = false;
 
     function handleClick(e: L.LeafletMouseEvent) {
+      if (suppressNextMapClickRef.current) {
+        suppressNextMapClickRef.current = false;
+        return;
+      }
+
       menuRequestIdRef.current += 1;
       setContextMenu(null);
+      const building = findBuildingAtPoint(buildingsRef.current, {
+        lat: e.latlng.lat,
+        lng: e.latlng.lng,
+      });
+      setSelectedBuilding(building);
       const sm = shadeMapRef.current;
       if (!sm) return;
 
@@ -222,7 +238,42 @@ export default function MapPage() {
       map.off('click', handleClick);
       map.off('contextmenu', handleContextMenu);
     };
-  }, [mapRef, shadeMapRef, dt.dateStr, sunExposure]);
+  }, [mapRef, shadeMapRef, buildingsRef, dt.dateStr, sunExposure]);
+
+  useEffect(() => {
+    const map = mapRef.current;
+    selectedBuildingLayerRef.current?.remove();
+    selectedBuildingLayerRef.current = null;
+
+    if (!map || !selectedBuilding) return;
+
+    const layerGroup = L.layerGroup();
+
+    selectedBuilding.polygons.forEach((polygon) => {
+      const latLngRings = [
+        polygon.outer.map(([lng, lat]) => [lat, lng] as [number, number]),
+        ...polygon.holes.map((hole) => hole.map(([lng, lat]) => [lat, lng] as [number, number])),
+      ];
+
+      L.polygon(latLngRings, {
+        color: '#38bdf8',
+        weight: 3,
+        fillColor: '#38bdf8',
+        fillOpacity: 0.18,
+        opacity: 0.95,
+      }).addTo(layerGroup);
+    });
+
+    layerGroup.addTo(map);
+    selectedBuildingLayerRef.current = layerGroup;
+
+    return () => {
+      layerGroup.remove();
+      if (selectedBuildingLayerRef.current === layerGroup) {
+        selectedBuildingLayerRef.current = null;
+      }
+    };
+  }, [mapRef, selectedBuilding]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
@@ -289,6 +340,12 @@ export default function MapPage() {
               `S: ${pct.S ?? 0}% | W: ${pct.W ?? 0}%`,
             ].join('<br/>');
             layer.bindPopup(popup);
+            layer.on('click', () => {
+              suppressNextMapClickRef.current = true;
+              setContextMenu(null);
+              setClickInfo(null);
+              setSelectedBuilding(toSelectedBuilding(feature as GeoJSON.Feature));
+            });
 
             const bestSide = props.bestSide as 'N' | 'E' | 'S' | 'W' | undefined;
             if (!bestSide) return;
@@ -390,6 +447,13 @@ export default function MapPage() {
         zoom={zoom}
         loadingBuildings={loadingBuildings}
       />
+
+      {selectedBuilding && (
+        <BuildingDetailsPanel
+          building={selectedBuilding}
+          onClose={() => setSelectedBuilding(null)}
+        />
+      )}
 
       <TimeSliderBar
         sliderValue={dt.sliderValue}

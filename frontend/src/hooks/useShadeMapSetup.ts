@@ -15,6 +15,7 @@ export interface UseShadeMapSetupReturn {
   containerRef: React.RefObject<HTMLDivElement | null>;
   mapRef: React.RefObject<L.Map | null>;
   shadeMapRef: React.RefObject<ShadeMap | null>;
+  buildingsRef: React.RefObject<GeoJSON.Feature[]>;
   zoom: number;
 }
 
@@ -25,6 +26,7 @@ export function useShadeMapSetup({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<L.Map | null>(null);
   const shadeMapRef = useRef<ShadeMap | null>(null);
+  const buildingsRef = useRef<GeoJSON.Feature[]>([]);
   const [zoom, setZoom] = useState<number>(MAP_CONFIG.zoom);
 
   // Keep callback ref fresh so getFeatures never captures a stale closure
@@ -67,7 +69,10 @@ export function useShadeMapSetup({
         getFeatures: async () => {
           const m = mapRef.current;
           const mapPane = (m as unknown as { _mapPane?: HTMLElement })._mapPane;
-          if (isDisposedRef.current || !m || !mapPane || m.getZoom() < MAP_CONFIG.buildingsMinZoom) return [];
+          if (isDisposedRef.current || !m || !mapPane || m.getZoom() < MAP_CONFIG.buildingsMinZoom) {
+            buildingsRef.current = [];
+            return [];
+          }
 
           const bounds = m.getBounds();
           const zoomBucket = Math.floor(m.getZoom());
@@ -81,6 +86,7 @@ export function useShadeMapSetup({
 
           const cache = featuresCacheRef.current;
           if (cache && cache.key === key && Date.now() - cache.ts < 15_000) {
+            buildingsRef.current = cache.data;
             return cache.data;
           }
 
@@ -101,10 +107,12 @@ export function useShadeMapSetup({
             const features = await request;
             if (isDisposedRef.current) return [];
             featuresCacheRef.current = { key, data: features, ts: Date.now() };
+            buildingsRef.current = features;
             return features;
           } catch (err) {
             // Avoid noisy stack traces from intermittent Overpass failures.
             console.warn('Failed to load buildings from Overpass:', err);
+            buildingsRef.current = [];
             return [];
           } finally {
             inflightRequestRef.current = null;
@@ -161,5 +169,5 @@ export function useShadeMapSetup({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return { containerRef, mapRef, shadeMapRef, zoom };
+  return { containerRef, mapRef, shadeMapRef, buildingsRef, zoom };
 }

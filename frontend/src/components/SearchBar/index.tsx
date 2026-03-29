@@ -8,22 +8,18 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSelect }: SearchBarProps) {
   const { query, setQuery, results, loading, clear } = useGeocoding();
-  const [open, setOpen] = useState(false);
+  const [focused, setFocused] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  // Open dropdown when results arrive
-  useEffect(() => {
-    setOpen(results.length > 0);
-    setActiveIndex(-1);
-  }, [results]);
+  const open = focused && results.length > 0;
+  const currentActiveIndex = activeIndex >= results.length ? -1 : activeIndex;
 
   // Close on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
-        setOpen(false);
+        setFocused(false);
       }
     }
     document.addEventListener('mousedown', handleClick);
@@ -33,7 +29,8 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   function handleSelect(result: GeocodingResult) {
     onSelect(result);
     clear();
-    setOpen(false);
+    setFocused(false);
+    setActiveIndex(-1);
   }
 
   function handleKeyDown(e: React.KeyboardEvent) {
@@ -45,11 +42,12 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
     } else if (e.key === 'ArrowUp') {
       e.preventDefault();
       setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
+    } else if (e.key === 'Enter' && currentActiveIndex >= 0) {
       e.preventDefault();
-      handleSelect(results[activeIndex]);
+      handleSelect(results[currentActiveIndex]);
     } else if (e.key === 'Escape') {
-      setOpen(false);
+      setFocused(false);
+      setActiveIndex(-1);
       inputRef.current?.blur();
     }
   }
@@ -85,9 +83,13 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
           ref={inputRef}
           type="text"
           value={query}
-          onChange={(e) => setQuery(e.target.value)}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setActiveIndex(-1);
+            setFocused(true);
+          }}
           onKeyDown={handleKeyDown}
-          onFocus={() => results.length > 0 && setOpen(true)}
+          onFocus={() => setFocused(true)}
           placeholder="Search location…"
           className="flex-1 bg-transparent text-[13px] text-white placeholder-white/30 outline-none"
         />
@@ -120,7 +122,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
         <ul className="mt-1.5 bg-[rgba(8,12,28,0.95)] backdrop-blur-[16px] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
           {results.map((result, idx) => {
             const { main, sub } = formatName(result.displayName);
-            const isActive = idx === activeIndex;
+            const isActive = idx === currentActiveIndex;
 
             return (
               <li key={result.id}>
