@@ -15,13 +15,14 @@ const OVERPASS_ENDPOINTS = [
   "https://overpass.private.coffee/api/interpreter",
 ];
 
-// Extended area: Expo block + Nazarbayev University side.
+// Full Astana coverage (approx city bounds).
 const DATASET_BBOX = {
-  s: 51.0813,
-  w: 71.3919,
-  n: 51.099,
-  e: 71.4266,
+  s: 50.98,
+  w: 71.2,
+  n: 51.26,
+  e: 71.65,
 };
+const TILE_SIZE_KM = 4;
 
 const SETTINGS = {
   date: "2026-03-29",
@@ -134,6 +135,16 @@ function sleep(ms) {
   });
 }
 
+async function fetchWithTimeout(url, timeoutMs) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 function ensurePolygonRings(geometry) {
   if (!geometry) return [];
   if (geometry.type === "Polygon") return [geometry.coordinates[0]];
@@ -200,27 +211,54 @@ function buildTimeGrid() {
 
 async function fetchBuildings() {
   let lastError = null;
-  for (const endpoint of OVERPASS_ENDPOINTS) {
-    for (let attempt = 1; attempt <= 3; attempt += 1) {
-      try {
-        const url = overpassUrl(endpoint, DATASET_BBOX);
-        const res = await fetch(url);
-        if (!res.ok) throw new Error(`${endpoint} responded with ${res.status}`);
+  const cityCenterLat = (DATASET_BBOX.s + DATASET_BBOX.n) / 2;
+  const tiles = tileBboxes(DATASET_BBOX, TILE_SIZE_KM, cityCenterLat);
+  const byId = new Map();
 
-        const osm = await res.json();
-        const geo = osmtogeojson(osm);
-        return geo.features.filter((feature) => {
-          if (!feature.geometry) return false;
-          return feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon";
-        });
-      } catch (error) {
-        lastError = error;
-        if (attempt < 3) await sleep(450 * attempt);
+  for (const tile of tiles) {
+    const tileNumber = tiles.indexOf(tile) + 1;
+    let tileLoaded = false;
+    for (const endpoint of OVERPASS_ENDPOINTS) {
+      for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+          const url = overpassUrl(endpoint, tile);
+          const res = await fetchWithTimeout(url, 15000);
+          if (!res.ok) throw new Error(`${endpoint} responded with ${res.status}`);
+
+          const osm = await res.json();
+          const geo = osmtogeojson(osm);
+          const polygons = geo.features.filter((feature) => {
+            if (!feature.geometry) return false;
+            return feature.geometry.type === "Polygon" || feature.geometry.type === "MultiPolygon";
+          });
+
+          for (const feature of polygons) {
+            const id =
+              feature.id ||
+              feature.properties?.["@id"] ||
+              JSON.stringify(feature.geometry);
+            if (!byId.has(id)) byId.set(id, feature);
+          }
+
+          tileLoaded = true;
+          console.log(`Loaded tile ${tileNumber}/${tiles.length} from ${endpoint}`);
+          break;
+        } catch (error) {
+          lastError = error;
+          if (attempt < 2) await sleep(500 * attempt);
+        }
       }
+      if (tileLoaded) break;
     }
+
+    // Gentle pacing for public Overpass mirrors.
+    await sleep(100);
   }
 
-  throw lastError || new Error("Failed to fetch buildings from all Overpass endpoints");
+  if (!byId.size) {
+    throw lastError || new Error("Failed to fetch buildings from all Overpass endpoints");
+  }
+  return Array.from(byId.values());
 }
 
 function analyzeBuilding(feature) {
@@ -369,6 +407,7 @@ async function main() {
   const summary = {
     meta: {
       bbox: DATASET_BBOX,
+      tileSizeKm: TILE_SIZE_KM,
       date: SETTINGS.date,
       timezoneOffsetHours: SETTINGS.timezoneOffsetHours,
       stepMinutes: SETTINGS.stepMinutes,
