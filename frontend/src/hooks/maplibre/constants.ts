@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import { MAP_CONFIG } from '@/config/map';
-import type { StaticRegionBBox } from '@/hooks/maplibre/types';
+import type { StaticRegionBBox } from './types';
 
 export const BUILDING_SOURCE_ID = 'osm-buildings';
 export const SUN_WALLS_SOURCE_ID = 'sun-walls';
