@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { searchLocation, type GeocodingResult } from '@/services/geocoding';
+import { useTranslation } from '@/i18n';
 
 const DEBOUNCE_MS = 400;
 
@@ -12,6 +13,7 @@ export interface UseGeocodingReturn {
 }
 
 export function useGeocoding(): UseGeocodingReturn {
+  const { language } = useTranslation();
   const [query, setQuery] = useState('');
   const [results, setResults] = useState<GeocodingResult[]>([]);
   const [loading, setLoading] = useState(false);
@@ -43,7 +45,7 @@ export function useGeocoding(): UseGeocodingReturn {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [query]);
+  }, [query, language]);
 
   function clear() {
     setQuery('');

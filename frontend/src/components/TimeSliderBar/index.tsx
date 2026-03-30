@@ -1,5 +1,6 @@
 import type { CSSProperties } from 'react';
 import { Clock3 } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 
 interface TimeSliderBarProps {
   sliderValue: number;
@@ -16,6 +17,8 @@ export default function TimeSliderBar({
   timeLabel,
   onSliderChange,
 }: TimeSliderBarProps) {
+  const { messages } = useTranslation();
+
   return (
     <div className="pointer-events-none absolute bottom-4 left-1/2 z-[1000] w-[min(960px,calc(100vw-2rem))] -translate-x-1/2">
       <div className="map-panel pointer-events-auto rounded-xl px-4 py-3">
@@ -25,7 +28,7 @@ export default function TimeSliderBar({
               <Clock3 className="h-4 w-4 text-[var(--blue-strong)]" />
             </div>
             <div>
-              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Time of day</div>
+              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.timeOfDay}</div>
               <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[var(--yellow-strong)]">
                 {timeLabel}
               </div>

@@ -21,20 +21,25 @@ import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
 import { renderLeafletSelectedBuildingLayer } from '@/pages/MapPage/leafletSelectionLayer';
 import { buildBestSideHighlightFeatureCollection } from '@/utils/bestSideHighlight';
 import { OSM_TILE_URLS, SATELLITE_TILE_URLS } from '@/hooks/maplibre/constants';
+import { useTranslation } from '@/i18n';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
   return engineController.isReady();
 }
 
-function sideToLabel(side: 'N' | 'E' | 'S' | 'W' | null | undefined) {
-  if (side === 'N') return 'North';
-  if (side === 'E') return 'East';
-  if (side === 'S') return 'South';
-  if (side === 'W') return 'West';
+function sideToLabel(
+  side: 'N' | 'E' | 'S' | 'W' | null | undefined,
+  labels: { north: string; east: string; south: string; west: string },
+) {
+  if (side === 'N') return labels.north;
+  if (side === 'E') return labels.east;
+  if (side === 'S') return labels.south;
+  if (side === 'W') return labels.west;
   return null;
 }
 
 export default function MapPage() {
+  const { messages } = useTranslation();
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
   const [is3D, setIs3D] = useState(false);
@@ -385,7 +390,12 @@ export default function MapPage() {
             top: `${clickInfo.screenY - 12}px`,
           }}
         >
-          {sideToLabel(clickInfo.predictedBestSide) ?? clickInfo.predictedBestSide}
+          {sideToLabel(clickInfo.predictedBestSide, {
+            north: messages.map.north,
+            east: messages.map.east,
+            south: messages.map.south,
+            west: messages.map.west,
+          }) ?? clickInfo.predictedBestSide}
           {clickInfo.predictedConfidence !== null && clickInfo.predictedConfidence !== undefined && (
             <span className="ml-2 ui-mono text-[var(--ink-soft)]">
               {Math.round(clickInfo.predictedConfidence * 100)}%
