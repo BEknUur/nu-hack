@@ -208,6 +208,13 @@ export default function MapPage() {
     controller.flyToBounds(bounds, { duration: 1.2, padding: [40, 40] });
   }
 
+  function handleTimeSliderChange(value: number) {
+    if (sunExposure) {
+      setSunExposure(false);
+    }
+    dt.setSlider(value);
+  }
+
   // Load precomputed static dataset (best building side to receive sunlight)
   useEffect(() => {
     if (engine !== 'leaflet') return;
@@ -244,7 +251,7 @@ export default function MapPage() {
         sliderValue={dt.sliderValue}
         sliderPct={dt.sliderPct}
         timeLabel={dt.timeLabel}
-        onSliderChange={dt.setSlider}
+        onSliderChange={handleTimeSliderChange}
       />
 
       {clickInfo && (
