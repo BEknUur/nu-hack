@@ -1,7 +1,7 @@
 export const MAP_CONFIG = {
   center: [51.08911, 71.41623] as [number, number],
-  zoom: 15,
-  buildingsMinZoom: 15,
+  zoom: 14,
+  buildingsMinZoom: 13,
   tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   tileAttribution:
     '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
