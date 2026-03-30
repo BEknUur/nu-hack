@@ -5,6 +5,13 @@ import type { StaticRegionBBox } from './types';
 export const BUILDING_SOURCE_ID = 'osm-buildings';
 export const SUN_WALLS_SOURCE_ID = 'sun-walls';
 export const SUN_WALLS_LAYER_ID = 'sun-walls-extrusion';
+export const TREE_HEAT_SOURCE_ID = 'tree-heat-source';
+export const TREE_HEAT_LAYER_ID = 'tree-heat-layer';
+export const TREE_TOP_SOURCE_ID = 'tree-top-source';
+export const TREE_TOP_LAYER_ID = 'tree-top-layer';
+export const TREE_COVERAGE_SOURCE_ID = 'tree-coverage-source';
+export const TREE_COVERAGE_FILL_LAYER_ID = 'tree-coverage-fill-layer';
+export const TREE_COVERAGE_LINE_LAYER_ID = 'tree-coverage-line-layer';
 export const MAX_VISIBLE_STATIC_FEATURES = 4500;
 
 export const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {

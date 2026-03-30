@@ -1,3 +1,4 @@
+import { MapPin, SunMedium, X } from 'lucide-react';
 import type { ClickInfo } from '@/types/map';
 
 interface SunInfoPopupProps {
@@ -5,64 +6,103 @@ interface SunInfoPopupProps {
   onClose: () => void;
 }
 
+function formatDirection(side: ClickInfo['predictedBestSide']) {
+  if (side === 'N') return 'North';
+  if (side === 'E') return 'East';
+  if (side === 'S') return 'South';
+  if (side === 'W') return 'West';
+  return '—';
+}
+
 export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
   return (
-    <div className="absolute bottom-7 left-1/2 z-[1000] min-w-[250px] max-w-[360px] -translate-x-1/2 rounded-xl px-6 pt-3 pb-[14px] bg-[rgba(8,12,28,0.92)] backdrop-blur-[16px] border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.45)] font-sans animate-slide-up">
-      <button
-        onClick={onClose}
-        aria-label="Close"
-        className="absolute top-2 right-3 bg-transparent border-0 text-white/40 text-lg leading-none cursor-pointer transition-colors hover:text-white/80"
-      >
-        ×
-      </button>
-
-      <div className="text-[11px] text-white/40 mb-1.5 tabular-nums">
-        {info.lat.toFixed(5)}, {info.lng.toFixed(5)}
-      </div>
-
-      <div className="text-center">
-        {info.inSun === null ? (
-          <div className="text-[13px] text-white/50">Checking…</div>
-        ) : info.inSun ? (
-          <div className="text-base font-bold text-[#ffd54f]">☀ In sunlight</div>
-        ) : (
-          <div className="text-base font-bold text-[#90caf9]">● In shadow</div>
-        )}
-      </div>
-
-      {(info.complexName || info.address || info.photoUrl || info.buildingInfoLoading) && (
-        <div className="mt-2 rounded-lg border border-white/10 bg-white/[0.03] px-3 py-2 text-left">
-          <div className="text-[10px] uppercase tracking-[0.7px] text-white/40">Building</div>
-          {info.photoUrl && (
-            <div className="mt-1">
-              <img
-                src={info.photoUrl}
-                alt={info.photoPlaceName ?? 'Building photo'}
-                className="h-28 w-full rounded-md object-cover border border-white/10"
-                loading="lazy"
-              />
-              {info.photoPlaceName && (
-                <div className="mt-1 text-[11px] text-white/55">
-                  Source: {info.photoPlaceName}
-                </div>
+    <div className="absolute bottom-24 left-1/2 z-[1000] w-[min(380px,calc(100vw-2rem))] -translate-x-1/2">
+      <div className="map-panel rounded-xl p-4 text-[var(--ink)]">
+        <div className="flex items-start justify-between gap-3">
+          <div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Location sample</div>
+            <div className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
+              {info.inSun === null ? (
+                <span>Checking light</span>
+              ) : info.inSun ? (
+                <span className="text-[var(--yellow-strong)]">In sunlight</span>
+              ) : (
+                <span className="text-[var(--blue-strong)]">In shadow</span>
               )}
             </div>
-          )}
-          {info.complexName && (
-            <div className="mt-1 text-[12px] text-white/80">
-              ЖК: {info.complexName}
-            </div>
-          )}
-          {info.address && (
-            <div className="mt-1 text-[12px] text-white/70">
-              Адрес: {info.address}
-            </div>
-          )}
-          {info.buildingInfoLoading && (
-            <div className="mt-1 text-[11px] text-white/45">Загружаю адрес...</div>
-          )}
+          </div>
+
+          <button
+            onClick={onClose}
+            aria-label="Close light details"
+            className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      )}
+
+        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+          <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
+              <MapPin className="h-4 w-4 text-[var(--blue-strong)]" />
+              Coordinates
+            </div>
+            <div className="mt-2 ui-mono text-[12px] text-[var(--ink-soft)]">
+              {info.lat.toFixed(5)}, {info.lng.toFixed(5)}
+            </div>
+          </div>
+
+          <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
+              <SunMedium className="h-4 w-4 text-[var(--yellow-strong)]" />
+              Best side
+            </div>
+            <div className="mt-2 text-sm text-[var(--ink-soft)]">
+              {info.predictionLoading ? 'Predicting orientation...' : formatDirection(info.predictedBestSide)}
+            </div>
+            {info.predictedConfidence !== null && info.predictedConfidence !== undefined && !info.predictionLoading && (
+              <div className="mt-1 ui-mono text-[11px] text-[var(--ink-soft)]">
+                confidence {Math.round(info.predictedConfidence * 100)}%
+              </div>
+            )}
+          </div>
+        </div>
+
+        {(info.complexName || info.address || info.photoUrl || info.buildingInfoLoading) && (
+          <div className="mt-4 rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="text-sm font-medium text-[var(--ink)]">Building context</div>
+
+            {info.photoUrl && (
+              <div className="mt-3 overflow-hidden rounded-lg border border-[color:var(--line)]">
+                <img
+                  src={info.photoUrl}
+                  alt={info.photoPlaceName ?? 'Building photo'}
+                  className="h-32 w-full object-cover"
+                  loading="lazy"
+                />
+              </div>
+            )}
+
+            {info.photoPlaceName && (
+              <div className="mt-2 ui-mono text-[11px] text-[var(--ink-soft)]">
+                Source: {info.photoPlaceName}
+              </div>
+            )}
+
+            {info.complexName && (
+              <div className="mt-3 text-sm text-[var(--ink)]">ЖК: {info.complexName}</div>
+            )}
+
+            {info.address && (
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">Адрес: {info.address}</div>
+            )}
+
+            {info.buildingInfoLoading && (
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">Loading address and building details...</div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

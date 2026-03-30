@@ -1,3 +1,6 @@
+import type { ReactNode } from 'react';
+import { CalendarDays, Cuboid, Layers3, LoaderCircle, SunMedium } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { MAP_CONFIG } from '@/config/map';
 
 interface ControlPanelProps {
@@ -13,6 +16,59 @@ interface ControlPanelProps {
   loadingBuildings: boolean;
 }
 
+interface ToggleOption<T extends boolean> {
+  label: string;
+  value: T;
+}
+
+function ToggleGroup<T extends boolean>({
+  value,
+  onChange,
+  options,
+}: {
+  value: T;
+  onChange: (value: T) => void;
+  options: ToggleOption<T>[];
+}) {
+  return (
+    <div className="grid grid-cols-2 gap-2">
+      {options.map((option) => (
+        <button
+          key={option.label}
+          onClick={() => onChange(option.value)}
+          className={cn(
+            'map-segment rounded-lg px-3 py-2 text-sm font-medium',
+            value === option.value && 'is-active',
+          )}
+        >
+          {option.label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function PanelSection({
+  icon,
+  title,
+  children,
+}: {
+  icon: ReactNode;
+  title: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="space-y-2.5 border-t border-[color:var(--line)] pt-4 first:border-t-0 first:pt-0">
+      <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
+        <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--blue-strong)]">
+          {icon}
+        </span>
+        <span>{title}</span>
+      </div>
+      {children}
+    </section>
+  );
+}
 
 export default function ControlPanel({
   dateStr,
@@ -29,136 +85,92 @@ export default function ControlPanel({
   const buildingsActive = zoom >= MAP_CONFIG.buildingsMinZoom;
 
   return (
-    <div className="absolute top-4 right-4 z-[1000] w-[272px] bg-[rgba(8,12,28,0.9)] backdrop-blur-[16px] border border-white/[0.08] rounded-2xl pt-4 px-[18px] pb-[14px] text-[#e8eaf6] font-sans shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
+    <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Map controls</div>
+          <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">Shadow map</div>
+        </div>
 
-      {/* Header */}
-      <div className="flex items-center justify-between mb-4">
-        <span className="text-[15px] font-bold text-white tracking-[0.2px]">Shadow Map</span>
-        {loadingBuildings && (
-          <span
-            className="w-2 h-2 rounded-full bg-[#4fc3f7] animate-pulse-dot"
-            title="Loading buildings…"
+        <div className="map-chip flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3">
+          {loadingBuildings ? (
+            <LoaderCircle className="h-4 w-4 animate-spin text-[var(--blue-strong)]" />
+          ) : (
+            <SunMedium className="h-4 w-4 text-[var(--yellow-strong)]" />
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-4">
+        <PanelSection icon={<CalendarDays className="h-4 w-4" />} title="Date">
+          <input
+            type="date"
+            className="map-input date-picker w-full rounded-lg px-3 py-2.5 text-sm text-[var(--ink)]"
+            value={dateStr}
+            onChange={(e) => onDateChange(e.target.value)}
           />
+        </PanelSection>
+
+        <PanelSection icon={<SunMedium className="h-4 w-4" />} title="Analysis mode">
+          <ToggleGroup
+            value={sunExposure}
+            onChange={onModeChange}
+            options={[
+              { label: 'Shadows', value: false },
+              { label: 'Exposure', value: true },
+            ]}
+          />
+        </PanelSection>
+
+        {onViewModeChange && (
+          <PanelSection icon={<Cuboid className="h-4 w-4" />} title="View">
+            <ToggleGroup
+              value={Boolean(is3D)}
+              onChange={onViewModeChange}
+              options={[
+                { label: '2D', value: false },
+                { label: '3D', value: true },
+              ]}
+            />
+          </PanelSection>
         )}
-      </div>
 
-      {/* Date */}
-      <div className="mb-[14px]">
-        <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
-          Date
-        </label>
-        <input
-          type="date"
-          className="date-picker w-full bg-white/[0.07] border border-white/[0.12] rounded-lg text-[#e8eaf6] px-2.5 py-2 text-[13px] outline-none cursor-pointer transition-colors focus:border-[rgba(79,195,247,0.5)]"
-          value={dateStr}
-          onChange={(e) => onDateChange(e.target.value)}
-        />
-      </div>
+        {onBasemapChange && (
+          <PanelSection icon={<Layers3 className="h-4 w-4" />} title="Base map">
+            <ToggleGroup
+              value={Boolean(isSatellite)}
+              onChange={onBasemapChange}
+              options={[
+                { label: 'Standard', value: false },
+                { label: 'Satellite', value: true },
+              ]}
+            />
+          </PanelSection>
+        )}
 
-      {/* Mode toggle */}
-      <div className="mb-[14px]">
-        <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
-          Mode
-        </label>
-        <div className="flex gap-1.5">
-          <button
-            onClick={() => onModeChange(false)}
-            className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-              ${!sunExposure
-                ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-              }`}
-          >
-            Shadows
-          </button>
-          <button
-            onClick={() => onModeChange(true)}
-            className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-              ${sunExposure
-                ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-              }`}
-          >
-            Sun Exposure
-          </button>
-        </div>
-      </div>
-
-      {onViewModeChange && (
-        <div className="mb-[14px]">
-          <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
-            View
-          </label>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => onViewModeChange(false)}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-                ${!is3D
-                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-                }`}
-            >
-              2D
-            </button>
-            <button
-              onClick={() => onViewModeChange(true)}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-                ${is3D
-                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-                }`}
-            >
-              3D
-            </button>
+        <section className="rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
+          <div className="flex items-center justify-between gap-3 text-sm">
+            <span className="font-medium text-[var(--ink)]">Building coverage</span>
+            <span className="ui-mono text-[11px] text-[var(--ink-soft)]">zoom {Math.round(zoom)}</span>
           </div>
-        </div>
-      )}
-
-      {onBasemapChange && (
-        <div className="mb-[14px]">
-          <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
-            Map
-          </label>
-          <div className="flex gap-1.5">
-            <button
-              onClick={() => onBasemapChange(false)}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-                ${!isSatellite
-                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-                }`}
-            >
-              Standard
-            </button>
-            <button
-              onClick={() => onBasemapChange(true)}
-              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
-                ${isSatellite
-                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
-                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
-                }`}
-            >
-              Satellite
-            </button>
+          <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(31,79,156,0.1)]">
+            <div
+              className={cn(
+                'h-full rounded-full transition-all',
+                buildingsActive ? 'bg-[var(--yellow-strong)]' : 'bg-[var(--blue-strong)]',
+              )}
+              style={{
+                width: `${Math.min(100, Math.max(18, (zoom / MAP_CONFIG.buildingsMinZoom) * 100))}%`,
+              }}
+            />
           </div>
-        </div>
-      )}
-
-      {/* Zoom hint */}
-      <div className="flex items-center gap-[7px] text-[11px] text-white/35">
-        <span
-          className={`w-1.5 h-1.5 rounded-full shrink-0 transition-colors ${
-            buildingsActive
-              ? 'bg-[#69f0ae] shadow-[0_0_6px_rgba(105,240,174,0.7)]'
-              : 'bg-white/25'
-          }`}
-        />
-        <span>
-          {buildingsActive
-            ? 'Buildings loaded from OSM'
-            : `Zoom to ${MAP_CONFIG.buildingsMinZoom}+ for buildings (now: ${Math.round(zoom)})`}
-        </span>
+          <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
+            {buildingsActive
+              ? 'OSM buildings are active for this zoom level.'
+              : `Zoom to ${MAP_CONFIG.buildingsMinZoom}+ to load building geometry.`}
+          </p>
+        </section>
       </div>
-    </div>
+    </aside>
   );
 }

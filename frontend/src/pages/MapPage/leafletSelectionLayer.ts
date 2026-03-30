@@ -1,9 +1,11 @@
 import L from 'leaflet';
 import type { SelectedBuilding } from '@/types/building';
+import { buildBestSideHighlightFeatureCollection, type BestSide } from '@/utils/bestSideHighlight';
 
 export function renderLeafletSelectedBuildingLayer(
   map: L.Map,
   selectedBuilding: SelectedBuilding,
+  bestSide: BestSide | null | undefined,
 ): L.LayerGroup {
   const layerGroup = L.layerGroup();
 
@@ -21,6 +23,25 @@ export function renderLeafletSelectedBuildingLayer(
       opacity: 0.95,
     }).addTo(layerGroup);
   });
+
+  const highlight = buildBestSideHighlightFeatureCollection(selectedBuilding, bestSide);
+  L.geoJSON(highlight, {
+    style: {
+      color: '#ffd54f',
+      weight: 8,
+      opacity: 0.18,
+      lineCap: 'round',
+    },
+  }).addTo(layerGroup);
+
+  L.geoJSON(highlight, {
+    style: {
+      color: '#ffeb3b',
+      weight: 3,
+      opacity: 0.95,
+      lineCap: 'round',
+    },
+  }).addTo(layerGroup);
 
   layerGroup.addTo(map);
   return layerGroup;

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
+import maplibregl from 'maplibre-gl';
 import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import { useDateTime } from '@/hooks/useDateTime';
 import { useMapEngine } from '@/hooks/useMapEngine';
@@ -7,18 +8,30 @@ import { astanaLocalToDate } from '@/utils/astanaTime';
 import type { ClickInfo } from '@/types/map';
 import type { GeocodingResult } from '@/services/geocoding';
 import { getBuildingMetadata } from '@/services/buildingDetails';
+import { predictBestSide } from '@/services/bestSidePrediction';
 import MapView from '@/components/MapView';
 import ControlPanel from '@/components/ControlPanel';
 import TimeSliderBar from '@/components/TimeSliderBar';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 import { findBuildingAtPoint } from '@/utils/buildings';
+import type { SelectedBuilding } from '@/types/building';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
+import { renderLeafletSelectedBuildingLayer } from '@/pages/MapPage/leafletSelectionLayer';
+import { buildBestSideHighlightFeatureCollection } from '@/utils/bestSideHighlight';
 import { OSM_TILE_URLS, SATELLITE_TILE_URLS } from '@/hooks/maplibre/constants';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
   return engineController.isReady();
+}
+
+function sideToLabel(side: 'N' | 'E' | 'S' | 'W' | null | undefined) {
+  if (side === 'N') return 'North';
+  if (side === 'E') return 'East';
+  if (side === 'S') return 'South';
+  if (side === 'W') return 'West';
+  return null;
 }
 
 export default function MapPage() {
@@ -27,10 +40,12 @@ export default function MapPage() {
   const [is3D, setIs3D] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
+  const [selectedBuilding, setSelectedBuilding] = useState<SelectedBuilding | null>(null);
   const [loadingBuildings, setLoadingBuildings] = useState(false);
   const menuRequestIdRef = useRef(0);
   const staticDatasetLayerRef = useRef<L.GeoJSON | null>(null);
   const sunEdgesLayerRef = useRef<L.LayerGroup | null>(null);
+  const selectedBuildingLayerRef = useRef<L.LayerGroup | null>(null);
   const suppressNextMapClickRef = useRef(false);
 
   const {
@@ -140,12 +155,15 @@ export default function MapPage() {
       const requestId = menuRequestIdRef.current + 1;
       menuRequestIdRef.current = requestId;
       const pickedBuilding = findBuildingAtPoint(buildingsRef.current, point);
+      setSelectedBuilding(pickedBuilding);
       if (!shadow) return;
       const screenPoint = controller.getContainerPoint(point);
       if (!screenPoint) return;
       setClickInfo({
         lat: point.lat,
         lng: point.lng,
+        screenX: screenPoint.x,
+        screenY: screenPoint.y,
         inSun: null,
         buildingId: pickedBuilding?.id ?? null,
         buildingLabel: pickedBuilding?.label ?? null,
@@ -154,6 +172,9 @@ export default function MapPage() {
         buildingInfoLoading: Boolean(pickedBuilding?.id),
         photoUrl: null,
         photoPlaceName: null,
+        predictedBestSide: null,
+        predictedConfidence: null,
+        predictionLoading: Boolean(pickedBuilding?.id),
       });
 
       if (pickedBuilding?.id) {
@@ -180,6 +201,28 @@ export default function MapPage() {
                 }
               : null));
           });
+
+        predictBestSide(pickedBuilding, dt.dateStr)
+          .then((prediction) => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  predictedBestSide: prediction.best_side,
+                  predictedConfidence: prediction.confidence,
+                  predictionLoading: false,
+                }
+              : null));
+          })
+          .catch(() => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  predictionLoading: false,
+                }
+              : null));
+          });
       }
 
       shadow.isPositionInSun(screenPoint)
@@ -199,7 +242,107 @@ export default function MapPage() {
     return () => {
       unsubscribeClick();
     };
-  }, [shadow, controller, buildingsRef]);
+  }, [shadow, controller, buildingsRef, dt.dateStr]);
+
+  // Selected building highlight with prediction-driven yellow edges.
+  useEffect(() => {
+    const bestSide = clickInfo?.predictedBestSide ?? null;
+    const map = rawMapRef.current as L.Map | maplibregl.Map | null;
+    if (!map || !selectedBuilding || !bestSide) {
+      selectedBuildingLayerRef.current?.remove();
+      selectedBuildingLayerRef.current = null;
+      if (engine === 'maplibre') {
+        const mapLibreMap = rawMapRef.current as {
+          getSource?: (id: string) => { setData?: (data: GeoJSON.FeatureCollection) => void } | undefined;
+          getLayer?: (id: string) => unknown;
+          removeLayer?: (id: string) => void;
+          removeSource?: (id: string) => void;
+          isStyleLoaded?: () => boolean;
+          once?: (event: 'load', listener: () => void) => void;
+        } | null;
+        const source = mapLibreMap?.getSource?.('selected-building-highlight');
+        source?.setData?.({ type: 'FeatureCollection', features: [] });
+      }
+      return;
+    }
+
+    if (engine === 'leaflet') {
+      selectedBuildingLayerRef.current?.remove();
+      selectedBuildingLayerRef.current = renderLeafletSelectedBuildingLayer(
+        map as L.Map,
+        selectedBuilding,
+        bestSide,
+      );
+      return;
+    }
+
+    const mapLibreMap = map as {
+      addSource?: (id: string, source: { type: 'geojson'; data: GeoJSON.FeatureCollection }) => void;
+      addLayer?: (layer: {
+        id: string;
+        type: 'line';
+        source: string;
+        layout?: Record<string, unknown>;
+        paint: Record<string, unknown>;
+      }) => void;
+      getSource?: (id: string) => { setData?: (data: GeoJSON.FeatureCollection) => void } | undefined;
+      getLayer?: (id: string) => unknown;
+      isStyleLoaded?: () => boolean;
+      once?: (event: 'load', listener: () => void) => void;
+    };
+    const sourceId = 'selected-building-highlight';
+    const glowLayerId = 'selected-building-highlight-glow';
+    const lineLayerId = 'selected-building-highlight-line';
+    const updateMapLibreOverlay = () => {
+      if (!mapLibreMap.getSource?.(sourceId)) {
+        mapLibreMap.addSource?.(sourceId, {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features: [] },
+        });
+      }
+      if (!mapLibreMap.getLayer?.(glowLayerId)) {
+        mapLibreMap.addLayer?.({
+          id: glowLayerId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#ffd54f',
+            'line-width': 8,
+            'line-opacity': 0.18,
+          },
+        });
+      }
+      if (!mapLibreMap.getLayer?.(lineLayerId)) {
+        mapLibreMap.addLayer?.({
+          id: lineLayerId,
+          type: 'line',
+          source: sourceId,
+          layout: {
+            'line-cap': 'round',
+            'line-join': 'round',
+          },
+          paint: {
+            'line-color': '#ffeb3b',
+            'line-width': 3,
+            'line-opacity': 0.95,
+          },
+        });
+      }
+      const source = mapLibreMap.getSource?.(sourceId);
+      source?.setData?.(buildBestSideHighlightFeatureCollection(selectedBuilding, bestSide));
+    };
+
+    if (mapLibreMap.isStyleLoaded?.()) {
+      updateMapLibreOverlay();
+      return;
+    }
+
+    mapLibreMap.once?.('load', updateMapLibreOverlay);
+  }, [engine, rawMapRef, selectedBuilding, clickInfo?.predictedBestSide]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
@@ -234,6 +377,23 @@ export default function MapPage() {
 
       <SearchBar onSelect={handleSearchSelect} />
 
+      {clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
+        <div
+          className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:var(--line)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--blue-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
+          style={{
+            left: `${clickInfo.screenX}px`,
+            top: `${clickInfo.screenY - 12}px`,
+          }}
+        >
+          {sideToLabel(clickInfo.predictedBestSide) ?? clickInfo.predictedBestSide}
+          {clickInfo.predictedConfidence !== null && clickInfo.predictedConfidence !== undefined && (
+            <span className="ml-2 ui-mono text-[var(--ink-soft)]">
+              {Math.round(clickInfo.predictedConfidence * 100)}%
+            </span>
+          )}
+        </div>
+      )}
+
       <ControlPanel
         dateStr={dt.dateStr}
         onDateChange={dt.setDateStr}
@@ -255,7 +415,10 @@ export default function MapPage() {
       />
 
       {clickInfo && (
-        <SunInfoPopup info={clickInfo} onClose={() => setClickInfo(null)} />
+        <SunInfoPopup info={clickInfo} onClose={() => {
+          setClickInfo(null);
+          setSelectedBuilding(null);
+        }} />
       )}
     </div>
   );
