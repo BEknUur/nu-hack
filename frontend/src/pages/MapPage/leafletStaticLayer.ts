@@ -1,6 +1,5 @@
 import L from 'leaflet';
 import { MAP_CONFIG } from '@/config/map';
-import { toSelectedBuilding } from '@/utils/buildings';
 
 const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
   N: 0,
@@ -63,7 +62,6 @@ interface SetupLeafletStaticLayerOptions {
   suppressNextMapClickRef: { current: boolean };
   setContextMenu: (value: null) => void;
   setClickInfo: (value: null) => void;
-  setSelectedBuilding: (building: import('@/types/building').SelectedBuilding | null) => void;
 }
 
 export function setupLeafletStaticLayer({
@@ -73,7 +71,6 @@ export function setupLeafletStaticLayer({
   suppressNextMapClickRef,
   setContextMenu,
   setClickInfo,
-  setSelectedBuilding,
 }: SetupLeafletStaticLayerOptions): () => void {
   let disposed = false;
   let rafId = 0;
@@ -127,7 +124,6 @@ export function setupLeafletStaticLayer({
             suppressNextMapClickRef.current = true;
             setContextMenu(null);
             setClickInfo(null);
-            setSelectedBuilding(toSelectedBuilding(feature as GeoJSON.Feature));
           });
 
           const bestSide = props.bestSide as 'N' | 'E' | 'S' | 'W' | undefined;

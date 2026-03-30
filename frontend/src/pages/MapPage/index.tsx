@@ -12,13 +12,8 @@ import TimeSliderBar from '@/components/TimeSliderBar';
 import MapContextMenu from '@/components/MapContextMenu';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
-import BuildingDetailsPanel from '@/components/BuildingDetailsPanel';
-import type { SelectedBuilding } from '@/types/building';
-import { findBuildingAtPoint } from '@/utils/buildings';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
 import type { ContextMenuState } from '@/pages/MapPage/types';
-import { pickMapLibreBuilding } from '@/pages/MapPage/maplibrePicking';
-import { renderLeafletSelectedBuildingLayer } from '@/pages/MapPage/leafletSelectionLayer';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
@@ -32,18 +27,15 @@ export default function MapPage() {
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [loadingBuildings, setLoadingBuildings] = useState(false);
-  const [selectedBuilding, setSelectedBuilding] = useState<SelectedBuilding | null>(null);
   const menuRequestIdRef = useRef(0);
   const staticDatasetLayerRef = useRef<L.GeoJSON | null>(null);
   const sunEdgesLayerRef = useRef<L.LayerGroup | null>(null);
-  const selectedBuildingLayerRef = useRef<L.LayerGroup | null>(null);
   const suppressNextMapClickRef = useRef(false);
 
   const {
     engine,
     containerRef,
     rawMapRef,
-    buildingsRef,
     controller,
     shadow,
     zoom,
@@ -114,15 +106,6 @@ export default function MapPage() {
   useEffect(() => {
     let disposed = false;
 
-    function pickBuildingAtPoint(point: MapPoint): SelectedBuilding | null {
-      if (engine === 'maplibre') {
-        const picked = pickMapLibreBuilding(point, controller, rawMapRef.current, buildingsRef.current);
-        if (picked) return picked;
-      }
-
-      return findBuildingAtPoint(buildingsRef.current, point);
-    }
-
     function handleClick(point: MapPoint) {
       if (suppressNextMapClickRef.current) {
         suppressNextMapClickRef.current = false;
@@ -131,8 +114,6 @@ export default function MapPage() {
 
       menuRequestIdRef.current += 1;
       setContextMenu(null);
-      const building = pickBuildingAtPoint(point);
-      setSelectedBuilding(building);
       if (!shadow) return;
       const screenPoint = controller.getContainerPoint(point);
       if (!screenPoint) return;
@@ -215,26 +196,7 @@ export default function MapPage() {
       unsubscribeClick();
       unsubscribeContextMenu();
     };
-  }, [engine, rawMapRef, shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
-
-  useEffect(() => {
-    if (engine !== 'leaflet') return;
-    const map = rawMapRef.current as L.Map | null;
-    selectedBuildingLayerRef.current?.remove();
-    selectedBuildingLayerRef.current = null;
-
-    if (!map || !selectedBuilding) return;
-
-    const layerGroup = renderLeafletSelectedBuildingLayer(map, selectedBuilding);
-    selectedBuildingLayerRef.current = layerGroup;
-
-    return () => {
-      layerGroup.remove();
-      if (selectedBuildingLayerRef.current === layerGroup) {
-        selectedBuildingLayerRef.current = null;
-      }
-    };
-  }, [engine, rawMapRef, selectedBuilding]);
+  }, [shadow, controller, dt.dateStr, sunExposure]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
@@ -253,7 +215,6 @@ export default function MapPage() {
       suppressNextMapClickRef,
       setContextMenu: () => setContextMenu(null),
       setClickInfo: () => setClickInfo(null),
-      setSelectedBuilding,
     });
   }, [engine, rawMapRef]);
 
@@ -273,13 +234,6 @@ export default function MapPage() {
         zoom={zoom}
         loadingBuildings={loadingBuildings}
       />
-
-      {selectedBuilding && (
-        <BuildingDetailsPanel
-          building={selectedBuilding}
-          onClose={() => setSelectedBuilding(null)}
-        />
-      )}
 
       <TimeSliderBar
         sliderValue={dt.sliderValue}
