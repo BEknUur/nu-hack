@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
-import { MAP_CONFIG, SUN_EXPOSURE_CONFIG } from '@/config/map';
+import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import { useDateTime } from '@/hooks/useDateTime';
 import { useMapEngine } from '@/hooks/useMapEngine';
 import { astanaLocalToDate } from '@/utils/astanaTime';
@@ -14,73 +14,12 @@ import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 import BuildingDetailsPanel from '@/components/BuildingDetailsPanel';
 import type { SelectedBuilding } from '@/types/building';
-import { findBuildingAtPoint, toSelectedBuilding } from '@/utils/buildings';
+import { findBuildingAtPoint } from '@/utils/buildings';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
-
-interface ContextMenuState {
-  x: number;
-  y: number;
-  lat: number;
-  lng: number;
-  annualSunHours: number | null;
-  dailySunHours: number | null;
-  loadingInfo: boolean;
-  error: string | null;
-}
-
-const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
-  N: 0,
-  E: 90,
-  S: 180,
-  W: 270,
-};
-
-function toRad(deg: number) {
-  return (deg * Math.PI) / 180;
-}
-
-function toDeg(rad: number) {
-  return (rad * 180) / Math.PI;
-}
-
-function norm360(deg: number) {
-  return ((deg % 360) + 360) % 360;
-}
-
-function angleDiff(a: number, b: number) {
-  const d = Math.abs(norm360(a) - norm360(b));
-  return d > 180 ? 360 - d : d;
-}
-
-function bearingFromAtoB(a: [number, number], b: [number, number]) {
-  const latMeters = 111_320;
-  const lngMeters = 111_320 * Math.cos(toRad((a[1] + b[1]) / 2));
-  const dx = (b[0] - a[0]) * lngMeters;
-  const dy = (b[1] - a[1]) * latMeters;
-  return norm360(toDeg(Math.atan2(dx, dy)));
-}
-
-function polygonOuterRing(feature: GeoJSON.Feature): [number, number][] | null {
-  const geometry = feature.geometry;
-  if (!geometry) return null;
-  if (geometry.type === 'Polygon') {
-    return (geometry.coordinates[0] ?? []) as [number, number][];
-  }
-  if (geometry.type === 'MultiPolygon') {
-    const firstPolygon = geometry.coordinates[0];
-    return (firstPolygon?.[0] ?? []) as [number, number][];
-  }
-  return null;
-}
-
-function centroidOfRing(ring: [number, number][]) {
-  if (!ring.length) return null;
-  const sum = ring.reduce(
-    (acc, [lng, lat]) => ({ lng: acc.lng + lng, lat: acc.lat + lat }),
-    { lng: 0, lat: 0 },
-  );
-  return { lng: sum.lng / ring.length, lat: sum.lat / ring.length };
-}
+import type { ContextMenuState } from '@/pages/MapPage/types';
+import { pickMapLibreBuilding } from '@/pages/MapPage/maplibrePicking';
+import { renderLeafletSelectedBuildingLayer } from '@/pages/MapPage/leafletSelectionLayer';
+import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
   return engineController.isReady();
@@ -175,6 +114,15 @@ export default function MapPage() {
   useEffect(() => {
     let disposed = false;
 
+    function pickBuildingAtPoint(point: MapPoint): SelectedBuilding | null {
+      if (engine === 'maplibre') {
+        const picked = pickMapLibreBuilding(point, controller, rawMapRef.current, buildingsRef.current);
+        if (picked) return picked;
+      }
+
+      return findBuildingAtPoint(buildingsRef.current, point);
+    }
+
     function handleClick(point: MapPoint) {
       if (suppressNextMapClickRef.current) {
         suppressNextMapClickRef.current = false;
@@ -183,7 +131,7 @@ export default function MapPage() {
 
       menuRequestIdRef.current += 1;
       setContextMenu(null);
-      const building = findBuildingAtPoint(buildingsRef.current, point);
+      const building = pickBuildingAtPoint(point);
       setSelectedBuilding(building);
       if (!shadow) return;
       const screenPoint = controller.getContainerPoint(point);
@@ -191,7 +139,7 @@ export default function MapPage() {
       setClickInfo({ lat: point.lat, lng: point.lng, inSun: null });
 
       shadow.isPositionInSun(screenPoint)
-        .then((inSun) => setClickInfo({ lat: point.lat, lng: point.lng, inSun }))
+        .then((inSun: boolean) => setClickInfo({ lat: point.lat, lng: point.lng, inSun }))
         .catch(() => setClickInfo(null));
     }
 
@@ -267,7 +215,7 @@ export default function MapPage() {
       unsubscribeClick();
       unsubscribeContextMenu();
     };
-  }, [shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
+  }, [engine, rawMapRef, shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
 
   useEffect(() => {
     if (engine !== 'leaflet') return;
@@ -277,24 +225,7 @@ export default function MapPage() {
 
     if (!map || !selectedBuilding) return;
 
-    const layerGroup = L.layerGroup();
-
-    selectedBuilding.polygons.forEach((polygon) => {
-      const latLngRings = [
-        polygon.outer.map(([lng, lat]) => [lat, lng] as [number, number]),
-        ...polygon.holes.map((hole) => hole.map(([lng, lat]) => [lat, lng] as [number, number])),
-      ];
-
-      L.polygon(latLngRings, {
-        color: '#38bdf8',
-        weight: 3,
-        fillColor: '#38bdf8',
-        fillOpacity: 0.18,
-        opacity: 0.95,
-      }).addTo(layerGroup);
-    });
-
-    layerGroup.addTo(map);
+    const layerGroup = renderLeafletSelectedBuildingLayer(map, selectedBuilding);
     selectedBuildingLayerRef.current = layerGroup;
 
     return () => {
@@ -315,149 +246,15 @@ export default function MapPage() {
   // Load precomputed static dataset (best building side to receive sunlight)
   useEffect(() => {
     if (engine !== 'leaflet') return;
-    let disposed = false;
-    let rafId = 0;
-    let zoomHandlerAttached = false;
-    let zoomHandlerMap: L.Map | null = null;
-    let zoomHandler: (() => void) | null = null;
-
-    async function loadStaticDatasetLayer() {
-      const map = rawMapRef.current as L.Map | null;
-      if (!map) return;
-
-      try {
-        const res = await fetch('/dataset/block-buildings.geojson');
-        if (!res.ok) {
-          console.warn('Static dataset not found at /dataset/block-buildings.geojson');
-          return;
-        }
-
-        const geojson = await res.json() as GeoJSON.FeatureCollection;
-        if (disposed) return;
-
-        staticDatasetLayerRef.current?.remove();
-        sunEdgesLayerRef.current?.remove();
-        const sunEdgesLayer = L.layerGroup();
-
-        staticDatasetLayerRef.current = L.geoJSON(geojson, {
-          style: (feature) => {
-            const props = (feature?.properties ?? {}) as {
-              color?: string;
-            };
-
-            return {
-              color: '#1f2937',
-              weight: 1,
-              fillColor: props.color ?? '#f59e0b',
-              fillOpacity: 0.45,
-            };
-          },
-          onEachFeature: (feature, layer) => {
-            const props = (feature.properties ?? {}) as {
-              id?: string;
-              bestSide?: string;
-              sidePct?: Partial<Record<'N' | 'E' | 'S' | 'W', number>>;
-            };
-            const pct = props.sidePct ?? {};
-            const popup = [
-              `<b>${props.id ?? 'Building'}</b>`,
-              `Best side: <b>${props.bestSide ?? '-'}</b>`,
-              `N: ${pct.N ?? 0}% | E: ${pct.E ?? 0}%`,
-              `S: ${pct.S ?? 0}% | W: ${pct.W ?? 0}%`,
-            ].join('<br/>');
-            layer.bindPopup(popup);
-            layer.on('click', () => {
-              suppressNextMapClickRef.current = true;
-              setContextMenu(null);
-              setClickInfo(null);
-              setSelectedBuilding(toSelectedBuilding(feature as GeoJSON.Feature));
-            });
-
-            const bestSide = props.bestSide as 'N' | 'E' | 'S' | 'W' | undefined;
-            if (!bestSide) return;
-
-            const ring = polygonOuterRing(feature as GeoJSON.Feature);
-            if (!ring || ring.length < 4) return;
-            const center = centroidOfRing(ring);
-            if (!center) return;
-            const targetBearing = SIDE_BEARINGS[bestSide];
-            const maxDeviation = 45;
-
-            for (let i = 0; i < ring.length - 1; i += 1) {
-              const a = ring[i];
-              const b = ring[i + 1];
-              const mid: [number, number] = [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
-              const outwardBearing = bearingFromAtoB([center.lng, center.lat], mid);
-
-              if (angleDiff(outwardBearing, targetBearing) > maxDeviation) continue;
-              const latLngs: [number, number][] = [
-                [a[1], a[0]],
-                [b[1], b[0]],
-              ];
-
-              L.polyline(latLngs, {
-                color: '#ffd54f',
-                weight: 8,
-                opacity: 0.18,
-                lineCap: 'round',
-              }).addTo(sunEdgesLayer);
-
-              L.polyline(latLngs, {
-                color: '#ffeb3b',
-                weight: 3,
-                opacity: 0.95,
-                lineCap: 'round',
-              }).addTo(sunEdgesLayer);
-            }
-          },
-        }).addTo(map);
-
-        function updateSunEdgesVisibility() {
-          const currentMap = rawMapRef.current as L.Map | null;
-          if (!sunEdgesLayerRef.current || !currentMap) return;
-          const shouldShow = currentMap.getZoom() >= MAP_CONFIG.buildingsMinZoom;
-          if (shouldShow) {
-            if (!currentMap.hasLayer(sunEdgesLayerRef.current)) {
-              sunEdgesLayerRef.current.addTo(currentMap);
-            }
-          } else if (currentMap.hasLayer(sunEdgesLayerRef.current)) {
-            currentMap.removeLayer(sunEdgesLayerRef.current);
-          }
-        }
-
-        zoomHandler = updateSunEdgesVisibility;
-        zoomHandlerMap = map;
-        zoomHandlerAttached = true;
-        map.on('zoomend', updateSunEdgesVisibility);
-
-        sunEdgesLayerRef.current = sunEdgesLayer;
-        updateSunEdgesVisibility();
-      } catch (err) {
-        console.error('Failed to load static dataset layer:', err);
-      }
-    }
-
-    function waitForMapAndLoad() {
-      if (disposed) return;
-      if (!rawMapRef.current) {
-        rafId = window.requestAnimationFrame(waitForMapAndLoad);
-        return;
-      }
-      void loadStaticDatasetLayer();
-    }
-
-    waitForMapAndLoad();
-    return () => {
-      disposed = true;
-      if (rafId) window.cancelAnimationFrame(rafId);
-      if (zoomHandlerAttached && zoomHandlerMap && zoomHandler) {
-        zoomHandlerMap.off('zoomend', zoomHandler);
-      }
-      staticDatasetLayerRef.current?.remove();
-      sunEdgesLayerRef.current?.remove();
-      staticDatasetLayerRef.current = null;
-      sunEdgesLayerRef.current = null;
-    };
+    return setupLeafletStaticLayer({
+      rawMapRef,
+      staticDatasetLayerRef,
+      sunEdgesLayerRef,
+      suppressNextMapClickRef,
+      setContextMenu: () => setContextMenu(null),
+      setClickInfo: () => setClickInfo(null),
+      setSelectedBuilding,
+    });
   }, [engine, rawMapRef]);
 
   return (
