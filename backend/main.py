@@ -12,6 +12,7 @@ from core.database.session.database import create_db_schema, get_db
 from services.alemllm.router.router import router as alemllm_router
 from services.best_side.router.router import router as best_side_router
 from services.ml_data.router.router import router as ml_data_router
+from services.tree_optimizer.router.router import router as tree_optimizer_router
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -29,6 +30,7 @@ app.add_middleware(
 app.include_router(alemllm_router)
 app.include_router(best_side_router)
 app.include_router(ml_data_router)
+app.include_router(tree_optimizer_router)
 
 
 @app.on_event("startup")
