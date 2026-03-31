@@ -12,6 +12,12 @@ export const TREE_TOP_LAYER_ID = 'tree-top-layer';
 export const TREE_COVERAGE_SOURCE_ID = 'tree-coverage-source';
 export const TREE_COVERAGE_FILL_LAYER_ID = 'tree-coverage-fill-layer';
 export const TREE_COVERAGE_LINE_LAYER_ID = 'tree-coverage-line-layer';
+export const TREE_RANK_SOURCE_ID = 'tree-rank-source';
+export const TREE_RANK_LAYER_ID = 'tree-rank-layer';
+export const TREE_RANK_LABEL_LAYER_ID = 'tree-rank-label-layer';
+export const TREE_AOI_SOURCE_ID = 'tree-aoi-source';
+export const TREE_AOI_FILL_LAYER_ID = 'tree-aoi-fill-layer';
+export const TREE_AOI_LINE_LAYER_ID = 'tree-aoi-line-layer';
 export const MAX_VISIBLE_STATIC_FEATURES = 4500;
 
 export const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
