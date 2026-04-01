@@ -80,6 +80,56 @@ interface WorkerFeatureProps {
   activity: string;
 }
 
+interface SelectedWorkerInfo extends WorkerFeatureProps {
+  lat: number;
+  lng: number;
+}
+
+const WORKER_FIRST_NAMES = [
+  'Alex',
+  'Maksim',
+  'Timur',
+  'Arman',
+  'Nikita',
+  'Ayan',
+  'Ruslan',
+  'Ilya',
+  'Daniyar',
+  'Miras',
+  'Askar',
+  'Yernar',
+  'Sanzhar',
+  'Roman',
+  'Eldar',
+  'Sergey',
+];
+
+const WORKER_LAST_NAMES = [
+  'Ibragimov',
+  'Kim',
+  'Zhaksylykov',
+  'Petrov',
+  'Suleimenov',
+  'Aitbayev',
+  'Kuznetsov',
+  'Smagulov',
+  'Nazarbekov',
+  'Akhmetov',
+  'Tleulin',
+  'Borodin',
+  'Rakhimov',
+  'Abdrakhmanov',
+  'Karimov',
+  'Muratov',
+];
+
+function getWorkerRandomName(workerId: number, taskType: 'facade_maintenance' | 'road_repair') {
+  const seed = workerId * 37 + (taskType === 'facade_maintenance' ? 11 : 29);
+  const first = WORKER_FIRST_NAMES[seed % WORKER_FIRST_NAMES.length];
+  const last = WORKER_LAST_NAMES[(seed * 3) % WORKER_LAST_NAMES.length];
+  return `${first} ${last}`;
+}
+
 function minuteToClockLabel(totalMinutes: number): string {
   const h = Math.floor(totalMinutes / 60);
   const m = totalMinutes % 60;
@@ -278,7 +328,7 @@ function buildWorkerFeatureCollection(
         properties: {
           emoji: '👷',
           worker_id: i + 1,
-          worker_name: `Worker #${i + 1}`,
+          worker_name: getWorkerRandomName(i + 1, taskType),
           activity: getWorkerActivity(taskType),
         } satisfies WorkerFeatureProps,
       });
@@ -315,7 +365,7 @@ function buildWorkerFeatureCollection(
         properties: {
           emoji: '👷',
           worker_id: i + 1,
-          worker_name: `Worker #${i + 1}`,
+          worker_name: getWorkerRandomName(i + 1, taskType),
           activity: getWorkerActivity(taskType),
         } satisfies WorkerFeatureProps,
       });
@@ -341,7 +391,7 @@ function buildWorkerFeatureCollection(
       properties: {
         emoji: '👷',
         worker_id: i + 1,
-        worker_name: `Worker #${i + 1}`,
+        worker_name: getWorkerRandomName(i + 1, taskType),
         activity: getWorkerActivity(taskType),
       } satisfies WorkerFeatureProps,
     });
@@ -418,7 +468,7 @@ export default function MapPage() {
   const [workerSimMinute, setWorkerSimMinute] = useState<number>(9 * 60);
   const [workerStats, setWorkerStats] = useState<Record<number, WorkerExposureStat>>({});
   const [workerSimSpeedMs, setWorkerSimSpeedMs] = useState<number>(1400);
-  const [selectedWorker, setSelectedWorker] = useState<WorkerFeatureProps | null>(null);
+  const [selectedWorker, setSelectedWorker] = useState<SelectedWorkerInfo | null>(null);
   const workerSimTimerRef = useRef<number | null>(null);
   const workerSimStartTimeoutRef = useRef<number | null>(null);
   const workerSimBusyRef = useRef(false);
@@ -1241,11 +1291,18 @@ export default function MapPage() {
       const props = (feature.properties ?? {}) as Partial<WorkerFeatureProps>;
       const id = Number(props.worker_id ?? 0);
       if (!id) return;
+      const geometry = feature.geometry;
+      const coords = geometry?.type === 'Point' ? geometry.coordinates : null;
+      const parsedLng = Array.isArray(coords) ? Number(coords[0]) : null;
+      const parsedLat = Array.isArray(coords) ? Number(coords[1]) : null;
+      if (parsedLat == null || parsedLng == null || !Number.isFinite(parsedLat) || !Number.isFinite(parsedLng)) return;
       setSelectedWorker({
         emoji: String(props.emoji ?? '👷'),
         worker_id: id,
-        worker_name: String(props.worker_name ?? `Worker #${id}`),
+        worker_name: String(props.worker_name ?? getWorkerRandomName(id, workerTaskType)),
         activity: String(props.activity ?? getWorkerActivity(workerTaskType)),
+        lat: parsedLat,
+        lng: parsedLng,
       });
     };
 
@@ -1267,6 +1324,58 @@ export default function MapPage() {
       map.getCanvas().style.cursor = '';
     };
   }, [engine, rawMapRef, isWorkerMode, workerTaskType]);
+
+  useEffect(() => {
+    if (engine !== 'maplibre') return;
+    if (!isWorkerMode || !selectedWorker) return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    const stat = workerStats[selectedWorker.worker_id];
+    const popupHtml = `
+      <div style="min-width:230px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;color:#172033;">
+        <div style="font-size:11px;color:#5b6b84;margin-bottom:4px;">Worker details</div>
+        <div style="font-size:15px;font-weight:700;line-height:1.3;">
+          ${selectedWorker.emoji} ${selectedWorker.worker_name}
+        </div>
+        <div style="margin-top:4px;font-size:12px;color:#3d4f6a;">
+          ID: ${selectedWorker.worker_id} · ${selectedWorker.activity}
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;">
+          <div style="border:1px solid #d6deea;border-radius:8px;padding:6px 7px;background:#fff;">
+            <div style="font-size:10px;color:#5b6b84;">Sun</div>
+            <div style="font-size:12px;font-weight:600;color:#172033;">${stat?.sunMinutes ?? 0} min</div>
+          </div>
+          <div style="border:1px solid #d6deea;border-radius:8px;padding:6px 7px;background:#fff;">
+            <div style="font-size:10px;color:#5b6b84;">Shade</div>
+            <div style="font-size:12px;font-weight:600;color:#172033;">${stat?.shadeMinutes ?? 0} min</div>
+          </div>
+          <div style="border:1px solid #d6deea;border-radius:8px;padding:6px 7px;background:#fff;">
+            <div style="font-size:10px;color:#5b6b84;">Focus</div>
+            <div style="font-size:12px;font-weight:600;color:#172033;">${(stat?.focusScore ?? 0).toFixed(1)}</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    const popup = new maplibregl.Popup({
+      closeButton: true,
+      closeOnClick: true,
+      maxWidth: '280px',
+      offset: 20,
+    })
+      .setLngLat([selectedWorker.lng, selectedWorker.lat])
+      .setHTML(popupHtml)
+      .addTo(map);
+
+    popup.on('close', () => {
+      setSelectedWorker((prev) => (prev?.worker_id === selectedWorker.worker_id ? null : prev));
+    });
+
+    return () => {
+      popup.remove();
+    };
+  }, [engine, isWorkerMode, rawMapRef, selectedWorker, workerStats]);
 
   useEffect(() => {
     if (!workerSimRunning || !isWorkerMode || !workerAreaGeometry) return;
