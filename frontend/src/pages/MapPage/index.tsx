@@ -265,11 +265,16 @@ export default function MapPage() {
       });
 
       if (!point) {
-        setTreeCardAnchorPoint(null);
+        setTreeCardAnchorPoint((prev) => (prev === null ? prev : null));
         return;
       }
 
-      setTreeCardAnchorPoint({ x: point.x, y: point.y });
+      setTreeCardAnchorPoint((prev) => {
+        if (prev && prev.x === point.x && prev.y === point.y) {
+          return prev;
+        }
+        return { x: point.x, y: point.y };
+      });
     };
 
     updateAnchor();

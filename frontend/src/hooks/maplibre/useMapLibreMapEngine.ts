@@ -122,7 +122,12 @@ export function useMapLibreMapEngine({
             : { type: 'FeatureCollection', features: createSunWallFeatures(visible) });
           return;
         } catch (err) {
-          console.warn('Failed to load static buildings for MapLibre:', err);
+          staticFeaturesRef.current = [];
+          staticFeaturesLoadedRef.current = true;
+          buildingsRef.current = [];
+          setGeoJsonSourceData(buildingSource, []);
+          clearGeoJsonSource(sunWallsSource);
+          return;
         }
       }
 
