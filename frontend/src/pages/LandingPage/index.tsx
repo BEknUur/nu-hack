@@ -52,7 +52,7 @@ const HERO_FEATURES: HeroFeature[] = [
     reverse: false,
     icon: Flower2,
     mediaType: 'mock',
-    mediaLabel: 'Coming soon',
+    mediaLabel: 'Interactive mode',
     accent: 'from-amber-300 via-yellow-200 to-orange-400',
   },
 ];

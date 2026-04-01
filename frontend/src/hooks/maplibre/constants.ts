@@ -18,6 +18,15 @@ export const TREE_RANK_LABEL_LAYER_ID = 'tree-rank-label-layer';
 export const TREE_AOI_SOURCE_ID = 'tree-aoi-source';
 export const TREE_AOI_FILL_LAYER_ID = 'tree-aoi-fill-layer';
 export const TREE_AOI_LINE_LAYER_ID = 'tree-aoi-line-layer';
+export const SOLAR_AOI_SOURCE_ID = 'solar-aoi-source';
+export const SOLAR_AOI_FILL_LAYER_ID = 'solar-aoi-fill-layer';
+export const SOLAR_AOI_LINE_LAYER_ID = 'solar-aoi-line-layer';
+export const SOLAR_CANDIDATE_SOURCE_ID = 'solar-candidate-source';
+export const SOLAR_HEAT_LAYER_ID = 'solar-heat-layer';
+export const SOLAR_POINT_LAYER_ID = 'solar-point-layer';
+export const SOLAR_POINT_LABEL_LAYER_ID = 'solar-point-label-layer';
+export const SOLAR_3D_LAYER_ID = 'solar-3d-layer';
+export const SOLAR_3D_GLOW_LAYER_ID = 'solar-3d-glow-layer';
 export const MAX_VISIBLE_STATIC_FEATURES = 12000;
 
 export const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {

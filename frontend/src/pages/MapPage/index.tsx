@@ -17,6 +17,8 @@ import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 import TreeCandidateCard from '@/components/TreeCandidateCard';
 import TreeOptimizerWizard, { type TreeWizardStep } from '@/components/TreeOptimizerWizard';
+import SolarFlowersWizard, { type SolarWizardStep } from '@/components/SolarFlowersWizard';
+import SolarFlowersCandidateCard from '@/components/SolarFlowersCandidateCard';
 import { findBuildingAtPoint } from '@/utils/buildings';
 import type { SelectedBuilding } from '@/types/building';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
@@ -27,6 +29,15 @@ import {
   EMPTY_FEATURE_COLLECTION,
   OSM_TILE_URLS,
   SATELLITE_TILE_URLS,
+  SOLAR_3D_GLOW_LAYER_ID,
+  SOLAR_3D_LAYER_ID,
+  SOLAR_AOI_FILL_LAYER_ID,
+  SOLAR_AOI_LINE_LAYER_ID,
+  SOLAR_AOI_SOURCE_ID,
+  SOLAR_CANDIDATE_SOURCE_ID,
+  SOLAR_HEAT_LAYER_ID,
+  SOLAR_POINT_LABEL_LAYER_ID,
+  SOLAR_POINT_LAYER_ID,
   TREE_AOI_FILL_LAYER_ID,
   TREE_AOI_LINE_LAYER_ID,
   TREE_AOI_SOURCE_ID,
@@ -35,6 +46,10 @@ import {
   TREE_RANK_SOURCE_ID,
 } from '@/hooks/maplibre/constants';
 import { explainTreeCandidate, rankTreeCandidates } from '@/services/treeOptimizer';
+import {
+  explainSolarFlowersCandidate,
+  rankSolarFlowersCandidates,
+} from '@/services/solarFlowers';
 import type {
   RankAreaGeometry,
   TreeDrawMode,
@@ -42,14 +57,17 @@ import type {
   TreeRankCandidate,
 } from '@/types/tree-optimizer';
 import {
-  circleToPolygon,
   estimateGeometryAreaKm2,
-  freehandToPolygon,
   geometryToBounds,
-  polygonFromVertices,
-  rectangleToPolygon,
 } from '@/utils/treeArea';
 import { useTranslation } from '@/i18n';
+import { useMapAreaDrawing } from '@/hooks/useMapAreaDrawing';
+import type {
+  MissionPick,
+  SolarExplainResponse,
+  SolarProfile,
+  SolarRankCandidate,
+} from '@/types/solar-flowers';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
   return engineController.isReady();
@@ -66,10 +84,97 @@ function sideToLabel(
   return null;
 }
 
+function metersBetweenPoints(a: { lat: number; lng: number }, b: { lat: number; lng: number }) {
+  const latMeters = 111_320;
+  const lngMeters = 111_320 * Math.cos(((a.lat + b.lat) / 2) * (Math.PI / 180));
+  const dx = (b.lng - a.lng) * lngMeters;
+  const dy = (b.lat - a.lat) * latMeters;
+  return Math.hypot(dx, dy);
+}
+
+function pointSquarePolygon(lng: number, lat: number, halfSizeM: number): number[][] {
+  const dLat = halfSizeM / 111_320;
+  const dLng = halfSizeM / (111_320 * Math.max(0.01, Math.cos(lat * (Math.PI / 180))));
+  return [
+    [lng - dLng, lat - dLat],
+    [lng + dLng, lat - dLat],
+    [lng + dLng, lat + dLat],
+    [lng - dLng, lat + dLat],
+    [lng - dLng, lat - dLat],
+  ];
+}
+
+function buildSolarCandidatesFeatureCollection(
+  candidates: SolarRankCandidate[],
+  profile: SolarProfile,
+  selectedId: string | null,
+  missionPickIds: Set<string>,
+): GeoJSON.FeatureCollection {
+  const profileKind = profile === 'solar_panel' ? 'solar' : 'flower';
+  const features: GeoJSON.Feature[] = [];
+
+  for (const candidate of candidates) {
+    const selected = candidate.id === selectedId ? 1 : 0;
+    const picked = missionPickIds.has(candidate.id) ? 1 : 0;
+    const halfSizeM = profileKind === 'solar' ? 5.2 : 3.6;
+    const extrusionHeight = profileKind === 'solar'
+      ? Math.max(6, 3 + candidate.score * 0.11)
+      : Math.max(4, 2.2 + candidate.score * 0.085);
+    const glowWeight = profileKind === 'solar' ? 2.3 : 1.6;
+
+    features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Point',
+        coordinates: [candidate.lng, candidate.lat],
+      },
+      properties: {
+        kind: 'point',
+        id: candidate.id,
+        score: candidate.score,
+        rank_label: `#${candidate.rank}`,
+        selected,
+        picked,
+        profile_kind: profileKind,
+      },
+    });
+
+    features.push({
+      type: 'Feature',
+      geometry: {
+        type: 'Polygon',
+        coordinates: [pointSquarePolygon(candidate.lng, candidate.lat, halfSizeM)],
+      },
+      properties: {
+        kind: 'solid',
+        id: candidate.id,
+        score: candidate.score,
+        selected,
+        picked,
+        profile_kind: profileKind,
+        extrusion_height: Number(extrusionHeight.toFixed(2)),
+        glow_weight: glowWeight,
+      },
+    });
+  }
+
+  return {
+    type: 'FeatureCollection',
+    features,
+  };
+}
+
 export default function MapPage() {
   const { messages, language } = useTranslation();
   const { caseId } = useParams();
-  const isTreeMode = caseId === 'trees';
+  const scenarioMode: 'default' | 'trees' | 'solarFlowers' = caseId === 'trees'
+    ? 'trees'
+    : caseId === 'solar-flowers'
+      ? 'solarFlowers'
+      : 'default';
+  const isTreeMode = scenarioMode === 'trees';
+  const isSolarFlowersMode = scenarioMode === 'solarFlowers';
+  const isDefaultMode = scenarioMode === 'default';
   const treeUi = {
     ru: {
       mapNotReady: 'Карта еще загружается. Попробуйте через секунду.',
@@ -91,6 +196,32 @@ export default function MapPage() {
       noCandidates: 'No points matched current filters in this map area.',
       rankFailed: 'Could not rank points right now. Please try again.',
       explainFailed: 'Could not generate explanation for this point.',
+    },
+  }[language];
+  const solarUi = {
+    ru: {
+      mapNotReady: 'Карта еще загружается. Попробуйте через секунду.',
+      areaMissing: 'Сначала выделите область на карте.',
+      noCandidates: 'В выбранной области подходящие точки не найдены.',
+      rankFailed: 'Не удалось выполнить расчет точек. Попробуйте еще раз.',
+      explainFailed: 'Не удалось получить объяснение для выбранной точки.',
+      missionTooClose: 'Точки миссии должны быть дальше друг от друга.',
+    },
+    kk: {
+      mapNotReady: 'Карта әлі жүктелуде. Сәлден кейін қайталап көріңіз.',
+      areaMissing: 'Алдымен картадан аймақты таңдаңыз.',
+      noCandidates: 'Таңдалған аймақта лайық нүктелер табылмады.',
+      rankFailed: 'Нүктелерді есептеу сәтсіз аяқталды. Қайта байқап көріңіз.',
+      explainFailed: 'Таңдалған нүкте үшін түсіндірме алу мүмкін болмады.',
+      missionTooClose: 'Миссия нүктелері бір-бірінен алыс болуы керек.',
+    },
+    en: {
+      mapNotReady: 'Map is still loading. Try again in a moment.',
+      areaMissing: 'Select an area on the map first.',
+      noCandidates: 'No matching points found in this selected area.',
+      rankFailed: 'Could not calculate points right now. Please try again.',
+      explainFailed: 'Could not generate explanation for selected point.',
+      missionTooClose: 'Mission picks must be spaced farther apart.',
     },
   }[language];
   const dt = useDateTime();
@@ -123,6 +254,27 @@ export default function MapPage() {
   const [treeExplanation, setTreeExplanation] = useState<TreeExplainResponse | null>(null);
   const [treeExplainLoading, setTreeExplainLoading] = useState(false);
   const [treeExplainError, setTreeExplainError] = useState<string | null>(null);
+  const [solarWizardStep, setSolarWizardStep] = useState<SolarWizardStep>('shape');
+  const [solarProfile, setSolarProfile] = useState<SolarProfile>('flower_full_sun');
+  const [solarTopK, setSolarTopK] = useState(25);
+  const [solarDrawMode, setSolarDrawMode] = useState<TreeDrawMode>('rectangle');
+  const [solarDrawArmed, setSolarDrawArmed] = useState(false);
+  const [solarDrawing, setSolarDrawing] = useState(false);
+  const [solarAreaGeometry, setSolarAreaGeometry] = useState<RankAreaGeometry | null>(null);
+  const [solarDraftGeometry, setSolarDraftGeometry] = useState<RankAreaGeometry | null>(null);
+  const [solarAreaKm2, setSolarAreaKm2] = useState<number | null>(null);
+  const [solarLoading, setSolarLoading] = useState(false);
+  const [solarError, setSolarError] = useState<string | null>(null);
+  const [solarCandidates, setSolarCandidates] = useState<SolarRankCandidate[]>([]);
+  const [selectedSolarCandidate, setSelectedSolarCandidate] = useState<SolarRankCandidate | null>(null);
+  const [solarCardAnchorPoint, setSolarCardAnchorPoint] = useState<{ x: number; y: number } | null>(null);
+  const [solarExplanation, setSolarExplanation] = useState<SolarExplainResponse | null>(null);
+  const [solarExplainLoading, setSolarExplainLoading] = useState(false);
+  const [solarExplainError, setSolarExplainError] = useState<string | null>(null);
+  const [solarMissionPicks, setSolarMissionPicks] = useState<MissionPick[]>([]);
+  const [solarMissionScore, setSolarMissionScore] = useState(0);
+  const [solarMissionCombo, setSolarMissionCombo] = useState(1);
+  const solarMissionTarget = 3;
 
   const {
     engine,
@@ -228,6 +380,100 @@ export default function MapPage() {
     setTreeWizardStep('shape');
   }, [applyTreeAreaGeometry]);
 
+  const applySolarAreaGeometry = useCallback((geometry: RankAreaGeometry | null) => {
+    setSolarAreaGeometry(geometry);
+    setSolarAreaKm2(geometry ? estimateGeometryAreaKm2(geometry) : null);
+    setSolarCandidates([]);
+    setSelectedSolarCandidate(null);
+    setSolarExplanation(null);
+    setSolarExplainError(null);
+    setSolarMissionPicks([]);
+    setSolarMissionScore(0);
+    setSolarMissionCombo(1);
+    setSolarError(null);
+  }, []);
+
+  const startSolarDrawing = useCallback(() => {
+    if (engine !== 'maplibre') {
+      setSolarError(solarUi.mapNotReady);
+      return;
+    }
+
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map || !map.loaded()) {
+      setSolarError(solarUi.mapNotReady);
+      return;
+    }
+
+    setSolarError(null);
+    setSolarDrawArmed(true);
+    setSolarDrawing(false);
+    setSolarDraftGeometry(null);
+    setSolarWizardStep('drawing');
+    setSelectedSolarCandidate(null);
+    setSolarExplanation(null);
+    setSolarExplainError(null);
+  }, [engine, rawMapRef, solarUi.mapNotReady]);
+
+  const cancelSolarDrawing = useCallback(() => {
+    setSolarDrawArmed(false);
+    setSolarDrawing(false);
+    setSolarDraftGeometry(null);
+    setSelectedSolarCandidate(null);
+    setSolarExplanation(null);
+    setSolarExplainError(null);
+    setSolarWizardStep('shape');
+  }, []);
+
+  const clearSolarArea = useCallback(() => {
+    setSolarDrawArmed(false);
+    setSolarDrawing(false);
+    setSolarDraftGeometry(null);
+    applySolarAreaGeometry(null);
+    setSolarWizardStep('shape');
+  }, [applySolarAreaGeometry]);
+
+  const handleRunSolarRanking = useCallback(async () => {
+    if (!isSolarFlowersMode) return;
+    if (!solarAreaGeometry) {
+      setSolarError(solarUi.areaMissing);
+      setSolarWizardStep('shape');
+      return;
+    }
+
+    const bounds = geometryToBounds(solarAreaGeometry);
+
+    setSolarLoading(true);
+    setSolarError(null);
+    try {
+      const ranked = await rankSolarFlowersCandidates({
+        areaGeometry: solarAreaGeometry,
+        areaBounds: bounds,
+        profile: solarProfile,
+        date: dt.dateStr,
+        topK: solarTopK,
+      });
+      setSolarCandidates(ranked.candidates);
+      setSelectedSolarCandidate((prev) => {
+        if (!prev) return null;
+        return ranked.candidates.find((item) => item.id === prev.id) ?? null;
+      });
+      setSolarWizardStep('results');
+
+      if (ranked.candidates.length === 0) {
+        setSolarError(solarUi.noCandidates);
+      }
+    } catch (error) {
+      console.error('Solar flowers ranking error:', error);
+      setSolarError(solarUi.rankFailed);
+      setSolarWizardStep('settings');
+      setSolarCandidates([]);
+      setSelectedSolarCandidate(null);
+    } finally {
+      setSolarLoading(false);
+    }
+  }, [isSolarFlowersMode, solarAreaGeometry, solarProfile, dt.dateStr, solarTopK, solarUi.areaMissing, solarUi.noCandidates, solarUi.rankFailed]);
+
   const locateTreeCandidate = useCallback((candidate: TreeRankCandidate) => {
     setSelectedTreeCandidate(null);
     setTreeExplanation(null);
@@ -251,6 +497,56 @@ export default function MapPage() {
       { duration: 1.0 },
     );
   }, [controller, engine, rawMapRef]);
+
+  const mapLibreMap = engine === 'maplibre'
+    ? (rawMapRef.current as maplibregl.Map | null)
+    : null;
+
+  const handleTreeDrawingComplete = useCallback((geometry: RankAreaGeometry | null, cancelled: boolean) => {
+    if (geometry) {
+      applyTreeAreaGeometry(geometry);
+      setTreeWizardStep('settings');
+      setTreeError(null);
+    } else if (!cancelled) {
+      setTreeError(treeUi.areaMissing);
+      setTreeWizardStep('shape');
+    } else {
+      setTreeWizardStep('shape');
+    }
+    setTreeDrawArmed(false);
+  }, [applyTreeAreaGeometry, treeUi.areaMissing]);
+
+  const handleSolarDrawingComplete = useCallback((geometry: RankAreaGeometry | null, cancelled: boolean) => {
+    if (geometry) {
+      applySolarAreaGeometry(geometry);
+      setSolarWizardStep('settings');
+      setSolarError(null);
+    } else if (!cancelled) {
+      setSolarError(solarUi.areaMissing);
+      setSolarWizardStep('shape');
+    } else {
+      setSolarWizardStep('shape');
+    }
+    setSolarDrawArmed(false);
+  }, [applySolarAreaGeometry, solarUi.areaMissing]);
+
+  useMapAreaDrawing({
+    enabled: engine === 'maplibre' && isTreeMode && treeDrawArmed,
+    map: mapLibreMap,
+    drawMode: treeDrawMode,
+    onDraftChange: setTreeDraftGeometry,
+    onDrawingChange: setTreeDrawing,
+    onComplete: handleTreeDrawingComplete,
+  });
+
+  useMapAreaDrawing({
+    enabled: engine === 'maplibre' && isSolarFlowersMode && solarDrawArmed,
+    map: mapLibreMap,
+    drawMode: solarDrawMode,
+    onDraftChange: setSolarDraftGeometry,
+    onDrawingChange: setSolarDrawing,
+    onComplete: handleSolarDrawingComplete,
+  });
 
   useEffect(() => {
     if (!isTreeMode || !selectedTreeCandidate) {
@@ -295,6 +591,48 @@ export default function MapPage() {
   }, [controller, engine, isTreeMode, rawMapRef, selectedTreeCandidate]);
 
   useEffect(() => {
+    if (!isSolarFlowersMode || !selectedSolarCandidate) {
+      setSolarCardAnchorPoint(null);
+      return;
+    }
+
+    const updateAnchor = () => {
+      const point = controller.getContainerPoint({
+        lat: selectedSolarCandidate.lat,
+        lng: selectedSolarCandidate.lng,
+      });
+
+      if (!point) {
+        setSolarCardAnchorPoint((prev) => (prev === null ? prev : null));
+        return;
+      }
+
+      setSolarCardAnchorPoint((prev) => {
+        if (prev && prev.x === point.x && prev.y === point.y) {
+          return prev;
+        }
+        return { x: point.x, y: point.y };
+      });
+    };
+
+    updateAnchor();
+
+    if (engine !== 'maplibre') return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    map.on('move', updateAnchor);
+    map.on('zoom', updateAnchor);
+    map.on('resize', updateAnchor);
+
+    return () => {
+      map.off('move', updateAnchor);
+      map.off('zoom', updateAnchor);
+      map.off('resize', updateAnchor);
+    };
+  }, [controller, engine, isSolarFlowersMode, rawMapRef, selectedSolarCandidate]);
+
+  useEffect(() => {
     if (isTreeMode) return;
     setTreeDrawArmed(false);
     setTreeDrawing(false);
@@ -308,6 +646,31 @@ export default function MapPage() {
     setTreeError(null);
     setTreeWizardStep('shape');
   }, [isTreeMode]);
+
+  useEffect(() => {
+    if (isDefaultMode) return;
+    setClickInfo(null);
+    setSelectedBuilding(null);
+  }, [isDefaultMode]);
+
+  useEffect(() => {
+    if (isSolarFlowersMode) return;
+    setSolarDrawArmed(false);
+    setSolarDrawing(false);
+    setSolarDraftGeometry(null);
+    setSolarAreaGeometry(null);
+    setSolarAreaKm2(null);
+    setSolarCandidates([]);
+    setSelectedSolarCandidate(null);
+    setSolarCardAnchorPoint(null);
+    setSolarExplanation(null);
+    setSolarExplainError(null);
+    setSolarMissionPicks([]);
+    setSolarMissionScore(0);
+    setSolarMissionCombo(1);
+    setSolarError(null);
+    setSolarWizardStep('shape');
+  }, [isSolarFlowersMode]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;
@@ -378,169 +741,72 @@ export default function MapPage() {
   }, [engine, isTreeMode, rawMapRef, treeAreaGeometry, treeDraftGeometry, treeDrawMode]);
 
   useEffect(() => {
-    if (engine !== 'maplibre' || !isTreeMode || !treeDrawArmed) return;
+    if (engine !== 'maplibre') return;
     const map = rawMapRef.current as maplibregl.Map | null;
     if (!map) return;
 
-    let isMouseDown = false;
-    let startPoint: [number, number] | null = null;
-    let polygonPoints: [number, number][] = [];
-    let freehandPoints: [number, number][] = [];
-
-    map.getCanvas().style.cursor = 'crosshair';
-
-    const beginDrawing = () => {
-      setTreeDrawing(true);
-      setTreeDraftGeometry(null);
-      setTreeExplainError(null);
-      map.dragPan.disable();
-      map.doubleClickZoom.disable();
-    };
-
-    const finishDrawing = (geometry: RankAreaGeometry | null, cancelled = false) => {
-      if (geometry) {
-        applyTreeAreaGeometry(geometry);
-        setTreeWizardStep('settings');
-      } else if (!cancelled) {
-        setTreeError(treeUi.areaMissing);
-        setTreeWizardStep('shape');
+    const upsertAoiOverlay = () => {
+      if (!map.getSource(SOLAR_AOI_SOURCE_ID)) {
+        map.addSource(SOLAR_AOI_SOURCE_ID, {
+          type: 'geojson',
+          data: EMPTY_FEATURE_COLLECTION,
+        });
       }
-      setTreeDraftGeometry(null);
-      setTreeDrawArmed(false);
-      setTreeDrawing(false);
-      map.dragPan.enable();
-      map.doubleClickZoom.enable();
-      map.getCanvas().style.cursor = '';
-    };
+      if (!map.getLayer(SOLAR_AOI_FILL_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_AOI_FILL_LAYER_ID,
+          type: 'fill',
+          source: SOLAR_AOI_SOURCE_ID,
+          paint: {
+            'fill-color': '#d08b1a',
+            'fill-opacity': 0.12,
+          },
+        });
+      }
+      if (!map.getLayer(SOLAR_AOI_LINE_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_AOI_LINE_LAYER_ID,
+          type: 'line',
+          source: SOLAR_AOI_SOURCE_ID,
+          paint: {
+            'line-color': '#a36a12',
+            'line-width': 2,
+            'line-opacity': 0.92,
+            'line-dasharray': [1.5, 1.2],
+          },
+        });
+      }
 
-    const onMouseDown = (event: maplibregl.MapMouseEvent) => {
-      if (treeDrawMode !== 'rectangle' && treeDrawMode !== 'circle' && treeDrawMode !== 'freehand') return;
+      const source = map.getSource(SOLAR_AOI_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
 
-      if (treeDrawMode === 'freehand') {
-        beginDrawing();
-        isMouseDown = true;
-        const p: [number, number] = [event.lngLat.lng, event.lngLat.lat];
-        freehandPoints = [p];
+      const geometry = solarDraftGeometry ?? solarAreaGeometry;
+      if (!isSolarFlowersMode || !geometry) {
+        source.setData(EMPTY_FEATURE_COLLECTION);
         return;
       }
 
-      beginDrawing();
-      isMouseDown = true;
-      startPoint = [event.lngLat.lng, event.lngLat.lat];
-      setTreeDraftGeometry(null);
+      source.setData({
+        type: 'FeatureCollection',
+        features: [
+          {
+            type: 'Feature',
+            geometry,
+            properties: {
+              mode: solarDrawMode,
+            },
+          },
+        ],
+      });
     };
 
-    const onMouseMove = (event: maplibregl.MapMouseEvent) => {
-      if (!isMouseDown) {
-        if (treeDrawMode === 'polygon' && polygonPoints.length >= 2) {
-          const preview = polygonFromVertices([
-            ...polygonPoints,
-            [event.lngLat.lng, event.lngLat.lat],
-          ]);
-          if (preview) setTreeDraftGeometry(preview);
-        }
-        return;
-      }
+    if (map.isStyleLoaded()) {
+      upsertAoiOverlay();
+      return;
+    }
 
-      if (treeDrawMode === 'rectangle' && startPoint) {
-        const geometry = rectangleToPolygon(startPoint, [event.lngLat.lng, event.lngLat.lat]);
-        setTreeDraftGeometry(geometry);
-      }
-
-      if (treeDrawMode === 'circle' && startPoint) {
-        const current: [number, number] = [event.lngLat.lng, event.lngLat.lat];
-        const radiusMeters = maplibregl.LngLat.convert(startPoint).distanceTo(maplibregl.LngLat.convert(current));
-        const geometry = circleToPolygon(startPoint, Math.max(4, radiusMeters));
-        setTreeDraftGeometry(geometry);
-      }
-
-      if (treeDrawMode === 'freehand') {
-        const point: [number, number] = [event.lngLat.lng, event.lngLat.lat];
-        const last = freehandPoints[freehandPoints.length - 1];
-        if (!last || maplibregl.LngLat.convert(last).distanceTo(maplibregl.LngLat.convert(point)) > 4) {
-          freehandPoints.push(point);
-          const geometry = freehandToPolygon(freehandPoints);
-          if (geometry) setTreeDraftGeometry(geometry);
-        }
-      }
-    };
-
-    const onMouseUp = (event: maplibregl.MapMouseEvent) => {
-      if (!isMouseDown) return;
-      isMouseDown = false;
-
-      if (treeDrawMode === 'rectangle' && startPoint) {
-        const geometry = rectangleToPolygon(startPoint, [event.lngLat.lng, event.lngLat.lat]);
-        finishDrawing(geometry);
-        startPoint = null;
-        return;
-      }
-
-      if (treeDrawMode === 'circle' && startPoint) {
-        const current: [number, number] = [event.lngLat.lng, event.lngLat.lat];
-        const radiusMeters = maplibregl.LngLat.convert(startPoint).distanceTo(maplibregl.LngLat.convert(current));
-        const geometry = circleToPolygon(startPoint, Math.max(4, radiusMeters));
-        finishDrawing(geometry);
-        startPoint = null;
-        return;
-      }
-
-      if (treeDrawMode === 'freehand') {
-        const geometry = freehandToPolygon(freehandPoints);
-        finishDrawing(geometry);
-        freehandPoints = [];
-      }
-    };
-
-    const onClick = (event: maplibregl.MapMouseEvent) => {
-      if (treeDrawMode !== 'polygon') return;
-      if (polygonPoints.length === 0) {
-        beginDrawing();
-      }
-      polygonPoints = [...polygonPoints, [event.lngLat.lng, event.lngLat.lat]];
-      const geometry = polygonFromVertices(polygonPoints);
-      if (geometry) setTreeDraftGeometry(geometry);
-    };
-
-    const onDoubleClick = (event: maplibregl.MapMouseEvent & { originalEvent?: Event }) => {
-      if (treeDrawMode !== 'polygon') return;
-      event.originalEvent?.preventDefault();
-      const geometry = polygonFromVertices(polygonPoints);
-      finishDrawing(geometry);
-      polygonPoints = [];
-    };
-
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key !== 'Escape') return;
-      event.preventDefault();
-      polygonPoints = [];
-      freehandPoints = [];
-      startPoint = null;
-      finishDrawing(null, true);
-      setTreeWizardStep('shape');
-    };
-
-    map.on('mousedown', onMouseDown);
-    map.on('mousemove', onMouseMove);
-    map.on('mouseup', onMouseUp);
-    map.on('click', onClick);
-    map.on('dblclick', onDoubleClick);
-    window.addEventListener('keydown', onKeyDown);
-
-    return () => {
-      map.off('mousedown', onMouseDown);
-      map.off('mousemove', onMouseMove);
-      map.off('mouseup', onMouseUp);
-      map.off('click', onClick);
-      map.off('dblclick', onDoubleClick);
-      window.removeEventListener('keydown', onKeyDown);
-      map.dragPan.enable();
-      map.doubleClickZoom.enable();
-      map.getCanvas().style.cursor = '';
-      setTreeDrawing(false);
-      setTreeDraftGeometry(null);
-    };
-  }, [engine, isTreeMode, rawMapRef, treeDrawArmed, treeDrawMode, applyTreeAreaGeometry, treeUi.areaMissing]);
+    map.once('load', upsertAoiOverlay);
+  }, [engine, isSolarFlowersMode, rawMapRef, solarAreaGeometry, solarDraftGeometry, solarDrawMode]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;
@@ -678,6 +944,213 @@ export default function MapPage() {
   }, [engine, isTreeMode, rawMapRef, selectedTreeCandidate?.id, treeCandidates, treeDrawArmed, treeDrawing]);
 
   useEffect(() => {
+    if (engine !== 'maplibre') return;
+
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    const pickCandidateFromPoint = (point: maplibregl.Point) => {
+      const queriedLayers: string[] = [];
+      if (map.getLayer(SOLAR_POINT_LAYER_ID)) queriedLayers.push(SOLAR_POINT_LAYER_ID);
+      if (map.getLayer(SOLAR_3D_LAYER_ID)) queriedLayers.push(SOLAR_3D_LAYER_ID);
+      if (queriedLayers.length === 0) return null;
+
+      const features = map.queryRenderedFeatures(point, { layers: queriedLayers });
+      const candidateId = features[0]?.properties?.id;
+      if (typeof candidateId !== 'string') return null;
+      return solarCandidates.find((item) => item.id === candidateId) ?? null;
+    };
+
+    const clickHandler = (event: maplibregl.MapMouseEvent) => {
+      if (!isSolarFlowersMode || solarDrawArmed || solarDrawing) return;
+      const candidate = pickCandidateFromPoint(event.point);
+      if (!candidate) return;
+
+      suppressNextMapClickRef.current = true;
+      setSelectedSolarCandidate(candidate);
+      setClickInfo(null);
+      setSelectedBuilding(null);
+    };
+
+    const mouseMoveHandler = (event: maplibregl.MapMouseEvent) => {
+      if (!isSolarFlowersMode || solarDrawArmed || solarDrawing) return;
+      const candidate = pickCandidateFromPoint(event.point);
+      map.getCanvas().style.cursor = candidate ? 'pointer' : '';
+    };
+
+    const mouseOutHandler = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    const updateSolarSource = () => {
+      if (!map.getSource(SOLAR_CANDIDATE_SOURCE_ID)) {
+        map.addSource(SOLAR_CANDIDATE_SOURCE_ID, {
+          type: 'geojson',
+          data: EMPTY_FEATURE_COLLECTION,
+        });
+      }
+
+      if (!map.getLayer(SOLAR_HEAT_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_HEAT_LAYER_ID,
+          type: 'heatmap',
+          source: SOLAR_CANDIDATE_SOURCE_ID,
+          minzoom: 13,
+          maxzoom: 15,
+          filter: ['==', ['get', 'kind'], 'point'],
+          paint: {
+            'heatmap-weight': ['interpolate', ['linear'], ['to-number', ['get', 'score']], 0, 0.05, 100, 1],
+            'heatmap-intensity': ['interpolate', ['linear'], ['zoom'], 13, 0.8, 15, 1.35],
+            'heatmap-color': [
+              'interpolate',
+              ['linear'],
+              ['heatmap-density'],
+              0,
+              'rgba(255,255,178,0)',
+              0.2,
+              '#fff7bc',
+              0.45,
+              '#fec44f',
+              0.72,
+              '#fe9929',
+              1,
+              '#ec7014',
+            ],
+            'heatmap-radius': ['interpolate', ['linear'], ['zoom'], 13, 12, 15, 24],
+            'heatmap-opacity': 0.68,
+          },
+        });
+      }
+
+      if (!map.getLayer(SOLAR_POINT_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_POINT_LAYER_ID,
+          type: 'circle',
+          source: SOLAR_CANDIDATE_SOURCE_ID,
+          minzoom: 15,
+          maxzoom: 16,
+          filter: ['==', ['get', 'kind'], 'point'],
+          paint: {
+            'circle-radius': ['interpolate', ['linear'], ['to-number', ['get', 'score']], 0, 4, 100, 10],
+            'circle-color': [
+              'case',
+              ['==', ['get', 'profile_kind'], 'solar'],
+              ['interpolate', ['linear'], ['to-number', ['get', 'score']], 0, '#d0d7e4', 100, '#f7c948'],
+              ['interpolate', ['linear'], ['to-number', ['get', 'score']], 0, '#d6e7d8', 100, '#4caf50'],
+            ],
+            'circle-opacity': ['case', ['==', ['get', 'selected'], 1], 0.96, 0.86],
+            'circle-stroke-width': ['case', ['==', ['get', 'selected'], 1], 2.8, 1.2],
+            'circle-stroke-color': [
+              'case',
+              ['==', ['get', 'picked'], 1],
+              '#8b5cf6',
+              ['==', ['get', 'selected'], 1],
+              '#172033',
+              '#ffffff',
+            ],
+          },
+        });
+      }
+
+      if (!map.getLayer(SOLAR_POINT_LABEL_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_POINT_LABEL_LAYER_ID,
+          type: 'symbol',
+          source: SOLAR_CANDIDATE_SOURCE_ID,
+          minzoom: 15,
+          maxzoom: 16,
+          filter: ['==', ['get', 'kind'], 'point'],
+          layout: {
+            'text-field': ['get', 'rank_label'],
+            'text-size': 10,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-offset': [0, 1.2],
+            'text-anchor': 'top',
+          },
+          paint: {
+            'text-color': '#704400',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 0.85,
+          },
+        });
+      }
+
+      if (!map.getLayer(SOLAR_3D_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_3D_LAYER_ID,
+          type: 'fill-extrusion',
+          source: SOLAR_CANDIDATE_SOURCE_ID,
+          minzoom: 16,
+          filter: ['==', ['get', 'kind'], 'solid'],
+          paint: {
+            'fill-extrusion-height': ['to-number', ['get', 'extrusion_height']],
+            'fill-extrusion-color': [
+              'case',
+              ['==', ['get', 'profile_kind'], 'solar'],
+              ['case', ['==', ['get', 'picked'], 1], '#f7b733', '#f3c969'],
+              ['case', ['==', ['get', 'picked'], 1], '#52c36f', '#6fcf97'],
+            ],
+            'fill-extrusion-opacity': ['case', ['==', ['get', 'selected'], 1], 0.94, 0.86],
+            'fill-extrusion-base': 0,
+          },
+        });
+      }
+
+      if (!map.getLayer(SOLAR_3D_GLOW_LAYER_ID)) {
+        map.addLayer({
+          id: SOLAR_3D_GLOW_LAYER_ID,
+          type: 'line',
+          source: SOLAR_CANDIDATE_SOURCE_ID,
+          minzoom: 16,
+          filter: ['==', ['get', 'kind'], 'solid'],
+          paint: {
+            'line-color': [
+              'case',
+              ['==', ['get', 'profile_kind'], 'solar'],
+              '#c58a00',
+              '#1f7a3f',
+            ],
+            'line-width': ['interpolate', ['linear'], ['zoom'], 16, 1.1, 19, 2.4],
+            'line-opacity': ['case', ['==', ['get', 'selected'], 1], 1, 0.74],
+          },
+        });
+      }
+
+      const source = map.getSource(SOLAR_CANDIDATE_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
+
+      if (!isSolarFlowersMode || solarCandidates.length === 0 || zoom < 13) {
+        source.setData(EMPTY_FEATURE_COLLECTION);
+        return;
+      }
+
+      source.setData(buildSolarCandidatesFeatureCollection(
+        solarCandidates,
+        solarProfile,
+        selectedSolarCandidate?.id ?? null,
+        new Set(solarMissionPicks.map((item) => item.id)),
+      ));
+    };
+
+    if (map.isStyleLoaded()) {
+      updateSolarSource();
+    } else {
+      map.once('load', updateSolarSource);
+    }
+
+    map.on('click', clickHandler);
+    map.on('mousemove', mouseMoveHandler);
+    map.on('mouseout', mouseOutHandler);
+
+    return () => {
+      map.off('click', clickHandler);
+      map.off('mousemove', mouseMoveHandler);
+      map.off('mouseout', mouseOutHandler);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [engine, isSolarFlowersMode, rawMapRef, selectedSolarCandidate?.id, solarCandidates, solarDrawArmed, solarDrawing, solarMissionPicks, solarProfile, zoom]);
+
+  useEffect(() => {
     if (!isTreeMode || !selectedTreeCandidate) {
       setTreeExplanation(null);
       setTreeExplainError(null);
@@ -709,6 +1182,39 @@ export default function MapPage() {
       isCancelled = true;
     };
   }, [isTreeMode, language, selectedTreeCandidate, treeSummerWeight, treeUi.explainFailed]);
+
+  useEffect(() => {
+    if (!isSolarFlowersMode || !selectedSolarCandidate) {
+      setSolarExplanation(null);
+      setSolarExplainError(null);
+      setSolarExplainLoading(false);
+      return;
+    }
+
+    let isCancelled = false;
+    setSolarExplainLoading(true);
+    setSolarExplainError(null);
+    setSolarExplanation(null);
+
+    explainSolarFlowersCandidate(selectedSolarCandidate, solarProfile, dt.dateStr, language)
+      .then((response) => {
+        if (isCancelled) return;
+        setSolarExplanation(response);
+      })
+      .catch((error) => {
+        if (isCancelled) return;
+        console.error('Solar flowers explanation error:', error);
+        setSolarExplainError(solarUi.explainFailed);
+      })
+      .finally(() => {
+        if (isCancelled) return;
+        setSolarExplainLoading(false);
+      });
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [isSolarFlowersMode, language, selectedSolarCandidate, solarProfile, dt.dateStr, solarUi.explainFailed]);
 
   // 2D/3D button controls MapLibre camera (pitch/bearing).
   useEffect(() => {
@@ -797,6 +1303,7 @@ export default function MapPage() {
   useEffect(() => {
     function handleClick(point: MapPoint) {
       if (isTreeMode) return;
+      if (isSolarFlowersMode && (solarDrawArmed || solarDrawing)) return;
       if (suppressNextMapClickRef.current) {
         suppressNextMapClickRef.current = false;
         return;
@@ -892,7 +1399,7 @@ export default function MapPage() {
     return () => {
       unsubscribeClick();
     };
-  }, [shadow, controller, buildingsRef, dt.dateStr, isTreeMode]);
+  }, [shadow, controller, buildingsRef, dt.dateStr, isTreeMode, isSolarFlowersMode, solarDrawArmed, solarDrawing]);
 
   // Selected building highlight with prediction-driven yellow edges.
   useEffect(() => {
@@ -1008,6 +1515,45 @@ export default function MapPage() {
     dt.setSlider(value);
   }
 
+  const handleSolarMissionPick = useCallback((candidate: SolarRankCandidate) => {
+    setSolarError(null);
+    setSolarMissionPicks((prev) => {
+      if (prev.some((item) => item.id === candidate.id)) {
+        return prev;
+      }
+      if (prev.length >= solarMissionTarget) {
+        return prev;
+      }
+
+      const tooClose = prev.some((item) => (
+        metersBetweenPoints(
+          { lat: item.lat, lng: item.lng },
+          { lat: candidate.lat, lng: candidate.lng },
+        ) < 40
+      ));
+      if (tooClose) {
+        setSolarError(solarUi.missionTooClose);
+        return prev;
+      }
+
+      const nextCombo = candidate.score >= 80
+        ? Math.min(solarMissionCombo + 1, 5)
+        : 1;
+      setSolarMissionCombo(nextCombo);
+      setSolarMissionScore((prevScore) => prevScore + Math.round(candidate.score * nextCombo));
+
+      return [
+        ...prev,
+        {
+          id: candidate.id,
+          lat: candidate.lat,
+          lng: candidate.lng,
+          score: candidate.score,
+        },
+      ];
+    });
+  }, [solarMissionCombo, solarMissionTarget, solarUi.missionTooClose]);
+
   // Load precomputed static dataset (best building side to receive sunlight)
   useEffect(() => {
     if (engine !== 'leaflet') return;
@@ -1027,7 +1573,7 @@ export default function MapPage() {
 
       <SearchBar onSelect={handleSearchSelect} />
 
-      {!isTreeMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
+      {isDefaultMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
         <div
           className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:var(--line)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--blue-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
           style={{
@@ -1121,6 +1667,77 @@ export default function MapPage() {
         />
       )}
 
+      {isSolarFlowersMode && (
+        <SolarFlowersWizard
+          step={solarWizardStep}
+          drawMode={solarDrawMode}
+          drawingInProgress={solarDrawing}
+          hasArea={Boolean(solarAreaGeometry)}
+          areaKm2={solarAreaKm2}
+          profile={solarProfile}
+          dateStr={dt.dateStr}
+          topK={solarTopK}
+          loading={solarLoading}
+          error={solarError}
+          resultCount={solarCandidates.length}
+          missionScore={solarMissionScore}
+          missionCombo={solarMissionCombo}
+          missionPicksCount={solarMissionPicks.length}
+          missionTarget={solarMissionTarget}
+          onDrawModeChange={(mode) => {
+            setSolarDrawMode(mode);
+            setSolarError(null);
+            setSolarDrawArmed(false);
+            setSolarDrawing(false);
+            setSolarDraftGeometry(null);
+          }}
+          onStartDrawing={startSolarDrawing}
+          onCancelDrawing={cancelSolarDrawing}
+          onContinueToSettings={() => {
+            if (!solarAreaGeometry) {
+              setSolarError(solarUi.areaMissing);
+              return;
+            }
+            setSolarError(null);
+            setSolarWizardStep('settings');
+          }}
+          onClearArea={clearSolarArea}
+          onProfileChange={setSolarProfile}
+          onDateChange={dt.setDateStr}
+          onTopKChange={setSolarTopK}
+          onRunRanking={() => {
+            void handleRunSolarRanking();
+          }}
+          onStartMission={() => {
+            setSolarError(null);
+            setSolarWizardStep('mission');
+          }}
+          onBackToShape={() => {
+            setSolarError(null);
+            setSolarWizardStep('shape');
+            setSolarDrawArmed(false);
+            setSolarDrawing(false);
+            setSolarDraftGeometry(null);
+            setSelectedSolarCandidate(null);
+            setSolarCardAnchorPoint(null);
+            setSolarExplanation(null);
+            setSolarExplainError(null);
+            setSolarMissionPicks([]);
+            setSolarMissionScore(0);
+            setSolarMissionCombo(1);
+          }}
+          onBackToSettings={() => {
+            setSolarError(null);
+            setSolarWizardStep('settings');
+          }}
+          onResetMission={() => {
+            setSolarMissionPicks([]);
+            setSolarMissionScore(0);
+            setSolarMissionCombo(1);
+          }}
+        />
+      )}
+
       {!isTreeMode && (
         <TimeSliderBar
           sliderValue={dt.sliderValue}
@@ -1149,6 +1766,30 @@ export default function MapPage() {
             setTreeCardAnchorPoint(null);
             setTreeExplanation(null);
             setTreeExplainError(null);
+          }}
+        />
+      )}
+
+      {isSolarFlowersMode && selectedSolarCandidate && (
+        <SolarFlowersCandidateCard
+          candidate={selectedSolarCandidate}
+          explanation={solarExplanation}
+          explanationLoading={solarExplainLoading}
+          explanationError={solarExplainError}
+          anchorPoint={solarCardAnchorPoint}
+          missionPicks={solarMissionPicks}
+          missionTarget={solarMissionTarget}
+          onPick={(candidate) => {
+            handleSolarMissionPick(candidate);
+            if (solarMissionPicks.length + 1 >= solarMissionTarget) {
+              setSolarWizardStep('mission');
+            }
+          }}
+          onClose={() => {
+            setSelectedSolarCandidate(null);
+            setSolarCardAnchorPoint(null);
+            setSolarExplanation(null);
+            setSolarExplainError(null);
           }}
         />
       )}
