@@ -75,6 +75,7 @@ export function useMapLibreMapEngine({
       zoom: MAP_CONFIG.zoom,
       pitch: 0,
       bearing: 0,
+      attributionControl: false,
     });
 
     map.addControl(new maplibregl.NavigationControl({ showCompass: true }), 'bottom-right');
