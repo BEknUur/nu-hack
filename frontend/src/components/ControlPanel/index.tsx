@@ -2,7 +2,6 @@ import type { CSSProperties, ReactNode } from 'react';
 import { CalendarDays, Cuboid, Layers3, LoaderCircle, Sprout, SunMedium } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
-import { MAP_CONFIG } from '@/config/map';
 import type { TreeDrawMode } from '@/types/tree-optimizer';
 
 interface TreeOptimizerControls {
@@ -36,7 +35,6 @@ interface ControlPanelProps {
   onViewModeChange?: (enabled: boolean) => void;
   isSatellite?: boolean;
   onBasemapChange?: (satellite: boolean) => void;
-  zoom: number;
   loadingBuildings: boolean;
   treeOptimizer?: TreeOptimizerControls;
 }
@@ -228,12 +226,10 @@ export default function ControlPanel({
   onViewModeChange,
   isSatellite,
   onBasemapChange,
-  zoom,
   loadingBuildings,
   treeOptimizer,
 }: ControlPanelProps) {
-  const buildingsActive = zoom >= MAP_CONFIG.buildingsMinZoom;
-  const { messages, t, language } = useTranslation();
+  const { messages, language } = useTranslation();
   const isTreeMode = Boolean(treeOptimizer?.enabled);
   const treeCopy = TREE_COPY[language];
   const summerPct = Math.round((treeOptimizer?.summerWeight ?? 0.55) * 100);
@@ -464,31 +460,6 @@ export default function ControlPanel({
               )}
             </div>
           </PanelSection>
-        )}
-
-        {!isTreeMode && (
-          <section className="rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
-            <div className="flex items-center justify-between gap-3 text-sm">
-              <span className="font-medium text-[var(--ink)]">{messages.map.buildingCoverage}</span>
-              <span className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.zoomLabel} {Math.round(zoom)}</span>
-            </div>
-            <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(31,79,156,0.1)]">
-              <div
-                className={cn(
-                  'h-full rounded-full transition-all',
-                  buildingsActive ? 'bg-[var(--yellow-strong)]' : 'bg-[var(--blue-strong)]',
-                )}
-                style={{
-                  width: `${Math.min(100, Math.max(18, (zoom / MAP_CONFIG.buildingsMinZoom) * 100))}%`,
-                }}
-              />
-            </div>
-            <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
-              {buildingsActive
-                ? messages.map.buildingsActive
-                : t(messages.map.zoomToLoad, { zoom: MAP_CONFIG.buildingsMinZoom })}
-            </p>
-          </section>
         )}
       </div>
     </aside>
