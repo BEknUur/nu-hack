@@ -135,7 +135,7 @@ export function useTreeState({
     }
 
     const map = rawMapRef.current as maplibregl.Map | null;
-    if (!map || !map.loaded()) {
+    if (!map || typeof map.on !== 'function' || typeof map.getCanvas !== 'function') {
       setTreeError(treeUi.mapNotReady);
       return;
     }

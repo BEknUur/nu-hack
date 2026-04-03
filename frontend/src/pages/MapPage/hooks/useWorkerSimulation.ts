@@ -54,10 +54,10 @@ export function useWorkerSimulation({
 
   useEffect(() => {
     if (!workerSimRunning || !isWorkerMode || !workerAreaGeometry) return;
-    const stepMinutes = 60;
+    const stepMinutes = 15;
     const startMinute = 9 * 60;
     const endMinute = 17 * 60;
-    const shadowWarmupMs = Math.min(1200, Math.max(450, Math.floor(workerSimSpeedMs * 0.6)));
+    const shadowWarmupMs = Math.min(900, Math.max(280, Math.floor(workerSimSpeedMs * 0.45)));
     let minute = startMinute;
     let tick = 0;
 
@@ -77,7 +77,7 @@ export function useWorkerSimulation({
           workerAreaGeometry,
           workerTaskType,
           buildingsRef.current,
-          tick,
+          minute,
         );
         const workerPoints = featureCollection.features
           .filter((feature) => feature.geometry?.type === 'Point')

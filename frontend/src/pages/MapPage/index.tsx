@@ -3,6 +3,7 @@ import L from 'leaflet';
 import { useParams } from 'react-router-dom';
 import SearchBar from '@/components/SearchBar';
 import MapView from '@/components/MapView';
+import TimeSliderBar from '@/components/TimeSliderBar';
 import type { GeocodingResult } from '@/services/geocoding';
 import type { ClickInfo } from '@/types/map';
 import type { SelectedBuilding } from '@/types/building';
@@ -112,29 +113,30 @@ export default function MapPage() {
         isSatellite={isSatellite}
         onBasemapChange={engineState.engine === 'maplibre' ? setIsSatellite : undefined}
         loadingBuildings={loadingBuildings}
-        sliderValue={dt.sliderValue}
-        sliderPct={dt.sliderPct}
-        timeLabel={dt.timeLabel}
-        onSliderChange={handleTimeSliderChange}
         onCloseInfo={() => {
           setClickInfo(null);
           setSelectedBuilding(null);
         }}
       />
 
-      <MapPageTreeMode visible={isTreeMode} tree={tree} />
+      <MapPageTreeMode
+        visible={isTreeMode}
+        tree={tree}
+      />
 
       <MapPageWorkerMode
         visible={isWorkerMode}
-        engine={engineState.engine}
-        sunExposure={sunExposure}
-        onSunExposureChange={setSunExposure}
-        is3D={is3D}
-        onViewModeChange={setIs3D}
-        isSatellite={isSatellite}
-        onBasemapChange={setIsSatellite}
         worker={worker}
       />
+
+      {(isStandardInfoMode || isTreeMode || isWorkerMode) && (
+        <TimeSliderBar
+          sliderValue={dt.sliderValue}
+          sliderPct={dt.sliderPct}
+          timeLabel={dt.timeLabel}
+          onSliderChange={handleTimeSliderChange}
+        />
+      )}
     </div>
   );
 }

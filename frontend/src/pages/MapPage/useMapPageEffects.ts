@@ -158,7 +158,7 @@ export function useMapPageEffects({
     isWorkerMode,
     workerAreaGeometry: worker.workerAreaGeometry,
     workerTaskType: worker.workerTaskType,
-    workerSimTick: worker.workerSimTick,
+    workerSimMinute: worker.workerSimMinute,
   });
 
   useWorkerInteractions({
