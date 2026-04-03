@@ -3,14 +3,29 @@ export default {
   content: ['./index.html', './src/**/*.{ts,tsx}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans:    ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+        display: ['"Unbounded"', 'system-ui', 'sans-serif'],
+        mono:    ['"Space Mono"', 'ui-monospace', 'monospace'],
+        serif:   ['"Instrument Serif"', 'Georgia', 'serif'],
+        'instrument-serif': ['"Instrument Serif"', 'Georgia', 'serif'],
+      },
       animation: {
         'pulse-dot': 'pulse-dot 1.1s ease-in-out infinite',
         'slide-up':  'slide-up 0.2s ease',
         'shimmer':   'shimmer 2s linear infinite',
         'gradient-shift': 'gradient-shift 3s linear infinite',
         'scroll-dot': 'scroll-dot 1.5s ease-in-out infinite',
+        'fade-slide-in-1': 'fadeSlideIn 0.6s ease-out 0.1s both',
+        'fade-slide-in-2': 'fadeSlideIn 0.6s ease-out 0.25s both',
+        'fade-slide-in-3': 'fadeSlideIn 0.6s ease-out 0.4s both',
+        'fade-slide-in-4': 'fadeSlideIn 0.6s ease-out 0.55s both',
       },
       keyframes: {
+        'fadeSlideIn': {
+          from: { opacity: '0', transform: 'translateY(20px)' },
+          to:   { opacity: '1', transform: 'translateY(0)' },
+        },
         'pulse-dot': {
           '0%, 100%': { opacity: '1', transform: 'scale(1)' },
           '50%':       { opacity: '0.4', transform: 'scale(0.75)' },

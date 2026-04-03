@@ -50,6 +50,39 @@ interface TranslationSet {
     footerSunExposure: string;
     footerCredits: string;
   };
+  landingV2: {
+    hero: {
+      badgeLabel: string;
+      badgeText: string;
+      title: string;
+      titleAccent: string;
+      description: string;
+      primaryBtn: string;
+      secondaryBtn: string;
+      openMap: string;
+    };
+    nav: {
+      apartments: string;
+      trees: string;
+      workers: string;
+    };
+    workflows: {
+      tag: string;
+      title: string;
+      titleMuted: string;
+      subtitle: string;
+    };
+    features: Array<{
+      title: string;
+      description: string;
+      tag: string;
+    }>;
+    openScene: string;
+    inDevelopment: string;
+    footer: {
+      tagline: string;
+    };
+  };
   map: {
     searchTag: string;
     searchTitle: string;
@@ -184,6 +217,56 @@ const translations: Record<Language, TranslationSet> = {
       footerSunExposure: 'Инсоляция',
       footerCredits: 'Работает на OpenStreetMap, MapLibre GL и симуляции теней.',
     },
+    landingV2: {
+      hero: {
+        badgeLabel: 'Городской ИИ',
+        badgeText: 'Симуляция теней для Астаны, Казахстан',
+        title: 'Солнце',
+        titleAccent: 'в движении.',
+        description: 'Четыре рабочих инструмента. Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
+        primaryBtn: 'Открыть карту',
+        secondaryBtn: 'Как это работает',
+        openMap: 'Открыть карту',
+      },
+      nav: {
+        apartments: 'Квартиры',
+        trees: 'Деревья',
+        workers: 'Рабочие',
+      },
+      workflows: {
+        tag: 'Четыре инструмента',
+        title: 'Один город.',
+        titleMuted: 'Бесконечный свет.',
+        subtitle: 'Каждый инструмент работает с симуляцией теней в реальном времени на данных OpenStreetMap. Двигай слайдер — смотри, как дышит город.',
+      },
+      features: [
+        {
+          title: 'Анализ квартиры',
+          description: 'Проверь инсоляцию, ориентацию и затенение перед принятием решения. Смотри тени фасадов и дворов на протяжении всего дня.',
+          tag: 'Анализ',
+        },
+        {
+          title: 'Посадка деревьев',
+          description: 'Найди прохладные зоны, которые сохраняют достаточно зимнего света. Двигайся по времени и выбирай, где деревья улучшат комфорт.',
+          tag: 'Оптимизация',
+        },
+        {
+          title: 'Ротация рабочих',
+          description: 'Выбери рабочую зону, тип задачи, количество смен и посмотри, как команды чередуются между солнцем и тенью в течение дня.',
+          tag: 'Планирование',
+        },
+        {
+          title: 'Солнце и цветы',
+          description: 'Сопоставь культуры, цветы или солнечные панели с дневным маршрутом света. Быстро сравни потенциальные зоны на одной карте.',
+          tag: 'Скоро',
+        },
+      ],
+      openScene: 'Открыть сцену',
+      inDevelopment: 'В разработке',
+      footer: {
+        tagline: 'карта солнца и тени',
+      },
+    },
     map: {
       searchTag: 'Поиск',
       searchTitle: 'Найти локацию',
@@ -308,6 +391,56 @@ const translations: Record<Language, TranslationSet> = {
       footerSunExposure: 'Инсоляция',
       footerCredits: 'OpenStreetMap, MapLibre GL және көлеңке симуляциясы негізінде жұмыс істейді.',
     },
+    landingV2: {
+      hero: {
+        badgeLabel: 'Қалалық ИИ',
+        badgeText: 'Астана, Қазақстан үшін көлеңке симуляциясы',
+        title: 'Күн жарығы',
+        titleAccent: 'қозғалыста.',
+        description: 'Төрт қалалық интеллект жұмыс ағыны. Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
+        primaryBtn: 'Картаны ашу',
+        secondaryBtn: 'Қалай жұмыс істейді',
+        openMap: 'Картаны ашу',
+      },
+      nav: {
+        apartments: 'Пәтерлер',
+        trees: 'Ағаштар',
+        workers: 'Жұмысшылар',
+      },
+      workflows: {
+        tag: 'Төрт жұмыс ағыны',
+        title: 'Бір қала.',
+        titleMuted: 'Шексіз жарық.',
+        subtitle: 'Әрбір құрал тірі OpenStreetMap деректерінде нақты уақыттағы көлеңке симуляциясын пайдаланады. Уақыт жүргізгішін жылжытыңыз — қаланың тыныс алуын бақылаңыз.',
+      },
+      features: [
+        {
+          title: 'Пәтерді талдау',
+          description: 'Шешім қабылдамас бұрын инсоляцияны, бағытты және затенениені тексер. Бүкіл күн бойы қасбет пен аулалардың көлеңкелерін бақыла.',
+          tag: 'Талдау',
+        },
+        {
+          title: 'Ағаш отырғызу',
+          description: 'Жазда салқынырақ, қыста жеткілікті жарығы бар аймақтарды тап. Уақытты жылжытып, ағаштардың комфортты қалай жақсартатынын таңда.',
+          tag: 'Оңтайландыру',
+        },
+        {
+          title: 'Жұмысшылар ротациясы',
+          description: 'Жұмыс аймағын, тапсырма түрін, экипаж мөлшерін таңда және командалардың күн мен көлеңке арасында қалай ауысатынын алдын ала қарап шық.',
+          tag: 'Жоспарлау',
+        },
+        {
+          title: 'Күн және гүлдер',
+          description: 'Дақылдар, гүлдер немесе күн панельдерін күндізгі жарық жолымен сәйкестендір. Бір картада потенциалды аймақтарды жылдам салыстыр.',
+          tag: 'Жақында',
+        },
+      ],
+      openScene: 'Сахнаны ашу',
+      inDevelopment: 'Әзірлеуде',
+      footer: {
+        tagline: 'күн мен көлеңке картасы',
+      },
+    },
     map: {
       searchTag: 'Іздеу',
       searchTitle: 'Орнын табу',
@@ -431,6 +564,56 @@ const translations: Record<Language, TranslationSet> = {
       footerUrbanPlanning: 'Urban planning',
       footerSunExposure: 'Sun exposure',
       footerCredits: 'Powered by OpenStreetMap, MapLibre GL, and live shadow simulation.',
+    },
+    landingV2: {
+      hero: {
+        badgeLabel: 'Urban AI',
+        badgeText: 'Shadow simulation for Astana, Kazakhstan',
+        title: 'Sunlight',
+        titleAccent: 'in Motion.',
+        description: 'Four urban intelligence workflows. Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
+        primaryBtn: 'Explore the Map',
+        secondaryBtn: 'How it works',
+        openMap: 'Open Map',
+      },
+      nav: {
+        apartments: 'Apartments',
+        trees: 'Trees',
+        workers: 'Workers',
+      },
+      workflows: {
+        tag: 'Four workflows',
+        title: 'One city.',
+        titleMuted: 'Endless light.',
+        subtitle: 'Each tool runs real-time shadow simulation on live OpenStreetMap data. Move the time slider — watch the city breathe.',
+      },
+      features: [
+        {
+          title: 'Apartment Analysis',
+          description: 'Review sunlight, orientation, and blockage before you decide. Check facades and courtyard shadows across the full day.',
+          tag: 'Analysis',
+        },
+        {
+          title: 'Tree Planting',
+          description: 'Find cooler zones that still keep enough winter light. Move through time and choose where trees improve comfort without blocking too much sun.',
+          tag: 'Optimization',
+        },
+        {
+          title: 'Worker Rotation',
+          description: 'Pick a work zone, choose task type, set crew size, and preview how teams rotate through sun and shade throughout the day.',
+          tag: 'Planning',
+        },
+        {
+          title: 'Solar & Flowers',
+          description: 'Match crops, flowers, or solar panels to the daily light path. Compare potential zones quickly on one map.',
+          tag: 'Coming soon',
+        },
+      ],
+      openScene: 'Open scene',
+      inDevelopment: 'In development',
+      footer: {
+        tagline: 'sunlight and shadow map',
+      },
     },
     map: {
       searchTag: 'Search',
