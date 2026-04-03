@@ -18,6 +18,8 @@ import { useMapPageEffects } from '@/pages/MapPage/useMapPageEffects';
 import { MapPageStandardInfo } from '@/pages/MapPage/MapPageStandardInfo';
 import { MapPageTreeMode } from '@/pages/MapPage/MapPageTreeMode';
 import { MapPageWorkerMode } from '@/pages/MapPage/MapPageWorkerMode';
+import { MapPageSolarFlowersMode } from '@/pages/MapPage/MapPageSolarFlowersMode';
+import { useSolarFlowersState } from '@/pages/MapPage/useSolarFlowersState';
 
 export default function MapPage() {
   const { messages, language } = useTranslation();
@@ -25,7 +27,8 @@ export default function MapPage() {
   const scenarioMode = getScenarioMode(caseId);
   const isTreeMode = scenarioMode === 'trees';
   const isWorkerMode = scenarioMode === 'workers';
-  const isStandardInfoMode = !isTreeMode && !isWorkerMode;
+  const isSolarMode = scenarioMode === 'solarFlowers';
+  const isStandardInfoMode = !isTreeMode && !isWorkerMode && !isSolarMode;
 
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
@@ -54,6 +57,8 @@ export default function MapPage() {
     keepState: isTreeMode || isWorkerMode,
   });
 
+  const solar = useSolarFlowersState({ isSolarMode });
+
   const worker = useWorkerState({
     isWorkerMode,
     onSimulationStart: () => {
@@ -67,8 +72,10 @@ export default function MapPage() {
     dt: { ...dt, language },
     tree,
     worker,
+    solar,
     isTreeMode,
     isWorkerMode,
+    isSolarMode,
     sunExposure,
     is3D,
     isSatellite,
@@ -129,7 +136,13 @@ export default function MapPage() {
         worker={worker}
       />
 
-      {(isStandardInfoMode || isTreeMode || isWorkerMode) && (
+      <MapPageSolarFlowersMode
+        visible={isSolarMode}
+        solar={solar}
+        language={language}
+      />
+
+      {(isStandardInfoMode || isTreeMode || isWorkerMode || isSolarMode) && (
         <TimeSliderBar
           sliderValue={dt.sliderValue}
           sliderPct={dt.sliderPct}
