@@ -219,7 +219,6 @@ export default function LandingPage() {
         ]}
         ctaButtonText={l.hero.openMap}
         ctaButtonHref="/app/apartments"
-        badgeLine={l.hero.heroBadge}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}
@@ -229,7 +228,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-0">
             <WhisperText
               text={l.hero.title}
-              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-extralight leading-[0.88] tracking-[-0.04em] text-white"
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-light leading-[0.88] tracking-[-0.04em] text-white"
               delay={220}
               duration={0.8}
               y={35}
@@ -237,7 +236,7 @@ export default function LandingPage() {
             />
             <WhisperText
               text={l.hero.titleAccent}
-              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-extralight leading-[0.88] tracking-[-0.04em] text-[#f0c24c]"
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-light leading-[0.88] tracking-[-0.04em] text-[#f0c24c]"
               delay={220}
               duration={0.8}
               y={35}
@@ -248,7 +247,7 @@ export default function LandingPage() {
         descriptionSlot={
           <WhisperText
             text={l.hero.description}
-            className="mx-auto max-w-xl text-base md:text-lg text-white/45 leading-relaxed"
+            className="mx-auto max-w-xl text-xs md:text-sm text-white/45 leading-relaxed"
             delay={60}
             duration={0.5}
             y={15}

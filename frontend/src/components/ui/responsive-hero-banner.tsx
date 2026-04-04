@@ -20,8 +20,6 @@ interface ResponsiveHeroBannerProps {
   navLinks?: NavLink[];
   ctaButtonText?: string;
   ctaButtonHref?: string;
-  /** Single eyebrow line (no nested label pill). */
-  badgeLine?: string;
   title?: string;
   titleLine2?: string;
   description?: string;
@@ -45,7 +43,6 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   ],
   ctaButtonText = 'Open Map',
   ctaButtonHref = '/app/apartments',
-  badgeLine = 'Urban AI — shadow simulation for Astana, Kazakhstan',
   title = 'Sunlight',
   titleLine2 = 'in Motion.',
   description = 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
@@ -254,11 +251,6 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
       <div className="relative" style={{ zIndex: 10 }}>
         <div className="mx-auto max-w-7xl px-6 pt-28 sm:pt-32 md:pt-40 lg:pt-48 pb-20">
           <div className="mx-auto max-w-3xl text-center">
-            {/* Eyebrow */}
-            <div className="animate-fade-slide-in-1 mb-8 inline-flex max-w-full items-center justify-center rounded-full bg-white/8 px-4 py-2 ring-1 ring-white/12 backdrop-blur-md">
-              <span className="text-center text-sm text-white/70">{badgeLine}</span>
-            </div>
-
             {/* Headline */}
             {heroTextSlot ? (
               <div className="mt-2 mb-2">{heroTextSlot}</div>
