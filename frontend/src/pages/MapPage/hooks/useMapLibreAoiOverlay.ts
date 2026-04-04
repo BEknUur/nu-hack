@@ -1,32 +1,44 @@
-import { useEffect } from 'react';
+import { useEffect, type RefObject } from 'react';
 import maplibregl from 'maplibre-gl';
+import type { RankAreaGeometry, TreeDrawMode } from '@/types/tree-optimizer';
 import {
   EMPTY_FEATURE_COLLECTION,
   TREE_AOI_FILL_LAYER_ID,
   TREE_AOI_LINE_LAYER_ID,
   TREE_AOI_SOURCE_ID,
 } from '@/hooks/maplibre/constants';
-import type { RankAreaGeometry } from '@/types/tree-optimizer';
 
-interface UseMapLibreAoiOverlayArgs {
+export interface UseMapLibreAoiOverlayParams {
   engine: string;
-  rawMapRef: React.RefObject<unknown>;
-  geometry: RankAreaGeometry | null;
-  mode: string | null;
+  rawMapRef: RefObject<unknown>;
+  isTreeMode: boolean;
+  isWorkerMode: boolean;
+  treeAreaGeometry: RankAreaGeometry | null;
+  treeDraftGeometry: RankAreaGeometry | null;
+  treeDrawMode: TreeDrawMode;
+  workerAreaGeometry: RankAreaGeometry | null;
+  workerDraftGeometry: RankAreaGeometry | null;
+  workerDrawMode: TreeDrawMode;
 }
 
 export function useMapLibreAoiOverlay({
   engine,
   rawMapRef,
-  geometry,
-  mode,
-}: UseMapLibreAoiOverlayArgs) {
+  isTreeMode,
+  isWorkerMode,
+  treeAreaGeometry,
+  treeDraftGeometry,
+  treeDrawMode,
+  workerAreaGeometry,
+  workerDraftGeometry,
+  workerDrawMode,
+}: UseMapLibreAoiOverlayParams) {
   useEffect(() => {
     if (engine !== 'maplibre') return;
     const map = rawMapRef.current as maplibregl.Map | null;
     if (!map) return;
 
-    const upsertOverlay = () => {
+    const upsertAoiOverlay = () => {
       if (!map.getSource(TREE_AOI_SOURCE_ID)) {
         map.addSource(TREE_AOI_SOURCE_ID, {
           type: 'geojson',
@@ -61,7 +73,10 @@ export function useMapLibreAoiOverlay({
       const source = map.getSource(TREE_AOI_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
       if (!source) return;
 
-      if (!geometry || !mode) {
+      const geometry = isTreeMode
+        ? (treeDraftGeometry ?? treeAreaGeometry)
+        : (isWorkerMode ? (workerDraftGeometry ?? workerAreaGeometry) : null);
+      if ((!isTreeMode && !isWorkerMode) || !geometry) {
         source.setData(EMPTY_FEATURE_COLLECTION);
         return;
       }
@@ -72,17 +87,52 @@ export function useMapLibreAoiOverlay({
           {
             type: 'Feature',
             geometry,
-            properties: { mode },
+            properties: {
+              mode: isTreeMode ? treeDrawMode : 'worker-zone',
+            },
           },
         ],
       });
+
+      if (map.getLayer(TREE_AOI_FILL_LAYER_ID)) {
+        try {
+          map.moveLayer(TREE_AOI_FILL_LAYER_ID);
+        } catch {
+          // ignore
+        }
+      }
+      if (map.getLayer(TREE_AOI_LINE_LAYER_ID)) {
+        try {
+          map.moveLayer(TREE_AOI_LINE_LAYER_ID);
+        } catch {
+          // ignore
+        }
+      }
+    };
+
+    const onLoad = () => {
+      upsertAoiOverlay();
     };
 
     if (map.isStyleLoaded()) {
-      upsertOverlay();
-      return;
+      upsertAoiOverlay();
+    } else {
+      map.once('load', onLoad);
     }
 
-    map.once('load', upsertOverlay);
-  }, [engine, geometry, mode, rawMapRef]);
+    return () => {
+      map.off('load', onLoad);
+    };
+  }, [
+    engine,
+    isTreeMode,
+    isWorkerMode,
+    rawMapRef,
+    treeAreaGeometry,
+    treeDraftGeometry,
+    treeDrawMode,
+    workerAreaGeometry,
+    workerDraftGeometry,
+    workerDrawMode,
+  ]);
 }

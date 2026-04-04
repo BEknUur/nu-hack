@@ -128,6 +128,23 @@ export function estimateGeometryAreaKm2(geometry: RankAreaGeometry): number {
     return total / 1_000_000;
 }
 
+/** Below this (~50 m²), a drawn zone is treated as unusable (click without drag, etc.). */
+const MIN_USABLE_ZONE_KM2 = 0.00005;
+
+/**
+ * If the polygon is degenerate or tiny, replace with a circle at the same centroid
+ * so workers and AOI outlines are visible (same idea as a minimum brush in design tools).
+ */
+export function ensureWorkerZoneGeometry(geometry: RankAreaGeometry): RankAreaGeometry {
+    const km2 = estimateGeometryAreaKm2(geometry);
+    if (km2 >= MIN_USABLE_ZONE_KM2) return geometry;
+    const bounds = geometryToBounds(geometry);
+    const centerLng = (bounds.west + bounds.east) / 2;
+    const centerLat = (bounds.south + bounds.north) / 2;
+    const minRadiusM = 45;
+    return circleToPolygon([centerLng, centerLat], minRadiusM);
+}
+
 export function geometryToBounds(geometry: RankAreaGeometry): MapBounds {
     const points: Coord[] = [];
 

@@ -1,27 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import maplibregl from 'maplibre-gl';
-import type { MapEngineController } from '@/types/map-engine';
+import type { MapPoint } from '@/types/map-engine';
 import type { TreeRankCandidate } from '@/types/tree-optimizer';
 
-interface UseTreeCandidateAnchorArgs {
-  enabled: boolean;
-  engine: string;
-  rawMapRef: React.RefObject<unknown>;
-  controller: MapEngineController;
-  selectedTreeCandidate: TreeRankCandidate | null;
-  setTreeCardAnchorPoint: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
+interface MapControllerLike {
+  getContainerPoint: (point: MapPoint) => { x: number; y: number } | null;
 }
 
-export function useTreeCandidateAnchor({
-  enabled,
+export interface UseTreeCandidateMapAnchorParams {
+  engine: string;
+  rawMapRef: RefObject<unknown>;
+  isTreeMode: boolean;
+  selectedTreeCandidate: TreeRankCandidate | null;
+  controller: MapControllerLike;
+  setTreeCardAnchorPoint: Dispatch<SetStateAction<{ x: number; y: number } | null>>;
+}
+
+export function useTreeCandidateMapAnchor({
   engine,
   rawMapRef,
-  controller,
+  isTreeMode,
   selectedTreeCandidate,
+  controller,
   setTreeCardAnchorPoint,
-}: UseTreeCandidateAnchorArgs) {
+}: UseTreeCandidateMapAnchorParams) {
   useEffect(() => {
-    if (!enabled || !selectedTreeCandidate) {
+    if (!isTreeMode || !selectedTreeCandidate) {
       setTreeCardAnchorPoint(null);
       return;
     }
@@ -60,5 +64,5 @@ export function useTreeCandidateAnchor({
       map.off('zoom', updateAnchor);
       map.off('resize', updateAnchor);
     };
-  }, [controller, enabled, engine, rawMapRef, selectedTreeCandidate, setTreeCardAnchorPoint]);
+  }, [controller, engine, isTreeMode, rawMapRef, selectedTreeCandidate]);
 }

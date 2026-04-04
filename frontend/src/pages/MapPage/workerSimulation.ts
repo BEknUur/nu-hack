@@ -99,29 +99,75 @@ function mulberry32(seed: number) {
   };
 }
 
-function randomPointInPolygon(
-  ring: [number, number][],
-  minLng: number,
-  maxLng: number,
-  minLat: number,
-  maxLat: number,
-  pointInPolygon: (lng: number, lat: number) => boolean,
-  rng: () => number,
-  maxAttempts = 120,
+function fract(x: number): number {
+  return x - Math.floor(x);
+}
+
+/** Distance in rough map-plane units (lng/lat degrees — ok for short segments). */
+function segLen(a: [number, number], b: [number, number]): number {
+  const dx = b[0] - a[0];
+  const dy = b[1] - a[1];
+  return Math.hypot(dx, dy);
+}
+
+/**
+ * Walk along a polyline (optionally closed). u in [0,1) maps to arc length.
+ */
+function pointAlongPolyline(
+  points: [number, number][],
+  u: number,
+  closed: boolean,
 ): [number, number] {
-  for (let k = 0; k < maxAttempts; k += 1) {
-    const lng = minLng + rng() * (maxLng - minLng);
-    const lat = minLat + rng() * (maxLat - minLat);
-    if (pointInPolygon(lng, lat)) return [lng, lat];
+  if (points.length === 0) return [0, 0];
+  if (points.length === 1) return points[0];
+  const n = points.length;
+  const segCount = closed ? n : n - 1;
+  const lengths: number[] = [];
+  let total = 0;
+  for (let i = 0; i < segCount; i += 1) {
+    const a = points[i];
+    const b = points[(i + 1) % n];
+    const len = segLen(a, b);
+    lengths.push(len);
+    total += len;
   }
-  let sumLng = 0;
-  let sumLat = 0;
-  const n = Math.max(1, ring.length - 1);
-  for (let i = 0; i < n; i += 1) {
-    sumLng += ring[i][0];
-    sumLat += ring[i][1];
+  if (total < 1e-12) return points[0];
+  let dist = fract(u) * total;
+  for (let i = 0; i < segCount; i += 1) {
+    if (dist <= lengths[i]) {
+      const a = points[i];
+      const b = points[(i + 1) % n];
+      const t = lengths[i] < 1e-12 ? 0 : dist / lengths[i];
+      return [
+        a[0] + (b[0] - a[0]) * t,
+        a[1] + (b[1] - a[1]) * t,
+      ];
+    }
+    dist -= lengths[i];
   }
-  return [sumLng / n, sumLat / n];
+  return points[0];
+}
+
+/** Push ring boundary slightly toward interior (centroid) so markers stay inside AOI. */
+function insetRingTowardCentroid(
+  ring: [number, number][],
+  amount: number,
+): [number, number][] {
+  let cx = 0;
+  let cy = 0;
+  const m = Math.max(1, ring.length - 1);
+  for (let i = 0; i < m; i += 1) {
+    cx += ring[i][0];
+    cy += ring[i][1];
+  }
+  cx /= m;
+  cy /= m;
+  return ring.map(([x, y]) => {
+    const dx = cx - x;
+    const dy = cy - y;
+    const len = Math.hypot(dx, dy) || 1e-9;
+    return [x + (dx / len) * amount, y + (dy / len) * amount] as [number, number];
+  });
 }
 
 export function buildWorkerFeatureCollection(
@@ -287,24 +333,48 @@ export function buildWorkerFeatureCollection(
 
   const ringTyped = ring as [number, number][];
   const areaSeed = ringSeed(ringTyped);
+  const inset = Math.max(lngRange, latRange) * 0.014;
+  const zonePatrolRing = insetRingTowardCentroid(ringTyped, inset);
+
+  const facadePaths: [number, number][][] = [];
+  if (facadeAnchors.length > 0) {
+    const byGeom = new Map<GeoJSON.Geometry, typeof facadeAnchors>();
+    for (const a of facadeAnchors) {
+      const list = byGeom.get(a.geometry) ?? [];
+      list.push(a);
+      byGeom.set(a.geometry, list);
+    }
+    for (const [, list] of byGeom) {
+      const center = getGeometryCenter(list[0].geometry);
+      if (!center) continue;
+      const [cx, cy] = center;
+      if (list.length < 2) {
+        const a0 = list[0];
+        const span = Math.max(lngRange, latRange) * 0.02;
+        facadePaths.push([
+          a0.point,
+          [a0.point[0] + a0.tangent[0] * span, a0.point[1] + a0.tangent[1] * span],
+        ]);
+        continue;
+      }
+      const sorted = [...list].sort(
+        (a, b) => Math.atan2(a.point[1] - cy, a.point[0] - cx) - Math.atan2(b.point[1] - cy, b.point[0] - cx),
+      );
+      facadePaths.push(sorted.map((x) => x.point));
+    }
+  }
 
   const features: GeoJSON.Feature[] = [];
-  if (taskType === 'facade_maintenance' && facadeAnchors.length > 0) {
+  if (taskType === 'facade_maintenance' && facadePaths.length > 0) {
     for (let i = 0; i < workerCount; i += 1) {
-      const anchor = facadeAnchors[i % facadeAnchors.length];
-      const [baseLng, baseLat] = anchor.point;
-      const phase = tick * 0.55 + i * 0.9;
-      const tangentAmp = Math.max(lngRange, latRange) * 0.012;
-      const normalAmp = Math.max(lngRange, latRange) * 0.0026;
-      const tangentShift = Math.sin(phase) * tangentAmp;
-      const normalShift = Math.cos(phase * 0.75) * normalAmp;
-      const driftLng = anchor.tangent[0] * tangentShift + anchor.normal[0] * normalShift;
-      const driftLat = anchor.tangent[1] * tangentShift + anchor.normal[1] * normalShift;
-      let lng = baseLng + driftLng;
-      let lat = baseLat + driftLat;
-      if (geometryContainsPoint(anchor.geometry, lng, lat)) {
-        lng = baseLng + anchor.tangent[0] * tangentShift - anchor.normal[0] * Math.abs(normalShift);
-        lat = baseLat + anchor.tangent[1] * tangentShift - anchor.normal[1] * Math.abs(normalShift);
+      const path = facadePaths[i % facadePaths.length];
+      const speed = 0.018 + (i % 9) * 0.0035;
+      const phase = fract(areaSeed * 1e-9 + i * 0.273);
+      const u = fract(tick * speed + phase);
+      const closed = path.length >= 2;
+      let [lng, lat] = pointAlongPolyline(path, u, closed);
+      if (!pointInPolygon(lng, lat)) {
+        [lng, lat] = pointAlongPolyline(zonePatrolRing, fract(u + 0.31 + i * 0.07), true);
       }
       features.push({
         type: 'Feature',
@@ -322,24 +392,10 @@ export function buildWorkerFeatureCollection(
 
   if (taskType === 'road_repair') {
     for (let i = 0; i < workerCount; i += 1) {
-      const rng = mulberry32(areaSeed + i * 10007 + 3331);
-      const [baseLng, baseLat] = randomPointInPolygon(
-        ringTyped,
-        minLng,
-        maxLng,
-        minLat,
-        maxLat,
-        pointInPolygon,
-        rng,
-      );
-      const driftLng = Math.sin((tick + i) * 0.7) * lngRange * 0.004;
-      const driftLat = Math.cos((tick + i) * 0.7) * latRange * 0.004;
-      let lng = baseLng + driftLng;
-      let lat = baseLat + driftLat;
-      if (!pointInPolygon(lng, lat)) {
-        lng = baseLng;
-        lat = baseLat;
-      }
+      const speed = 0.028 + (i % 8) * 0.005;
+      const phase = fract(areaSeed * 1e-9 + i * 0.41 + 0.12);
+      const u = fract(tick * speed + phase);
+      const [lng, lat] = pointAlongPolyline(zonePatrolRing, u, true);
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -356,23 +412,10 @@ export function buildWorkerFeatureCollection(
 
   for (let i = 0; i < workerCount; i += 1) {
     const rng = mulberry32(areaSeed + i * 10007 + 7777);
-    const [baseLng, baseLat] = randomPointInPolygon(
-      ringTyped,
-      minLng,
-      maxLng,
-      minLat,
-      maxLat,
-      pointInPolygon,
-      rng,
-    );
-    const driftLng = Math.sin((tick + i) * 0.55) * lngRange * 0.003;
-    const driftLat = Math.cos((tick + i) * 0.52) * latRange * 0.003;
-    let lng = baseLng + driftLng;
-    let lat = baseLat + driftLat;
-    if (!pointInPolygon(lng, lat)) {
-      lng = baseLng;
-      lat = baseLat;
-    }
+    const speed = 0.02 + rng() * 0.02;
+    const phase = rng();
+    const u = fract(tick * speed + phase);
+    const [lng, lat] = pointAlongPolyline(zonePatrolRing, u, true);
     features.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },

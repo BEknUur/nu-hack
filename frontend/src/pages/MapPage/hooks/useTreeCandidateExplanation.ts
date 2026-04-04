@@ -1,31 +1,31 @@
-import { useEffect } from 'react';
+import { useEffect, type Dispatch, type SetStateAction } from 'react';
 import type { Language } from '@/i18n';
 import { explainTreeCandidate } from '@/services/treeOptimizer';
-import type { TreeRankCandidate, TreeExplainResponse } from '@/types/tree-optimizer';
+import type { TreeExplainResponse, TreeRankCandidate } from '@/types/tree-optimizer';
 
-interface UseTreeExplanationArgs {
-  enabled: boolean;
-  language: Language;
+export interface UseTreeCandidateExplanationParams {
+  isTreeMode: boolean;
   selectedTreeCandidate: TreeRankCandidate | null;
+  language: Language;
   treeSummerWeight: number;
-  explainFailedMessage: string;
-  setTreeExplanation: React.Dispatch<React.SetStateAction<TreeExplainResponse | null>>;
-  setTreeExplainError: React.Dispatch<React.SetStateAction<string | null>>;
-  setTreeExplainLoading: React.Dispatch<React.SetStateAction<boolean>>;
+  explainFailed: string;
+  setTreeExplanation: Dispatch<SetStateAction<TreeExplainResponse | null>>;
+  setTreeExplainError: Dispatch<SetStateAction<string | null>>;
+  setTreeExplainLoading: Dispatch<SetStateAction<boolean>>;
 }
 
-export function useTreeExplanation({
-  enabled,
-  language,
+export function useTreeCandidateExplanation({
+  isTreeMode,
   selectedTreeCandidate,
+  language,
   treeSummerWeight,
-  explainFailedMessage,
+  explainFailed,
   setTreeExplanation,
   setTreeExplainError,
   setTreeExplainLoading,
-}: UseTreeExplanationArgs) {
+}: UseTreeCandidateExplanationParams) {
   useEffect(() => {
-    if (!enabled || !selectedTreeCandidate) {
+    if (!isTreeMode || !selectedTreeCandidate) {
       setTreeExplanation(null);
       setTreeExplainError(null);
       setTreeExplainLoading(false);
@@ -45,7 +45,7 @@ export function useTreeExplanation({
       .catch((error) => {
         if (isCancelled) return;
         console.error('Tree explanation error:', error);
-        setTreeExplainError(explainFailedMessage);
+        setTreeExplainError(explainFailed);
       })
       .finally(() => {
         if (isCancelled) return;
@@ -55,14 +55,5 @@ export function useTreeExplanation({
     return () => {
       isCancelled = true;
     };
-  }, [
-    enabled,
-    explainFailedMessage,
-    language,
-    selectedTreeCandidate,
-    setTreeExplainError,
-    setTreeExplainLoading,
-    setTreeExplanation,
-    treeSummerWeight,
-  ]);
+  }, [isTreeMode, language, selectedTreeCandidate, treeSummerWeight, explainFailed]);
 }

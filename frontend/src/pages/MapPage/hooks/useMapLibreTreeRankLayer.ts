@@ -1,38 +1,43 @@
-import { useEffect } from 'react';
+import { useEffect, type Dispatch, type RefObject, type SetStateAction } from 'react';
 import maplibregl from 'maplibre-gl';
+import type { ClickInfo } from '@/types/map';
+import type { SelectedBuilding } from '@/types/building';
+import type { TreeRankCandidate } from '@/types/tree-optimizer';
 import {
   EMPTY_FEATURE_COLLECTION,
   TREE_RANK_LABEL_LAYER_ID,
   TREE_RANK_LAYER_ID,
   TREE_RANK_SOURCE_ID,
 } from '@/hooks/maplibre/constants';
-import type { TreeRankCandidate } from '@/types/tree-optimizer';
 
-interface UseTreeCandidateLayerArgs {
+export interface UseMapLibreTreeRankLayerParams {
   engine: string;
-  rawMapRef: React.RefObject<unknown>;
+  rawMapRef: RefObject<unknown>;
   isTreeMode: boolean;
   treeCandidates: TreeRankCandidate[];
-  selectedTreeCandidateId: string | null;
+  selectedTreeCandidate: TreeRankCandidate | null;
   treeDrawArmed: boolean;
   treeDrawing: boolean;
-  onSelectCandidate: (candidate: TreeRankCandidate) => void;
-  onClearStandardSelection: () => void;
+  setSelectedTreeCandidate: Dispatch<SetStateAction<TreeRankCandidate | null>>;
+  setClickInfo: Dispatch<SetStateAction<ClickInfo | null>>;
+  setSelectedBuilding: Dispatch<SetStateAction<SelectedBuilding | null>>;
 }
 
-export function useTreeCandidateLayer({
+export function useMapLibreTreeRankLayer({
   engine,
   rawMapRef,
   isTreeMode,
   treeCandidates,
-  selectedTreeCandidateId,
+  selectedTreeCandidate,
   treeDrawArmed,
   treeDrawing,
-  onSelectCandidate,
-  onClearStandardSelection,
-}: UseTreeCandidateLayerArgs) {
+  setSelectedTreeCandidate,
+  setClickInfo,
+  setSelectedBuilding,
+}: UseMapLibreTreeRankLayerParams) {
   useEffect(() => {
     if (engine !== 'maplibre') return;
+
     const map = rawMapRef.current as maplibregl.Map | null;
     if (!map) return;
 
@@ -40,21 +45,25 @@ export function useTreeCandidateLayer({
       if (!map.getLayer(TREE_RANK_LAYER_ID)) return null;
       const features = map.queryRenderedFeatures(point, { layers: [TREE_RANK_LAYER_ID] });
       const candidateId = features[0]?.properties?.id;
-      if (typeof candidateId !== 'string') return null;
-      return treeCandidates.find((item) => item.id === candidateId) ?? null;
+      if (typeof candidateId !== 'string') return;
+      const candidate = treeCandidates.find((item) => item.id === candidateId);
+      return candidate ?? null;
     };
 
     const clickHandler = (event: maplibregl.MapMouseEvent) => {
       if (!isTreeMode || treeDrawArmed || treeDrawing) return;
       const candidate = pickCandidateFromPoint(event.point);
       if (!candidate) return;
-      onSelectCandidate(candidate);
-      onClearStandardSelection();
+
+      setSelectedTreeCandidate(candidate);
+      setClickInfo(null);
+      setSelectedBuilding(null);
     };
 
     const mouseMoveHandler = (event: maplibregl.MapMouseEvent) => {
       if (!isTreeMode || treeDrawArmed || treeDrawing) return;
-      map.getCanvas().style.cursor = pickCandidateFromPoint(event.point) ? 'pointer' : '';
+      const candidate = pickCandidateFromPoint(event.point);
+      map.getCanvas().style.cursor = candidate ? 'pointer' : '';
     };
 
     const mouseOutHandler = () => {
@@ -124,6 +133,7 @@ export function useTreeCandidateLayer({
         return;
       }
 
+      const selectedId = selectedTreeCandidate?.id ?? null;
       source.setData({
         type: 'FeatureCollection',
         features: treeCandidates.map((candidate) => ({
@@ -136,7 +146,7 @@ export function useTreeCandidateLayer({
             id: candidate.id,
             score: candidate.score,
             rank_label: `#${candidate.rank}`,
-            selected: candidate.id === selectedTreeCandidateId ? 1 : 0,
+            selected: candidate.id === selectedId ? 1 : 0,
           },
         })),
       });
@@ -158,15 +168,5 @@ export function useTreeCandidateLayer({
       map.off('mouseout', mouseOutHandler);
       map.getCanvas().style.cursor = '';
     };
-  }, [
-    engine,
-    isTreeMode,
-    onClearStandardSelection,
-    onSelectCandidate,
-    rawMapRef,
-    selectedTreeCandidateId,
-    treeCandidates,
-    treeDrawArmed,
-    treeDrawing,
-  ]);
+  }, [engine, isTreeMode, rawMapRef, selectedTreeCandidate?.id, treeCandidates, treeDrawArmed, treeDrawing]);
 }
