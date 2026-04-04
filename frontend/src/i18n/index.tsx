@@ -57,8 +57,6 @@ interface TranslationSet {
       title: string;
       titleAccent: string;
       description: string;
-      primaryBtn: string;
-      secondaryBtn: string;
       openMap: string;
     };
     nav: {
@@ -224,8 +222,6 @@ const translations: Record<Language, TranslationSet> = {
         title: 'Солнце',
         titleAccent: 'в движении.',
         description: 'Четыре рабочих инструмента. Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
-        primaryBtn: 'Открыть карту',
-        secondaryBtn: 'Как это работает',
         openMap: 'Открыть карту',
       },
       nav: {
@@ -398,8 +394,6 @@ const translations: Record<Language, TranslationSet> = {
         title: 'Күн жарығы',
         titleAccent: 'қозғалыста.',
         description: 'Төрт қалалық интеллект жұмыс ағыны. Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
-        primaryBtn: 'Картаны ашу',
-        secondaryBtn: 'Қалай жұмыс істейді',
         openMap: 'Картаны ашу',
       },
       nav: {
@@ -572,8 +566,6 @@ const translations: Record<Language, TranslationSet> = {
         title: 'Sunlight',
         titleAccent: 'in Motion.',
         description: 'Four urban intelligence workflows. Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
-        primaryBtn: 'Explore the Map',
-        secondaryBtn: 'How it works',
         openMap: 'Open Map',
       },
       nav: {

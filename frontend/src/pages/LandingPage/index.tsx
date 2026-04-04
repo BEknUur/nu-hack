@@ -109,7 +109,7 @@ function FeatureSection({
         <div className="relative z-10 grid gap-10 lg:grid-cols-2 lg:gap-20 items-center px-2 md:px-4">
 
           {/* Text */}
-          <div className={cfg.reverse ? 'lg:order-2' : 'lg:order-1'}>
+          <div className={`text-left ${cfg.reverse ? 'lg:order-2' : 'lg:order-1'}`}>
             <div className="flex items-center gap-3 mb-5">
               <span className="ui-mono text-[11px] text-white/20 tabular-nums">{cfg.num}</span>
               <span
@@ -224,10 +224,6 @@ export default function LandingPage() {
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}
-        primaryButtonText={l.hero.primaryBtn}
-        primaryButtonHref="/app/apartments"
-        secondaryButtonText={l.hero.secondaryBtn}
-        secondaryButtonHref="#features"
         rightSlot={<LanguageSwitcher />}
         partners={[]}
         heroTextSlot={
