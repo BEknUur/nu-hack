@@ -13,6 +13,7 @@ from services.alemllm.router.router import router as alemllm_router
 from services.best_side.router.router import router as best_side_router
 from services.ml_data.router.router import router as ml_data_router
 from services.tree_optimizer.router.router import router as tree_optimizer_router
+from services.solar_flowers.router.router import router as solar_optimizer_router
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -31,6 +32,7 @@ app.include_router(alemllm_router)
 app.include_router(best_side_router)
 app.include_router(ml_data_router)
 app.include_router(tree_optimizer_router)
+app.include_router(solar_optimizer_router)
 
 
 @app.on_event("startup")

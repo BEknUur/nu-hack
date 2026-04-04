@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { estimateGeometryAreaKm2 } from '@/utils/treeArea';
+import { rankSolarCandidates } from '@/services/solarOptimizer';
 import { generateSolarCandidates } from '@/utils/solarCandidates';
 import type { RankAreaGeometry } from '@/types/tree-optimizer';
 import type {
@@ -26,10 +27,12 @@ export interface UseSolarFlowersStateResult {
   solarPanelType: SolarPanelType;
   solarTarget: SolarOptimizationTarget;
   solarTopK: number;
+  solarShowPoints: boolean;
   solarLoading: boolean;
   solarError: string | null;
   solarCandidates: SolarCandidate[];
   selectedSolarCandidate: SolarCandidate | null;
+  solarCardAnchorPoint: { x: number; y: number } | null;
 
   setSolarWizardStep: React.Dispatch<React.SetStateAction<SolarWizardStep>>;
   setSolarDrawMode: React.Dispatch<React.SetStateAction<SolarDrawMode>>;
@@ -39,8 +42,10 @@ export interface UseSolarFlowersStateResult {
   setSolarPanelType: React.Dispatch<React.SetStateAction<SolarPanelType>>;
   setSolarTarget: React.Dispatch<React.SetStateAction<SolarOptimizationTarget>>;
   setSolarTopK: React.Dispatch<React.SetStateAction<number>>;
+  setSolarShowPoints: React.Dispatch<React.SetStateAction<boolean>>;
   setSolarError: React.Dispatch<React.SetStateAction<string | null>>;
   setSelectedSolarCandidate: React.Dispatch<React.SetStateAction<SolarCandidate | null>>;
+  setSolarCardAnchorPoint: React.Dispatch<React.SetStateAction<{ x: number; y: number } | null>>;
 
   applySolarAreaGeometry: (geometry: RankAreaGeometry | null) => void;
   handleSolarDrawModeChange: (mode: SolarDrawMode) => void;
@@ -65,10 +70,12 @@ export function useSolarFlowersState({
   const [solarPanelType, setSolarPanelType] = useState<SolarPanelType>('solar_flower');
   const [solarTarget, setSolarTarget] = useState<SolarOptimizationTarget>('balanced');
   const [solarTopK, setSolarTopK] = useState(20);
+  const [solarShowPoints, setSolarShowPoints] = useState(true);
   const [solarLoading, setSolarLoading] = useState(false);
   const [solarError, setSolarError] = useState<string | null>(null);
   const [solarCandidates, setSolarCandidates] = useState<SolarCandidate[]>([]);
   const [selectedSolarCandidate, setSelectedSolarCandidate] = useState<SolarCandidate | null>(null);
+  const [solarCardAnchorPoint, setSolarCardAnchorPoint] = useState<{ x: number; y: number } | null>(null);
 
   const applySolarAreaGeometry = useCallback((geometry: RankAreaGeometry | null) => {
     setSolarAreaGeometry(geometry);
@@ -100,6 +107,7 @@ export function useSolarFlowersState({
     setSolarCandidates([]);
     setSelectedSolarCandidate(null);
     setSolarError(null);
+    setSolarShowPoints(true);
     setSolarWizardStep('shape');
   }, [applySolarAreaGeometry]);
 
@@ -113,6 +121,7 @@ export function useSolarFlowersState({
     setSolarCandidates([]);
     setSelectedSolarCandidate(null);
     setSolarError(null);
+    setSolarShowPoints(true);
   }, []);
 
   const handleRunSolarRanking = useCallback(() => {
@@ -125,41 +134,67 @@ export function useSolarFlowersState({
     setSolarCandidates([]);
     setSelectedSolarCandidate(null);
 
-    // Run client-side generation asynchronously so the UI can show loading state
-    setTimeout(() => {
-      try {
-        const candidates = generateSolarCandidates(
-          solarAreaGeometry,
-          solarTopK,
-          solarTarget,
-        );
+    rankSolarCandidates({
+      areaGeometry: solarAreaGeometry,
+      topK: solarTopK,
+      optimizationTarget: solarTarget,
+      panelType: solarPanelType,
+    })
+      .then((candidates) => {
         if (candidates.length === 0) {
           setSolarError('No candidates found in this area. Try a larger area or different settings.');
           setSolarWizardStep('settings');
         } else {
           setSolarCandidates(candidates);
+          setSolarShowPoints(true);
           setSolarWizardStep('results');
         }
-      } catch {
-        setSolarError('Failed to generate solar candidates. Please try again.');
-      } finally {
+      })
+      .catch(() => {
+        try {
+          const fallback = generateSolarCandidates(
+            solarAreaGeometry,
+            solarTopK,
+            solarTarget,
+          );
+          if (fallback.length === 0) {
+            setSolarError('No candidates found in this area. Try a larger area or different settings.');
+            setSolarWizardStep('settings');
+            return;
+          }
+          setSolarCandidates(fallback);
+          setSolarShowPoints(true);
+          setSolarWizardStep('results');
+          setSolarError('Backend unavailable, showing local estimation.');
+        } catch {
+          setSolarError('Backend unavailable. Please start the backend server and try again.');
+          setSolarWizardStep('settings');
+        }
+      })
+      .finally(() => {
         setSolarLoading(false);
-      }
-    }, 600);
-  }, [solarAreaGeometry, solarTopK, solarTarget]);
+      });
+  }, [solarAreaGeometry, solarTopK, solarTarget, solarPanelType]);
 
   // Reset when leaving solar mode
   useEffect(() => {
     if (isSolarMode) return;
-    setSolarWizardStep('shape');
-    setSolarDrawArmed(false);
-    setSolarDrawing(false);
-    setSolarAreaGeometry(null);
-    setSolarDraftGeometry(null);
-    setSolarAreaKm2(null);
-    setSolarCandidates([]);
-    setSelectedSolarCandidate(null);
-    setSolarError(null);
+    const timerId = window.setTimeout(() => {
+      setSolarWizardStep('shape');
+      setSolarDrawArmed(false);
+      setSolarDrawing(false);
+      setSolarAreaGeometry(null);
+      setSolarDraftGeometry(null);
+      setSolarAreaKm2(null);
+      setSolarShowPoints(true);
+      setSolarCandidates([]);
+      setSelectedSolarCandidate(null);
+      setSolarCardAnchorPoint(null);
+      setSolarError(null);
+    }, 0);
+    return () => {
+      window.clearTimeout(timerId);
+    };
   }, [isSolarMode]);
 
   return {
@@ -174,10 +209,12 @@ export function useSolarFlowersState({
     solarPanelType,
     solarTarget,
     solarTopK,
+    solarShowPoints,
     solarLoading,
     solarError,
     solarCandidates,
     selectedSolarCandidate,
+    solarCardAnchorPoint,
 
     setSolarWizardStep,
     setSolarDrawMode,
@@ -187,8 +224,10 @@ export function useSolarFlowersState({
     setSolarPanelType,
     setSolarTarget,
     setSolarTopK,
+    setSolarShowPoints,
     setSolarError,
     setSelectedSolarCandidate,
+    setSolarCardAnchorPoint,
 
     applySolarAreaGeometry,
     handleSolarDrawModeChange,

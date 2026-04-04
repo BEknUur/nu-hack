@@ -12,6 +12,8 @@ import {
 interface SolarResultsSummaryProps {
   candidates: SolarCandidate[];
   copy: SolarWizardCopy;
+  showPoints: boolean;
+  onTogglePoints: () => void;
   onRunRanking: () => void;
   onBackToShape: () => void;
 }
@@ -19,6 +21,8 @@ interface SolarResultsSummaryProps {
 export function SolarResultsSummary({
   candidates,
   copy,
+  showPoints,
+  onTogglePoints,
   onRunRanking,
   onBackToShape,
 }: SolarResultsSummaryProps) {
@@ -95,6 +99,18 @@ export function SolarResultsSummary({
           {copy.newAreaBtn}
         </button>
       </div>
+
+      <button
+        type="button"
+        onClick={onTogglePoints}
+        className="w-full rounded-lg px-3 py-2 text-xs font-medium text-white/80 transition-all duration-150"
+        style={{
+          border: '1px solid rgba(255,255,255,0.14)',
+          background: showPoints ? 'rgba(251,146,60,0.18)' : 'rgba(255,255,255,0.04)',
+        }}
+      >
+        {showPoints ? copy.hidePointsBtn : copy.showPointsBtn}
+      </button>
     </div>
   );
 }
