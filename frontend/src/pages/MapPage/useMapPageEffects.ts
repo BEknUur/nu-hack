@@ -37,6 +37,7 @@ interface UseMapPageEffectsArgs {
   sunEdgesLayerRef: React.RefObject<L.LayerGroup | null>;
   selectedBuildingLayerRef: React.RefObject<L.LayerGroup | null>;
   suppressNextMapClickRef: React.RefObject<boolean>;
+  loadingBuildings?: boolean;
 }
 
 export function useMapPageEffects({
@@ -57,6 +58,7 @@ export function useMapPageEffects({
   sunEdgesLayerRef,
   selectedBuildingLayerRef,
   suppressNextMapClickRef,
+  loadingBuildings = false,
 }: UseMapPageEffectsArgs) {
   const {
     engine,
@@ -159,6 +161,7 @@ export function useMapPageEffects({
     workerAreaGeometry: worker.workerAreaGeometry,
     workerTaskType: worker.workerTaskType,
     workerSimTick: worker.workerSimTick,
+    loadingBuildings,
   });
 
   useWorkerInteractions({
