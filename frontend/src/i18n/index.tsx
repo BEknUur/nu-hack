@@ -1,11 +1,13 @@
 import {
   createContext,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
   useState,
   type ReactNode,
 } from 'react';
+import { getLanguageFromPathname, prefixWithLang } from '@/i18n/langRoutes';
 
 export type Language = 'ru' | 'kk' | 'en';
 
@@ -660,6 +662,13 @@ function getStoredLanguage(): Language {
   return 'en';
 }
 
+function getInitialLanguage(): Language {
+  if (typeof window === 'undefined') return 'en';
+  const fromPath = getLanguageFromPathname(window.location.pathname);
+  if (fromPath) return fromPath;
+  return getStoredLanguage();
+}
+
 function interpolate(value: string, vars?: Record<string, string | number>) {
   if (!vars) return value;
   return Object.entries(vars).reduce(
@@ -680,7 +689,7 @@ export function getPreferredApiLanguage(): string {
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [language, setLanguage] = useState<Language>(getStoredLanguage);
+  const [language, setLanguage] = useState<Language>(getInitialLanguage);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -708,4 +717,13 @@ export function useTranslation() {
     throw new Error('useTranslation must be used inside I18nProvider');
   }
   return context;
+}
+
+/** Prefix a path with the current UI language (`/en/app/...`). */
+export function useLangPath() {
+  const { language } = useTranslation();
+  return useCallback(
+    (path: string) => prefixWithLang(language, path),
+    [language],
+  );
 }

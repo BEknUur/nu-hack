@@ -1,20 +1,58 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { useEffect } from 'react';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  Outlet,
+  useParams,
+  useLocation,
+} from 'react-router-dom';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
-import { I18nProvider } from '@/i18n';
+import { I18nProvider, useTranslation, type Language } from '@/i18n';
+import { isLangSlug } from '@/i18n/langRoutes';
+
+function LanguageLayout() {
+  const { lang } = useParams();
+  const { setLanguage } = useTranslation();
+  const location = useLocation();
+
+  useEffect(() => {
+    if (lang && isLangSlug(lang)) {
+      setLanguage(lang as Language);
+    }
+  }, [lang, setLanguage]);
+
+  if (!lang || !isLangSlug(lang)) {
+    const rest = location.pathname.replace(/^\/[^/]+/, '') || '';
+    return <Navigate to={rest === '' ? '/en' : `/en${rest}`} replace />;
+  }
+
+  return <Outlet />;
+}
+
+function LegacyAppCaseRedirect() {
+  const { caseId } = useParams();
+  return <Navigate to={`/en/app/${caseId as string}`} replace />;
+}
 
 export default function App() {
   return (
     <I18nProvider>
       <BrowserRouter>
         <Routes>
-          {/* Landing page */}
-          <Route path="/" element={<LandingPage />} />
+          <Route path="/" element={<Navigate to="/en" replace />} />
+          <Route path="/app" element={<Navigate to="/en/app" replace />} />
+          <Route path="/app/:caseId" element={<LegacyAppCaseRedirect />} />
 
-          <Route path="/app" element={<MapPage />} />
-          <Route path="/app/:caseId" element={<MapPage />} />
+          <Route path="/:lang" element={<LanguageLayout />}>
+            <Route index element={<LandingPage />} />
+            <Route path="app" element={<MapPage />} />
+            <Route path="app/:caseId" element={<MapPage />} />
+          </Route>
 
-          <Route path="*" element={<Navigate to="/" replace />} />
+          <Route path="*" element={<Navigate to="/en" replace />} />
         </Routes>
       </BrowserRouter>
     </I18nProvider>
