@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { LoaderCircle } from 'lucide-react';
 import type { TreeControlVariant } from '@/components/treeShared/TreeAreaDrawControls';
 
 interface TreeRankingControlsProps {
@@ -113,7 +112,6 @@ export function TreeRankingControls({
           className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-70"
           disabled={runDisabled}
         >
-          {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
           {loading ? runningLabel : runLabel}
         </button>
 

@@ -47,7 +47,7 @@ export function SegmentedOptionGroup<T extends string | number | boolean>({
 }
 
 export interface PanelSectionProps {
-  icon: ReactNode;
+  icon?: ReactNode;
   title: string;
   children: ReactNode;
 }
@@ -60,9 +60,11 @@ export function PanelSection({
   return (
     <section className="space-y-2.5 border-t border-[color:var(--line)] pt-4 first:border-t-0 first:pt-0">
       <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--blue-strong)]">
-          {icon}
-        </span>
+        {icon != null && (
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--blue-strong)]">
+            {icon}
+          </span>
+        )}
         <span>{title}</span>
       </div>
       {children}

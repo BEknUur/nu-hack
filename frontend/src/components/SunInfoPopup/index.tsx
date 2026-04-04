@@ -1,4 +1,3 @@
-import { MapPin, SunMedium, X } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { ClickInfo } from '@/types/map';
 
@@ -40,14 +39,13 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
             aria-label={messages.map.closeLightDetails}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
           >
-            <X className="h-4 w-4" />
+            ×
           </button>
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-              <MapPin className="h-4 w-4 text-[var(--blue-strong)]" />
+            <div className="text-sm font-medium text-[var(--ink)]">
               {messages.map.coordinates}
             </div>
             <div className="mt-2 ui-mono text-[12px] text-[var(--ink-soft)]">
@@ -56,8 +54,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
           </div>
 
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-              <SunMedium className="h-4 w-4 text-[var(--yellow-strong)]" />
+            <div className="text-sm font-medium text-[var(--ink)]">
               {messages.map.bestSide}
             </div>
             <div className="mt-2 text-sm text-[var(--ink-soft)]">

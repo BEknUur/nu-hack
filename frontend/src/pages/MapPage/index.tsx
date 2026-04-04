@@ -503,7 +503,6 @@ export default function MapPage() {
           onViewModeChange={setIs3D}
           isSatellite={isSatellite}
           onBasemapChange={engine === 'maplibre' ? setIsSatellite : undefined}
-          loadingBuildings={loadingBuildings}
         />
       )}
 
@@ -601,10 +600,13 @@ export default function MapPage() {
       )}
 
       {!isTreeMode && !isWorkerMode && clickInfo && (
-        <SunInfoPopup info={clickInfo} onClose={() => {
-          setClickInfo(null);
-          setSelectedBuilding(null);
-        }} />
+        <SunInfoPopup
+          info={clickInfo}
+          onClose={() => {
+            setClickInfo(null);
+            setSelectedBuilding(null);
+          }}
+        />
       )}
 
       {isTreeMode && selectedTreeCandidate && (

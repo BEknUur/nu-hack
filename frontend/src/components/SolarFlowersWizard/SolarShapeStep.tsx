@@ -1,4 +1,3 @@
-import { SlidersHorizontal, MapPin } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { SolarDrawMode, SolarWizardStep } from '@/types/solar-flowers';
 import type { SolarWizardCopy } from '@/components/SolarFlowersWizard/copy';
@@ -48,21 +47,17 @@ export function SolarShapeStep({
       className="rounded-xl p-4 space-y-3"
       style={{ background: DARK_CARD, border: `1px solid ${DARK_CARD_BORDER}` }}
     >
-      <div className="flex items-center gap-2">
-        <MapPin className="h-3.5 w-3.5 flex-shrink-0" style={{ color: ORANGE }} />
-        <span className="text-sm font-semibold text-white">{copy.drawTitle}</span>
-      </div>
+      <div className="text-sm font-semibold text-white">{copy.drawTitle}</div>
       <p className="text-[12px] text-white/40 leading-snug">{copy.drawHint}</p>
 
       <div className="grid grid-cols-2 gap-1.5">
-        {drawShapes.map(({ mode, label, Icon }) => (
+        {drawShapes.map(({ mode, label }) => (
           <button
             key={mode}
             type="button"
             onClick={() => onDrawModeChange(mode)}
             className={cn(SOLAR_CHIP_BASE, drawMode === mode ? SOLAR_CHIP_ACTIVE : SOLAR_CHIP_IDLE)}
           >
-            <Icon className="h-3 w-3 flex-shrink-0" />
             {label}
           </button>
         ))}
@@ -132,7 +127,6 @@ export function SolarShapeStep({
             background: hasArea ? ACCENT_BG : 'transparent',
           }}
         >
-          <SlidersHorizontal className="h-3 w-3" />
           {copy.continueBtn}
         </button>
       )}

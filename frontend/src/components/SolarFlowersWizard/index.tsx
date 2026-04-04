@@ -1,15 +1,3 @@
-import {
-  BarChart3,
-  Circle,
-  Flower2,
-  Hexagon,
-  Pencil,
-  Snowflake,
-  Sparkles,
-  Square,
-  Sun,
-  Zap,
-} from 'lucide-react';
 import type {
   SolarCandidate,
   SolarDrawMode,
@@ -96,22 +84,22 @@ export default function SolarFlowersWizard({
   const stepIndex = step === 'shape' || step === 'drawing' ? 0 : step === 'settings' ? 1 : 2;
 
   const drawShapes: SolarDrawShapeOption[] = [
-    { mode: 'rectangle', label: copy.drawModeRect, Icon: Square },
-    { mode: 'circle', label: copy.drawModeCircle, Icon: Circle },
-    { mode: 'polygon', label: copy.drawModePoly, Icon: Hexagon },
-    { mode: 'freehand', label: copy.drawModeFree, Icon: Pencil },
+    { mode: 'rectangle', label: copy.drawModeRect },
+    { mode: 'circle', label: copy.drawModeCircle },
+    { mode: 'polygon', label: copy.drawModePoly },
+    { mode: 'freehand', label: copy.drawModeFree },
   ];
 
   const panelTypes: SolarPanelTypeOption[] = [
-    { value: 'solar_flower', label: copy.panelFlower, Icon: Flower2 },
-    { value: 'ground_mounted', label: copy.panelGround, Icon: Zap },
-    { value: 'rooftop', label: copy.panelRooftop, Icon: Sparkles },
+    { value: 'solar_flower', label: copy.panelFlower },
+    { value: 'ground_mounted', label: copy.panelGround },
+    { value: 'rooftop', label: copy.panelRooftop },
   ];
 
   const targets: SolarTargetOption[] = [
-    { value: 'max_annual', label: copy.targetAnnual, Icon: Sun },
-    { value: 'max_winter', label: copy.targetWinter, Icon: Snowflake },
-    { value: 'balanced', label: copy.targetBalanced, Icon: BarChart3 },
+    { value: 'max_annual', label: copy.targetAnnual },
+    { value: 'max_winter', label: copy.targetWinter },
+    { value: 'balanced', label: copy.targetBalanced },
   ];
 
   return (

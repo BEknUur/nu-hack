@@ -4,7 +4,6 @@ import {
   useRef,
   useState,
 } from 'react';
-import { Leaf, Sparkles, X } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { TreeExplainResponse, TreeRankCandidate } from '@/types/tree-optimizer';
 
@@ -299,7 +298,6 @@ export default function TreeCandidateCard({
           <div>
             <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.tag}</div>
             <div className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
-              <Leaf className="h-4 w-4 text-[var(--yellow-strong)]" />
               <span>{copy.rank}</span>
               <span className="ui-mono text-[13px] text-[var(--blue-strong)]">
                 {copy.score}: {candidate.score.toFixed(1)}
@@ -312,7 +310,7 @@ export default function TreeCandidateCard({
             aria-label={copy.close}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
           >
-            <X className="h-4 w-4" />
+            ×
           </button>
         </div>
 
@@ -341,10 +339,7 @@ export default function TreeCandidateCard({
 
         <div className="mt-4 rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
           <div className="flex items-center justify-between gap-2 text-sm font-medium text-[var(--ink)]">
-            <span className="flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-[var(--blue-strong)]" />
-              {copy.why}
-            </span>
+            <span>{copy.why}</span>
             {explanation?.source === 'fallback' && (
               <span className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.fallback}</span>
             )}

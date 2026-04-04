@@ -1,4 +1,3 @@
-import { Sparkles } from 'lucide-react';
 import type { SolarCandidate } from '@/types/solar-flowers';
 import type { SolarWizardCopy } from '@/components/SolarFlowersWizard/copy';
 import {
@@ -31,10 +30,7 @@ export function SolarResultsSummary({
       className="rounded-xl p-4 space-y-2"
       style={{ background: DARK_CARD, border: `1px solid ${DARK_CARD_BORDER}` }}
     >
-      <div className="flex items-center gap-2">
-        <Sparkles className="h-3.5 w-3.5 flex-shrink-0" style={{ color: ORANGE }} />
-        <span className="text-sm font-semibold text-white">{copy.resultsTitle}</span>
-      </div>
+      <div className="text-sm font-semibold text-white">{copy.resultsTitle}</div>
 
       {candidates.length > 0 ? (
         <>

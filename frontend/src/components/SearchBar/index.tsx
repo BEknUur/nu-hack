@@ -1,6 +1,5 @@
 import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
-import { MapPinned, Search, X } from 'lucide-react';
 import type { GeocodingResult } from '@/services/geocoding';
 import { useGeocoding } from '@/hooks/useGeocoding';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
@@ -90,14 +89,10 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
-            <div className="map-chip flex h-10 w-10 items-center justify-center rounded-lg">
-              <MapPinned className="h-4 w-4 text-[var(--blue-strong)]" />
-            </div>
           </div>
         </div>
 
         <div className="map-input flex items-center gap-2 rounded-lg px-3 py-2.5">
-          <Search className="h-4 w-4 shrink-0 text-[var(--ink-soft)]" />
           <input
             ref={inputRef}
             type="text"
@@ -121,10 +116,10 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                 clear();
                 inputRef.current?.focus();
               }}
-              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-[rgba(31,79,156,0.08)] hover:text-[var(--ink)]"
+              className="flex h-7 min-w-7 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-[rgba(31,79,156,0.08)] hover:text-[var(--ink)] px-1"
               aria-label={messages.map.clearSearchAria}
             >
-              <X className="h-4 w-4" />
+              ×
             </button>
           )}
         </div>
