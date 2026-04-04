@@ -82,7 +82,7 @@ export interface WizardCopy {
 const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
   ru: {
     panelTag: 'Сценарий',
-    title: 'Посадка деревьев',
+    title: 'Деревья',
     stepShape: 'Шаг 1 из 3 · Выбор области',
     stepDrawing: 'Шаг 1 из 3 · Рисование на карте',
     stepSettings: 'Шаг 2 из 3 · Настройка подбора',
@@ -92,43 +92,43 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     drawCircle: 'Круг',
     drawPolygon: 'Полигон',
     drawFreehand: 'Свободно',
-    drawAction: 'Начать рисование',
-    redrawAction: 'Перерисовать область',
-    continueAction: 'К настройкам подбора',
+    drawAction: 'Рисовать',
+    redrawAction: 'Заново',
+    continueAction: 'Далее',
     clearAction: 'Очистить',
-    drawingTitle: 'Рисуйте область прямо на карте',
+    drawingTitle: 'Рисование',
     drawingHintRectangle: 'Зажмите и протяните мышь, чтобы задать прямоугольник.',
     drawingHintCircle: 'Зажмите и протяните мышь от центра, чтобы задать круг.',
     drawingHintPolygon: 'Кликайте по вершинам, завершите двойным кликом.',
     drawingHintFreehand: 'Зажмите кнопку мыши и рисуйте контур свободно.',
-    drawingSubHint: 'Нажмите Esc, чтобы отменить текущее рисование.',
+    drawingSubHint: 'Esc для отмены.',
     drawingActive: 'Рисование активно',
     cancelDrawing: 'Отмена',
-    settingsTitle: 'Настройте модель подбора и запустите расчет',
+    settingsTitle: 'Параметры',
     areaLabel: 'Площадь',
-    balanceLabel: 'Баланс приоритета',
+    balanceLabel: 'Тень',
     seasonShare: (summer, winter) => `Лето ${summer}% · Зима ${winter}%`,
-    summerHint: 'Больше прохлады летом',
-    winterHint: 'Больше света зимой',
-    topN: 'Количество точек',
-    minWinterLight: 'Мин. зимний свет',
-    run: 'Подобрать точки',
+    summerHint: 'Лето',
+    winterHint: 'Зима',
+    topN: 'Точки',
+    minWinterLight: 'Свет',
+    run: 'Найти',
     running: 'Выполняю подбор...',
-    backToShape: 'Изменить область',
-    resultsTitle: 'Подбор завершен',
-    resultCount: (count) => `Найдено точек: ${count}`,
-    resultsHint: 'Нажмите на точку на карте, чтобы увидеть причины выбора.',
+    backToShape: 'Область',
+    resultsTitle: 'Результат',
+    resultCount: (count) => `${count} точек`,
+    resultsHint: 'Нажмите точку на карте.',
     noResults: 'По текущим параметрам точки не найдены. Измените фильтры или область.',
-    adjustSettings: 'Изменить настройки',
-    redrawArea: 'Выбрать новую область',
-    rerun: 'Пересчитать',
+    adjustSettings: 'Изменить',
+    redrawArea: 'Новая область',
+    rerun: 'Повторить',
     score: 'Балл',
     topCandidates: 'Топ кандидатов',
-    viewOnMap: 'На карте',
+    viewOnMap: 'Карта',
   },
   kk: {
     panelTag: 'Сценарий',
-    title: 'Ағаш отырғызу',
+    title: 'Ағаштар',
     stepShape: '1 / 3-қадам · Аймақ таңдау',
     stepDrawing: '1 / 3-қадам · Картада сызу',
     stepSettings: '2 / 3-қадам · Параметрлер',
@@ -138,43 +138,43 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     drawCircle: 'Шеңбер',
     drawPolygon: 'Көпбұрыш',
     drawFreehand: 'Еркін',
-    drawAction: 'Сызуды бастау',
-    redrawAction: 'Аймақты қайта сызу',
-    continueAction: 'Параметрлерге өту',
+    drawAction: 'Сызу',
+    redrawAction: 'Қайта',
+    continueAction: 'Келесі',
     clearAction: 'Тазалау',
-    drawingTitle: 'Аймақты картада тікелей сызыңыз',
+    drawingTitle: 'Сызу',
     drawingHintRectangle: 'Тінтуірді басып ұстап, тіктөртбұрышты тартып салыңыз.',
     drawingHintCircle: 'Орталықтан басып ұстап, радиусты тартып шеңбер салыңыз.',
     drawingHintPolygon: 'Төбелерді шертіп қосыңыз, қос шерту арқылы аяқтаңыз.',
     drawingHintFreehand: 'Тінтуір батырмасын ұстап тұрып, контурды еркін сызыңыз.',
-    drawingSubHint: 'Ағымдағы сызуды болдырмау үшін Esc пернесін басыңыз.',
+    drawingSubHint: 'Esc болдырмайды.',
     drawingActive: 'Сызу белсенді',
     cancelDrawing: 'Болдырмау',
-    settingsTitle: 'Параметрлерді баптап, есептеуді іске қосыңыз',
+    settingsTitle: 'Параметрлер',
     areaLabel: 'Аудан',
-    balanceLabel: 'Басымдық балансы',
+    balanceLabel: 'Көлеңке',
     seasonShare: (summer, winter) => `Жаз ${summer}% · Қыс ${winter}%`,
-    summerHint: 'Жазғы салқындық көбірек',
-    winterHint: 'Қысқы жарық көбірек',
-    topN: 'Нүкте саны',
-    minWinterLight: 'Қысқы жарық мин.',
-    run: 'Нүктелерді табу',
+    summerHint: 'Жаз',
+    winterHint: 'Қыс',
+    topN: 'Нүктелер',
+    minWinterLight: 'Жарық',
+    run: 'Табу',
     running: 'Есептелуде...',
-    backToShape: 'Аймақты өзгерту',
-    resultsTitle: 'Есептеу аяқталды',
-    resultCount: (count) => `Табылған нүктелер: ${count}`,
-    resultsHint: 'Нүктені басып, таңдау себептерін көріңіз.',
+    backToShape: 'Аймақ',
+    resultsTitle: 'Нәтиже',
+    resultCount: (count) => `${count} нүкте`,
+    resultsHint: 'Картадан нүктені басыңыз.',
     noResults: 'Ағымдағы параметрлер бойынша нүктелер табылмады. Параметрді не аймақты өзгертіңіз.',
-    adjustSettings: 'Параметрлерді өзгерту',
-    redrawArea: 'Жаңа аймақ таңдау',
-    rerun: 'Қайта есептеу',
+    adjustSettings: 'Өзгерту',
+    redrawArea: 'Жаңа аймақ',
+    rerun: 'Қайта',
     score: 'Балл',
     topCandidates: 'Үздік кандидаттар',
-    viewOnMap: 'Картада көрсету',
+    viewOnMap: 'Карта',
   },
   en: {
     panelTag: 'Scenario',
-    title: 'Tree Planting',
+    title: 'Trees',
     stepShape: 'Step 1 of 3 · Select area',
     stepDrawing: 'Step 1 of 3 · Draw on map',
     stepSettings: 'Step 2 of 3 · Configure ranking',
@@ -184,39 +184,39 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     drawCircle: 'Circle',
     drawPolygon: 'Polygon',
     drawFreehand: 'Free draw',
-    drawAction: 'Start drawing',
-    redrawAction: 'Redraw area',
-    continueAction: 'Continue to settings',
+    drawAction: 'Draw',
+    redrawAction: 'Redraw',
+    continueAction: 'Next',
     clearAction: 'Clear',
-    drawingTitle: 'Draw the target area directly on the map',
+    drawingTitle: 'Drawing',
     drawingHintRectangle: 'Click and drag to define a rectangle.',
     drawingHintCircle: 'Click and drag from center to define a circle.',
     drawingHintPolygon: 'Click to add vertices, double-click to finish.',
     drawingHintFreehand: 'Hold mouse button and draw a free contour.',
-    drawingSubHint: 'Press Esc to cancel current drawing.',
+    drawingSubHint: 'Esc to cancel.',
     drawingActive: 'Drawing active',
     cancelDrawing: 'Cancel',
-    settingsTitle: 'Tune the ranking model and run calculation',
+    settingsTitle: 'Settings',
     areaLabel: 'Area',
-    balanceLabel: 'Priority balance',
+    balanceLabel: 'Shade',
     seasonShare: (summer, winter) => `Summer ${summer}% · Winter ${winter}%`,
-    summerHint: 'More summer cooling',
-    winterHint: 'More winter light',
-    topN: 'Number of spots',
-    minWinterLight: 'Min winter light',
-    run: 'Find best spots',
+    summerHint: 'Summer',
+    winterHint: 'Winter',
+    topN: 'Spots',
+    minWinterLight: 'Light',
+    run: 'Find',
     running: 'Running ranking...',
-    backToShape: 'Change area',
-    resultsTitle: 'Ranking complete',
-    resultCount: (count) => `Spots found: ${count}`,
-    resultsHint: 'Click any point on the map to see the decision explanation.',
+    backToShape: 'Area',
+    resultsTitle: 'Results',
+    resultCount: (count) => `${count} spots`,
+    resultsHint: 'Select a point on the map.',
     noResults: 'No spots found for current parameters. Adjust filters or area.',
-    adjustSettings: 'Adjust settings',
-    redrawArea: 'Select new area',
-    rerun: 'Re-run ranking',
+    adjustSettings: 'Edit',
+    redrawArea: 'New area',
+    rerun: 'Run again',
     score: 'Score',
     topCandidates: 'Top candidates',
-    viewOnMap: 'Show on map',
+    viewOnMap: 'View',
   },
 };
 
@@ -260,33 +260,32 @@ export default function TreeOptimizerWizard({
 
   const summerPct = Math.round(summerWeight * 100);
   const winterPct = 100 - summerPct;
-  const stepCardClass = 'rounded-xl border border-[color:var(--line)] bg-white/80 p-3';
+  const stepCardClass = 'rounded-md border border-[color:var(--line)] bg-white/72 p-2';
   const controlsDisabled = loading || !hasArea || step === 'drawing';
+  const areaStatus = step === 'drawing'
+    ? copy.drawingActive
+    : areaKm2 != null
+      ? `${areaKm2.toFixed(2)} km2`
+      : null;
 
   const shapeButtons: Array<{ mode: TreeDrawMode; label: string }> = [
     { mode: 'rectangle', label: copy.drawRectangle },
     { mode: 'circle', label: copy.drawCircle },
-    { mode: 'polygon', label: copy.drawPolygon },
-    { mode: 'freehand', label: copy.drawFreehand },
   ];
 
   return (
     <aside
       data-tree-wizard-panel="true"
-      className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4"
+      className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4"
     >
-      <div>
-        <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.panelTag}</div>
-        <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">{copy.title}</div>
-      </div>
+      <div className="text-[17px] font-semibold tracking-[-0.04em]">{copy.title}</div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-2.5 space-y-2">
         <div className={stepCardClass}>
-          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 1</div>
-          <div className="mt-1 text-sm text-[var(--ink)]">Select area on map</div>
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Area</div>
           <TreeAreaDrawControls
             variant="wizard"
-            shapeLabel={copy.drawModeLabel}
+            shapeLabel=""
             drawMode={drawMode}
             drawModeOptions={shapeButtons}
             onDrawModeChange={onDrawModeChange}
@@ -303,39 +302,25 @@ export default function TreeOptimizerWizard({
             continueActionLabel={copy.continueAction}
             continueDisabled={!hasArea}
             onContinue={step !== 'drawing' ? onContinueToSettings : undefined}
-            statusContent={(
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                  {step === 'drawing' ? copy.stepDrawing : copy.stepShape}
-                </span>
-                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                  {drawMode}
-                </span>
-                {areaKm2 != null && (
-                  <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                    {areaKm2.toFixed(2)} km2
-                  </span>
-                )}
+            statusContent={areaStatus ? (
+              <div className="mt-2 ui-mono text-[10px] text-[var(--ink-soft)]">
+                {areaStatus}
               </div>
-            )}
+            ) : undefined}
             drawingContent={(step === 'drawing' || drawingInProgress) ? (
-              <div className="mt-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
-                <div className="text-sm font-medium text-[var(--ink)]">{copy.drawingTitle}</div>
-                <p className="mt-1 text-sm text-[var(--ink-soft)]">{drawModeHint(copy, drawMode)}</p>
-                <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{copy.drawingSubHint}</p>
-                <div className="mt-2 inline-flex items-center gap-2 text-xs text-[var(--blue-strong)]">
-                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--blue-strong)] animate-pulse-dot" />
-                  {copy.drawingActive}
+              <div className="mt-2 rounded-md border border-[color:var(--line)] bg-white/72 px-2 py-1.5">
+                <div className="flex items-center gap-2 text-[11px] text-[var(--yellow-strong)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--yellow-strong)] animate-pulse-dot" />
+                  <span>{copy.drawingTitle}</span>
                 </div>
+                <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{drawModeHint(copy, drawMode)}</p>
               </div>
             ) : undefined}
           />
         </div>
 
         <div className={stepCardClass}>
-          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 2</div>
-          <div className="mt-1 text-sm text-[var(--ink)]">Configure ranking</div>
-          <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.settingsTitle}</p>
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Rank</div>
 
           <TreeRankingControls
             variant="wizard"
@@ -362,7 +347,7 @@ export default function TreeOptimizerWizard({
           />
 
           {error && (
-            <p className="mt-3 rounded-lg border border-[#e2b2a7] bg-[#fff7f4] px-3 py-2 text-sm text-[#9c3b2a]">
+            <p className="mt-2 rounded-md border border-[#e2b2a7] bg-[#fff7f4] px-2 py-1.5 text-[12px] text-[#9c3b2a]">
               {error}
             </p>
           )}
@@ -370,30 +355,27 @@ export default function TreeOptimizerWizard({
 
         {step === 'results' && (
           <div className={stepCardClass}>
-            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 3</div>
-            <div className="mt-1 text-sm font-medium text-[var(--ink)]">{copy.resultsTitle}</div>
-            <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.resultCount(resultCount)}</p>
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{copy.resultsTitle}</div>
+            <p className="mt-1 text-[13px] text-[var(--ink)]">{copy.resultCount(resultCount)}</p>
             {resultCount === 0 ? (
-              <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.noResults}</p>
+              <p className="mt-2 text-[12px] text-[var(--ink-soft)]">{copy.noResults}</p>
             ) : (
               <>
-                <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{copy.resultsHint}</p>
-                <div className="ui-mono mt-2 text-[10px] text-[var(--ink-soft)]">{copy.topCandidates}</div>
-                <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto">
+                <ul className="mt-2 max-h-44 space-y-1.5 overflow-y-auto">
                   {topCandidates.map((candidate) => (
                     <li
                       key={candidate.id}
-                      className="flex items-center justify-between gap-2 rounded-lg border border-[color:var(--line)] bg-white/70 px-2 py-1.5"
+                      className="flex items-center justify-between gap-2 rounded-md border border-[color:var(--line)] bg-white/72 px-2 py-1.5"
                     >
                       <div className="min-w-0">
                         <span className="ui-mono text-[10px] text-[var(--ink-soft)]">#{candidate.rank}</span>
-                        <span className="ml-2 text-sm font-medium text-[var(--ink)]">
-                          {copy.score}: {candidate.score.toFixed(1)}
+                        <span className="ml-2 text-[12px] font-medium text-[var(--ink)]">
+                          {candidate.score.toFixed(1)}
                         </span>
                       </div>
                       <button
                         type="button"
-                        className="shrink-0 rounded-md border border-[color:var(--line)] bg-white px-2 py-1 text-xs font-medium text-[var(--blue-strong)] transition-colors hover:bg-[var(--surface)]"
+                        className="shrink-0 rounded-md border border-[color:rgba(198,138,17,0.24)] bg-white px-2 py-1 text-[11px] font-medium text-[var(--yellow-strong)] transition-colors hover:bg-[rgba(240,194,76,0.12)]"
                         onClick={() => {
                           onLocateCandidate(candidate);
                         }}

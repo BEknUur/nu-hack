@@ -299,7 +299,7 @@ export default function TreeCandidateCard({
             <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.tag}</div>
             <div className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
               <span>{copy.rank}</span>
-              <span className="ui-mono text-[13px] text-[var(--blue-strong)]">
+              <span className="ui-mono text-[13px] text-[var(--yellow-strong)]">
                 {copy.score}: {candidate.score.toFixed(1)}
               </span>
             </div>
@@ -317,7 +317,7 @@ export default function TreeCandidateCard({
         <div className="mt-4 grid gap-2 sm:grid-cols-2">
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
             <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.summer}</div>
-            <div className="mt-1 text-base font-semibold text-[var(--blue-strong)]">
+            <div className="mt-1 text-base font-semibold text-[var(--yellow-strong)]">
               {(candidate.factors.summer_cooling * 100).toFixed(0)}%
             </div>
           </div>

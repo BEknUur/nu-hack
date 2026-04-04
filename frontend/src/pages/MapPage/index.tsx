@@ -473,7 +473,7 @@ export default function MapPage() {
 
       {!isTreeMode && !isWorkerMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
         <div
-          className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:var(--line)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--blue-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
+          className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:rgba(198,138,17,0.24)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--yellow-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
           style={{
             left: `${clickInfo.screenX}px`,
             top: `${clickInfo.screenY - 12}px`,

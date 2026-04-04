@@ -22,7 +22,7 @@ export default function LanguageSwitcher({ className }: LanguageSwitcherProps) {
   return (
     <div
       className={cn(
-        'inline-flex items-center gap-1 rounded-lg border border-[color:var(--line)] bg-transparent p-1',
+        'inline-flex items-center gap-0.5 rounded-md border border-[color:var(--line)] bg-transparent p-0.5',
         className,
       )}
       aria-label={messages.common.language}
@@ -33,7 +33,7 @@ export default function LanguageSwitcher({ className }: LanguageSwitcherProps) {
           type="button"
           onClick={() => switchLanguage(item)}
           className={cn(
-            'min-w-10 rounded-md px-2.5 py-1.5 text-xs font-semibold transition-colors',
+            'min-w-9 rounded-md px-2 py-1 text-[11px] font-semibold transition-colors',
             language === item
               ? 'bg-[var(--yellow)] text-[#06080f]'
               : 'text-[var(--ink-soft)] hover:bg-[rgba(240,194,76,0.15)] hover:text-[var(--ink)]',

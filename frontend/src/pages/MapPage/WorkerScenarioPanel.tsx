@@ -8,38 +8,46 @@ import { minuteToClockLabel, type WorkerTaskType } from '@/pages/MapPage/workerS
 const WORKER_PANEL_EXTRA: Record<
   Language,
   {
+    area: string;
+    facade: string;
+    road: string;
+    task: string;
+    sim: string;
     continueAfterArea: string;
-    stepTask: string;
-    stepSim: string;
-    scenarioTag: string;
     scenarioTitle: string;
   }
 > = {
   ru: {
-    continueAfterArea: 'Далее: тип задачи',
-    stepTask: 'Шаг 2 из 3 · Тип задачи',
-    stepSim: 'Шаг 3 из 3 · Симуляция (09:00–17:00)',
-    scenarioTag: 'Сценарий',
+    area: 'Область',
+    facade: 'Фасад',
+    road: 'Дорога',
+    task: 'Задача',
+    sim: 'Симуляция',
+    continueAfterArea: 'Далее',
     scenarioTitle: 'Рабочие',
   },
   kk: {
-    continueAfterArea: 'Келесі: тапсырма түрі',
-    stepTask: '2 / 3-қадам · Тапсырма түрі',
-    stepSim: '3 / 3-қадам · Симуляция (09:00–17:00)',
-    scenarioTag: 'Сценарий',
+    area: 'Аймақ',
+    facade: 'Қасбет',
+    road: 'Жол',
+    task: 'Тапсырма',
+    sim: 'Симуляция',
+    continueAfterArea: 'Келесі',
     scenarioTitle: 'Жұмысшылар',
   },
   en: {
-    continueAfterArea: 'Continue to task type',
-    stepTask: 'Step 2 of 3 · Task type',
-    stepSim: 'Step 3 of 3 · Simulation (09:00–17:00)',
-    scenarioTag: 'Scenario',
+    area: 'Area',
+    facade: 'Facade',
+    road: 'Road',
+    task: 'Task',
+    sim: 'Sim',
+    continueAfterArea: 'Next',
     scenarioTitle: 'Workers',
   },
 };
 
 const STEP_CARD_CLASS =
-  'rounded-xl border border-[color:var(--line)] bg-white/80 p-3';
+  'rounded-md border border-[color:var(--line)] bg-white/72 p-2';
 
 export interface WorkerScenarioPanelProps {
   language: Language;
@@ -82,27 +90,26 @@ export function WorkerScenarioPanel({
 }: WorkerScenarioPanelProps) {
   const wizardCopy = WIZARD_COPY[language];
   const panelExtra = WORKER_PANEL_EXTRA[language];
+  const areaStatus = workerAreaStep === 'drawing'
+    ? wizardCopy.drawingActive
+    : workerAreaKm2 != null
+      ? `${workerAreaKm2.toFixed(2)} km2`
+      : null;
   const shapeButtons: Array<{ mode: TreeDrawMode; label: string }> = [
     { mode: 'rectangle', label: wizardCopy.drawRectangle },
     { mode: 'circle', label: wizardCopy.drawCircle },
-    { mode: 'polygon', label: wizardCopy.drawPolygon },
-    { mode: 'freehand', label: wizardCopy.drawFreehand },
   ];
 
   return (
-    <div className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4">
-      <div>
-        <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{panelExtra.scenarioTag}</div>
-        <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">{panelExtra.scenarioTitle}</div>
-      </div>
+    <div className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4">
+      <div className="text-[17px] font-semibold tracking-[-0.04em]">{panelExtra.scenarioTitle}</div>
 
-      <div className="mt-4 space-y-4">
+      <div className="mt-2.5 space-y-2">
         <div className={STEP_CARD_CLASS}>
-          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 1</div>
-          <div className="mt-1 text-sm text-[var(--ink)]">Select area on map</div>
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{panelExtra.area}</div>
           <TreeAreaDrawControls
             variant="wizard"
-            shapeLabel={wizardCopy.drawModeLabel}
+            shapeLabel=""
             drawMode={workerDrawMode}
             drawModeOptions={shapeButtons}
             onDrawModeChange={onWorkerDrawModeChange}
@@ -128,33 +135,19 @@ export function WorkerScenarioPanel({
                   }
                 : undefined
             }
-            statusContent={(
-              <div className="mt-2 flex flex-wrap items-center gap-2">
-                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                  {workerAreaStep === 'drawing' ? wizardCopy.stepDrawing : wizardCopy.stepShape}
-                </span>
-                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                  {workerDrawMode}
-                </span>
-                {workerAreaKm2 != null && (
-                  <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                    {workerAreaKm2.toFixed(2)} km2
-                  </span>
-                )}
+            statusContent={areaStatus ? (
+              <div className="mt-2 ui-mono text-[10px] text-[var(--ink-soft)]">
+                {areaStatus}
               </div>
-            )}
+            ) : undefined}
             drawingContent={
               workerAreaStep === 'drawing' || workerDrawing ? (
-                <div className="mt-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
-                  <div className="text-sm font-medium text-[var(--ink)]">{wizardCopy.drawingTitle}</div>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
-                    {drawModeHint(wizardCopy, workerDrawMode)}
-                  </p>
-                  <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{wizardCopy.drawingSubHint}</p>
-                  <div className="mt-2 inline-flex items-center gap-2 text-xs text-[var(--blue-strong)]">
-                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--blue-strong)] animate-pulse-dot" />
-                    {wizardCopy.drawingActive}
+                <div className="mt-2 rounded-md border border-[color:var(--line)] bg-white/72 px-2 py-1.5">
+                  <div className="flex items-center gap-2 text-[11px] text-[var(--yellow-strong)]">
+                    <span className="h-1.5 w-1.5 rounded-full bg-[var(--yellow-strong)] animate-pulse-dot" />
+                    <span>{wizardCopy.drawingTitle}</span>
                   </div>
+                  <p className="mt-1 text-[11px] text-[var(--ink-soft)]">{drawModeHint(wizardCopy, workerDrawMode)}</p>
                 </div>
               ) : undefined
             }
@@ -162,43 +155,39 @@ export function WorkerScenarioPanel({
         </div>
 
         <div id="worker-task-card" className={STEP_CARD_CLASS}>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{panelExtra.stepTask}</div>
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{panelExtra.task}</div>
           <div className="mt-2 flex gap-2">
             <button
               type="button"
               onClick={() => onWorkerTaskTypeChange('facade_maintenance')}
               className={`rounded-full border px-2.5 py-1 text-[11px] ${workerTaskType === 'facade_maintenance'
-                ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                ? 'border-[color:var(--yellow-strong)] bg-[var(--yellow)] text-[#06080f]'
                 : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink)]'}`}
             >
-              Facade maintenance
+              {panelExtra.facade}
             </button>
             <button
               type="button"
               onClick={() => onWorkerTaskTypeChange('road_repair')}
               className={`rounded-full border px-2.5 py-1 text-[11px] ${workerTaskType === 'road_repair'
-                ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                ? 'border-[color:var(--yellow-strong)] bg-[var(--yellow)] text-[#06080f]'
                 : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink)]'}`}
             >
-              Road repair
+              {panelExtra.road}
             </button>
-          </div>
-          <div className="mt-2 ui-mono text-[10px] text-[var(--ink-soft)]">
-            Workday exposure window: 09:00 - 17:00
           </div>
         </div>
 
         <div className={STEP_CARD_CLASS}>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{panelExtra.stepSim}</div>
-          <div className="mt-1 text-sm text-[var(--ink)]">Run simulation</div>
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{panelExtra.sim}</div>
           <div className="mt-2 flex items-center gap-2">
             <button
               type="button"
               onClick={onStartSimulation}
               disabled={!workerAreaGeometry || workerSimRunning}
-              className="rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-60"
+              className="rounded-md border border-[color:var(--yellow-strong)] bg-[var(--yellow)] px-2.5 py-1.5 text-[12px] font-medium text-[#06080f] transition-colors hover:bg-[var(--yellow-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-60"
             >
-              Start
+              Go
             </button>
             <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
               {minuteToClockLabel(workerSimMinute)}
@@ -219,7 +208,7 @@ export function WorkerScenarioPanel({
               disabled={workerSimRunning}
             />
             <div className="mt-1 ui-mono text-[10px] text-[var(--ink-soft)]">
-              {workerSimSpeedMs} ms per step ({workerSimRunning ? 'running' : 'ready'})
+              {workerSimSpeedMs} ms
             </div>
           </div>
         </div>

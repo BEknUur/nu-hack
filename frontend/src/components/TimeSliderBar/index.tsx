@@ -19,13 +19,13 @@ export default function TimeSliderBar({
   const { messages } = useTranslation();
 
   return (
-    <div className="pointer-events-none absolute bottom-4 left-1/2 z-[1000] w-[min(960px,calc(100vw-2rem))] -translate-x-1/2">
-      <div className="map-panel pointer-events-auto rounded-xl px-4 py-3">
-        <div className="flex flex-col gap-3 md:flex-row md:items-center md:gap-5">
-          <div className="flex items-center gap-3 md:min-w-[170px]">
+    <div className="pointer-events-none absolute bottom-4 left-1/2 z-[1000] w-[min(820px,calc(100vw-2rem))] -translate-x-1/2">
+      <div className="map-panel pointer-events-auto rounded-lg px-3 py-2.5">
+        <div className="flex flex-col gap-2.5 md:flex-row md:items-center md:gap-4">
+          <div className="flex items-center gap-3 md:min-w-[138px]">
             <div>
-              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.timeOfDay}</div>
-              <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[var(--yellow-strong)]">
+              <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{messages.map.timeOfDay}</div>
+              <div className="mt-1 text-lg font-semibold tracking-[-0.04em] text-[var(--yellow-strong)]">
                 {timeLabel}
               </div>
             </div>
@@ -43,7 +43,7 @@ export default function TimeSliderBar({
               style={{ '--pct': `${sliderPct}%` } as CSSProperties}
             />
 
-            <div className="mt-2 flex justify-between ui-mono text-[11px] text-[var(--ink-soft)]">
+            <div className="mt-2 flex justify-between ui-mono text-[10px] text-[var(--ink-soft)]">
               {MARKERS.map((marker) => (
                 <span key={marker}>{marker}</span>
               ))}
