@@ -14,6 +14,10 @@ from services.best_side.router.router import router as best_side_router
 from services.ml_data.router.router import router as ml_data_router
 from services.tree_optimizer.router.router import router as tree_optimizer_router
 from services.solar_flowers.router.router import router as solar_optimizer_router
+from services.chat.router.router import router as chat_router
+from services.voice.router.router import router as voice_router
+from services.telegram_bot.router.router import router as telegram_router
+from services.telegram_bot.bot import get_application as get_telegram_app
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -33,11 +37,39 @@ app.include_router(best_side_router)
 app.include_router(ml_data_router)
 app.include_router(tree_optimizer_router)
 app.include_router(solar_optimizer_router)
+app.include_router(chat_router)
+app.include_router(voice_router)
+app.include_router(telegram_router)
 
 
 @app.on_event("startup")
-def startup_event() -> None:
+async def startup_event() -> None:
     create_db_schema()
+    # Initialize Telegram bot — starts polling automatically if token is set
+    try:
+        tg_app = get_telegram_app()
+        if tg_app is not None:
+            await tg_app.initialize()
+            await tg_app.start()
+            await tg_app.updater.start_polling(drop_pending_updates=True)
+            me = await tg_app.bot.get_me()
+            import sys
+            print(f"[Telegram] Bot @{me.username} started polling!", flush=True, file=sys.stderr)
+        else:
+            import sys
+            print("[Telegram] No bot token — skipping", flush=True, file=sys.stderr)
+    except Exception as e:
+        import sys
+        print(f"[Telegram] Failed to start bot: {e}", flush=True, file=sys.stderr)
+
+
+@app.on_event("shutdown")
+async def shutdown_event() -> None:
+    tg_app = get_telegram_app()
+    if tg_app is not None and tg_app.running:
+        await tg_app.updater.stop()
+        await tg_app.stop()
+        await tg_app.shutdown()
 
 @app.get("/health", tags=["health"],status_code=HTTP_200_OK)
 def health_check(db: Session = Depends(get_db)):
