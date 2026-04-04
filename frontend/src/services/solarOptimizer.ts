@@ -1,11 +1,6 @@
 import type { RankAreaGeometry } from '@/types/tree-optimizer';
 import type { SolarCandidate, SolarOptimizationTarget, SolarPanelType } from '@/types/solar-flowers';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string | undefined;
-
-function getBackendUrl() {
-    return BACKEND_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
-}
+import { getBackendUrl } from '@/services/backendUrl';
 
 interface BackendSolarCandidate {
     id: string;

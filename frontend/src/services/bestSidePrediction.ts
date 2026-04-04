@@ -1,4 +1,5 @@
 import type { SelectedBuilding } from '@/types/building';
+import { getBackendUrl } from '@/services/backendUrl';
 
 type Side = 'N' | 'E' | 'S' | 'W';
 
@@ -8,12 +9,6 @@ interface BestSidePredictionResponse {
   probabilities: Record<Side, number>;
   model_version: string;
   source: string;
-}
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string | undefined;
-
-function getBackendUrl() {
-  return BACKEND_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
 }
 
 function toPolygonPayload(building: SelectedBuilding) {

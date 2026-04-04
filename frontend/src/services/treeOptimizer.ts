@@ -5,12 +5,7 @@ import type {
     TreeRankCandidate,
     TreeRankResponse,
 } from '@/types/tree-optimizer';
-
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string | undefined;
-
-function getBackendUrl() {
-    return BACKEND_URL?.replace(/\/$/, '') ?? 'http://localhost:8000';
-}
+import { getBackendUrl } from '@/services/backendUrl';
 
 export interface RankTreeCandidatesInput {
     areaGeometry: RankAreaGeometry;

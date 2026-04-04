@@ -1,8 +1,4 @@
-const BACKEND_URL = import.meta.env.VITE_BACKEND_URL as string | undefined;
-
-function getBackendUrl() {
-    return BACKEND_URL?.replace(/\/$/, '') ?? 'http://localhost:8003';
-}
+import { getBackendUrl } from '@/services/backendUrl';
 
 export interface AuthResponse {
     access_token: string;
