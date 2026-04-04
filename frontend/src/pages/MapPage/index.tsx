@@ -18,6 +18,8 @@ import SearchBar from '@/components/SearchBar';
 import TreeCandidateCard from '@/components/TreeCandidateCard';
 import TreeOptimizerWizard, { type TreeWizardStep } from '@/components/TreeOptimizerWizard';
 import { findBuildingAtPoint } from '@/utils/buildings';
+import ChatSidebar from '@/components/ChatSidebar';
+import { useChat } from '@/hooks/useChat';
 import type { SelectedBuilding } from '@/types/building';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
@@ -162,6 +164,9 @@ export default function MapPage() {
   const [selectedWorker, setSelectedWorker] = useState<SelectedWorkerInfo | null>(null);
   const workerSimTimerRef = useRef<number | null>(null);
   const workerSimStartTimeoutRef = useRef<number | null>(null);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const chat = useChat({ language });
   const workerSimBusyRef = useRef(false);
 
   const {
@@ -1883,6 +1888,21 @@ export default function MapPage() {
           }}
         />
       )}
+
+      <ChatSidebar
+        isOpen={chatOpen}
+        onToggle={() => setChatOpen((v) => !v)}
+        messages={chat.messages}
+        suggestions={chat.suggestions}
+        isLoading={chat.isLoading}
+        isRecording={chat.isRecording}
+        isTranscribing={chat.isTranscribing}
+        onSendMessage={(text) => void chat.sendMessage(text)}
+        onStartRecording={chat.startRecording}
+        onStopRecording={() => void chat.stopRecording()}
+        onSuggestionClick={(text) => void chat.sendMessage(text)}
+        language={language}
+      />
     </div>
   );
 }
