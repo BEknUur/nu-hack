@@ -1,0 +1,4 @@
+conf/*
+www/*
+!conf/.gitkeep
+!www/.gitkeep

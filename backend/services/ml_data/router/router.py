@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import hashlib
+import json
+import logging
+
 import httpx
 from fastapi import Depends, HTTPException
 from fastapi.routing import APIRouter
@@ -8,6 +12,7 @@ from sqlalchemy.orm import Session
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from core.database.session.database import get_db
+from core.redis.client import get_redis
 from services.ml_data.models import GeocodingSample, OverpassSample
 from .schemas import (
     GeocodingResult,
@@ -22,6 +27,10 @@ from .schemas import (
 
 NOMINATIM_URL = "https://nominatim.openstreetmap.org/search"
 OVERPASS_URL = "https://overpass-api.de/api/interpreter"
+GEOCODING_CACHE_TTL_SECONDS = 60 * 10
+OVERPASS_CACHE_TTL_SECONDS = 60 * 5
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/ml-data", tags=["ml-data"])
 
@@ -41,12 +50,48 @@ def bbox_area(south: float, west: float, north: float, east: float) -> float:
     return lat_span * lng_span
 
 
+def _build_cache_key(prefix: str, payload: dict) -> str:
+    serialized = json.dumps(payload, sort_keys=True, separators=(",", ":"))
+    digest = hashlib.sha256(serialized.encode("utf-8")).hexdigest()
+    return f"cache:{prefix}:{digest}"
+
+
+def _cache_get_json(key: str) -> dict | None:
+    try:
+        raw = get_redis().get(key)
+    except Exception:
+        logger.exception("Redis read failed for key %s", key)
+        return None
+
+    if not raw:
+        return None
+
+    try:
+        return json.loads(raw)
+    except Exception:
+        logger.exception("Redis JSON decode failed for key %s", key)
+        return None
+
+
+def _cache_set_json(key: str, value: dict, ttl_seconds: int) -> None:
+    try:
+        get_redis().set(key, json.dumps(value), ex=ttl_seconds)
+    except Exception:
+        logger.exception("Redis write failed for key %s", key)
+
+
 @router.post(
     "/geocoding/search",
     response_model=GeocodingSearchResponse,
     status_code=HTTP_200_OK,
 )
 async def geocoding_search(payload: GeocodingSearchRequest, db: Session = Depends(get_db)) -> GeocodingSearchResponse:
+    cache_payload = payload.model_dump(mode="json")
+    cache_key = _build_cache_key("geocoding_search", cache_payload)
+    cached = _cache_get_json(cache_key)
+    if cached is not None:
+        return GeocodingSearchResponse.model_validate(cached)
+
     params = {
         "q": payload.query,
         "format": "json",
@@ -109,10 +154,12 @@ async def geocoding_search(payload: GeocodingSearchRequest, db: Session = Depend
     db.commit()
     db.refresh(sample)
 
-    return GeocodingSearchResponse(
+    result = GeocodingSearchResponse(
         sample_id=str(sample.id),
         results=normalized_results,
     )
+    _cache_set_json(cache_key, result.model_dump(mode="json"), GEOCODING_CACHE_TTL_SECONDS)
+    return result
 
 
 @router.post(
@@ -121,6 +168,12 @@ async def geocoding_search(payload: GeocodingSearchRequest, db: Session = Depend
     status_code=HTTP_200_OK,
 )
 async def fetch_overpass_buildings(payload: OverpassRequest, db: Session = Depends(get_db)) -> OverpassResponse:
+    cache_payload = payload.model_dump(mode="json")
+    cache_key = _build_cache_key("overpass_buildings", cache_payload)
+    cached = _cache_get_json(cache_key)
+    if cached is not None:
+        return OverpassResponse.model_validate(cached)
+
     bbox = payload.bbox
     query = build_overpass_query(bbox.s, bbox.w, bbox.n, bbox.e, payload.timeout_seconds)
 
@@ -164,10 +217,12 @@ async def fetch_overpass_buildings(payload: OverpassRequest, db: Session = Depen
     db.commit()
     db.refresh(sample)
 
-    return OverpassResponse(
+    result = OverpassResponse(
         sample_id=str(sample.id),
         osm_data=overpass_data,
     )
+    _cache_set_json(cache_key, result.model_dump(mode="json"), OVERPASS_CACHE_TTL_SECONDS)
+    return result
 
 
 @router.get(

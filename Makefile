@@ -10,10 +10,13 @@ CONTAINER_NAME ?= map-frontend
 PORT ?= 5173
 PROD_SSH ?= bekzhan@77.42.43.153
 ENV ?= dev
+DOMAIN ?= oylan.me
+CERTBOT_EMAIL ?= admin@oylan.me
 
 .PHONY: help install dev dev-frontend dev-backend build ssh-prod \
         prod-build prod-run prod-stop prod-rm prod-restart prod-logs prod-status prod-deploy \
-        db-up db-down app-up app-down app-logs prod-up prod-down
+        db-up db-down app-up app-down app-logs prod-up prod-down \
+        ssl-init ssl-up ssl-down ssl-logs ssl-renew ssl-cert-status
 
 help:
 	@echo "Available targets:"
@@ -43,6 +46,15 @@ help:
 	@echo "  make prod-logs                    Tail frontend container logs"
 	@echo "  make prod-status                  Show frontend container status"
 	@echo "  make prod-deploy                  Build and restart frontend container"
+	@echo ""
+	@echo "  ── SSL / Domain (oylan.me) ─────────────────────────────────"
+	@echo "  make ssl-init DOMAIN=oylan.me CERTBOT_EMAIL=mail@oylan.me"
+	@echo "                                     Issue Let's Encrypt cert (first run)"
+	@echo "  make ssl-up                       Start backend+frontend+nginx(80/443)"
+	@echo "  make ssl-down                     Stop stack including nginx"
+	@echo "  make ssl-logs                     Tail nginx logs"
+	@echo "  make ssl-renew                    Renew certificates and reload nginx"
+	@echo "  make ssl-cert-status              Show installed certificates"
 	@echo ""
 	@echo "  ── Server ─────────────────────────────────────────────────"
 	@echo "  make ssh-prod                     SSH into production server"
@@ -115,3 +127,28 @@ prod-up:
 
 prod-down:
 	ENV=prod $(MAKE) app-down
+
+ssl-init:
+	@mkdir -p certbot/conf certbot/www
+	-docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge stop nginx
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm --service-ports certbot \
+		certonly --standalone --preferred-challenges http \
+		--agree-tos --no-eff-email --email $(CERTBOT_EMAIL) \
+		-d $(DOMAIN) -d www.$(DOMAIN)
+
+ssl-up:
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge up -d --build
+
+ssl-down:
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge down
+
+ssl-logs:
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge logs -f nginx
+
+ssl-renew:
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm certbot \
+		renew --webroot -w /var/www/certbot
+	-docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge exec nginx nginx -s reload
+
+ssl-cert-status:
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm certbot certificates
