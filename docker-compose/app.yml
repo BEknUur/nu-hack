@@ -14,9 +14,9 @@ services:
       context: ..
       dockerfile: dockerfiles/frontend.Dockerfile
       args:
-        VITE_SHADEMAP_API_KEY: ${VITE_SHADEMAP_API_KEY}
-        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY}
-        VITE_BACKEND_URL: ${VITE_BACKEND_URL}
+        VITE_SHADEMAP_API_KEY: ${VITE_SHADEMAP_API_KEY:-}
+        VITE_GOOGLE_MAPS_API_KEY: ${VITE_GOOGLE_MAPS_API_KEY:-}
+        VITE_BACKEND_URL: ${VITE_BACKEND_URL:-}
     container_name: decentra-frontend
     restart: unless-stopped
     ports:
@@ -41,6 +41,8 @@ services:
   certbot:
     image: certbot/certbot:latest
     profiles: ["certbot"]
+    ports:
+      - "80:80"
     volumes:
       - ../certbot/conf:/etc/letsencrypt
       - ../certbot/www:/var/www/certbot

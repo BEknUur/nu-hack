@@ -130,8 +130,8 @@ prod-down:
 
 ssl-init:
 	@mkdir -p certbot/conf certbot/www
-	-docker compose -f docker-compose/app.yml --profile edge stop nginx
-	docker compose -f docker-compose/app.yml --profile certbot run --rm --service-ports certbot \
+	-docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge stop nginx
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm --service-ports certbot \
 		certonly --standalone --preferred-challenges http \
 		--agree-tos --no-eff-email --email $(CERTBOT_EMAIL) \
 		-d $(DOMAIN) -d www.$(DOMAIN)
@@ -143,12 +143,12 @@ ssl-down:
 	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge down
 
 ssl-logs:
-	docker compose -f docker-compose/app.yml --profile edge logs -f nginx
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge logs -f nginx
 
 ssl-renew:
-	docker compose -f docker-compose/app.yml --profile certbot run --rm certbot \
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm certbot \
 		renew --webroot -w /var/www/certbot
-	-docker compose -f docker-compose/app.yml --profile edge exec nginx nginx -s reload
+	-docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge exec nginx nginx -s reload
 
 ssl-cert-status:
-	docker compose -f docker-compose/app.yml --profile certbot run --rm certbot certificates
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile certbot run --rm certbot certificates
