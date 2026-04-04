@@ -218,7 +218,8 @@ const translations: Record<Language, TranslationSet> = {
       hero: {
         heroBadge: 'Городской ИИ — симуляция теней для Астаны, Казахстан',
         title: 'Солнце',
-        titleAccent: 'в движении.',
+        // NBSP so WhisperText keeps «в движении.» on one line (no orphan «в»).
+        titleAccent: 'в\u00A0движении.',
         description: 'Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
         openMap: 'Открыть карту',
       },
@@ -560,7 +561,7 @@ const translations: Record<Language, TranslationSet> = {
       hero: {
         heroBadge: 'Urban AI — shadow simulation for Astana, Kazakhstan',
         title: 'Sunlight',
-        titleAccent: 'in Motion.',
+        titleAccent: 'in\u00A0Motion.',
         description: 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
         openMap: 'Open Map',
       },
