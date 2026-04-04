@@ -50,7 +50,7 @@ help:
 	@echo "  ── SSL / Domain (oylan.me) ─────────────────────────────────"
 	@echo "  make ssl-init DOMAIN=oylan.me CERTBOT_EMAIL=mail@oylan.me"
 	@echo "                                     Issue Let's Encrypt cert (first run)"
-	@echo "  make ssl-up                       Start backend+frontend+nginx(80/443)"
+	@echo "  make ssl-up                       Start backend+nginx(80/443)"
 	@echo "  make ssl-down                     Stop stack including nginx"
 	@echo "  make ssl-logs                     Tail nginx logs"
 	@echo "  make ssl-renew                    Renew certificates and reload nginx"
@@ -137,7 +137,7 @@ ssl-init:
 		-d $(DOMAIN) -d www.$(DOMAIN)
 
 ssl-up:
-	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge up -d --build
+	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge up -d --build backend nginx
 
 ssl-down:
 	docker compose -f docker-compose/app.yml --env-file envs/$(ENV).env --profile edge down
