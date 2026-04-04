@@ -64,7 +64,7 @@ export function Typewriter({ text, speed = 100, cursor = "|", loop = false, dele
 
 // ── Label ─────────────────────────────────────────────────────────────────────
 
-const labelVariants = cva("text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70");
+const labelVariants = cva("ui-mono text-[10px] uppercase tracking-[1px] text-white/35 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70");
 
 const Label = React.forwardRef<
   React.ElementRef<typeof LabelPrimitive.Root>,
@@ -77,21 +77,21 @@ Label.displayName = LabelPrimitive.Root.displayName;
 // ── Button ────────────────────────────────────────────────────────────────────
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl text-sm font-semibold transition-all focus-visible:outline-none disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-primary/90",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
-        outline: "border border-input bg-background hover:bg-accent hover:text-accent-foreground",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
-        ghost: "hover:bg-accent hover:text-accent-foreground",
-        link: "text-primary-foreground/60 underline-offset-4 hover:underline",
+        default: "bg-[#f0c24c] text-[#06080f] hover:bg-[#f0c24c]/90 shadow-[0_4px_20px_rgba(240,194,76,0.2)]",
+        destructive: "bg-red-500/20 text-red-400 ring-1 ring-red-500/20",
+        outline: "bg-[#f0c24c] text-[#06080f] hover:bg-[#f0c24c]/90 shadow-[0_4px_20px_rgba(240,194,76,0.2)]",
+        secondary: "bg-white/[0.04] text-white/70 ring-1 ring-white/10 hover:bg-white/[0.08]",
+        ghost: "text-white/50 hover:text-white hover:bg-white/[0.06]",
+        link: "text-[#f0c24c]/60 underline-offset-4 hover:underline",
       },
       size: {
-        default: "h-10 px-4 py-2",
-        sm: "h-9 rounded-md px-3",
-        lg: "h-12 rounded-md px-6",
+        default: "h-11 px-4 py-2",
+        sm: "h-9 rounded-lg px-3",
+        lg: "h-12 rounded-xl px-6",
         icon: "h-8 w-8",
       },
     },
@@ -118,7 +118,7 @@ const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<"input">>(
     <input
       type={type}
       className={cn(
-        "flex h-10 w-full rounded-lg border border-input bg-background px-3 py-3 text-sm text-foreground shadow-sm transition-shadow placeholder:text-muted-foreground focus-visible:bg-accent focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50",
+        "flex h-11 w-full rounded-xl bg-white/[0.04] ring-1 ring-white/10 px-4 py-3 text-sm text-white placeholder:text-white/25 outline-none transition-all focus:ring-[#f0c24c]/40 focus:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-50",
         className
       )}
       ref={ref}
@@ -146,7 +146,7 @@ const PasswordInput = React.forwardRef<HTMLInputElement, PasswordInputProps>(
           <button
             type="button"
             onClick={() => setShowPassword((p) => !p)}
-            className="absolute inset-y-0 end-0 flex h-full w-10 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none"
+            className="absolute inset-y-0 end-0 flex h-full w-10 items-center justify-center text-white/30 hover:text-white/60 transition-colors focus-visible:outline-none"
             aria-label={showPassword ? "Hide password" : "Show password"}
           >
             {showPassword ? <EyeOff className="size-4" /> : <Eye className="size-4" />}
@@ -178,8 +178,8 @@ function SignInForm({ onSubmit, error, loading }: FormProps) {
   return (
     <form onSubmit={handleSubmit} autoComplete="on" className="flex flex-col gap-8">
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Войти в аккаунт</h1>
-        <p className="text-sm text-muted-foreground">Введите email и пароль для входа</p>
+        <h1 className="text-2xl font-bold text-white">Войти в аккаунт</h1>
+        <p className="text-sm text-white/35">Введите email и пароль для входа</p>
       </div>
       <div className="grid gap-4">
         <div className="grid gap-2">
@@ -187,9 +187,9 @@ function SignInForm({ onSubmit, error, loading }: FormProps) {
           <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
         </div>
         <PasswordInput name="password" label="Пароль" required autoComplete="current-password" placeholder="••••••••" />
-        {error && <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/20">{error}</p>}
+        {error && <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2 ring-1 ring-red-500/20">{error}</p>}
         <Button type="submit" variant="outline" className="mt-2" disabled={loading}>
-          {loading ? "Загрузка..." : "Войти"}
+          {loading ? "Loading..." : "Войти"}
         </Button>
       </div>
     </form>
@@ -208,8 +208,8 @@ function SignUpForm({ onSubmit, error, loading }: FormProps) {
   return (
     <form onSubmit={handleSubmit} autoComplete="on" className="flex flex-col gap-8">
       <div className="flex flex-col items-center gap-2 text-center">
-        <h1 className="text-2xl font-bold text-foreground">Создать аккаунт</h1>
-        <p className="text-sm text-muted-foreground">Введите данные для регистрации</p>
+        <h1 className="text-2xl font-bold text-white">Создать аккаунт</h1>
+        <p className="text-sm text-white/35">Введите данные для регистрации</p>
       </div>
       <div className="grid gap-4">
         <div className="grid gap-2">
@@ -217,9 +217,9 @@ function SignUpForm({ onSubmit, error, loading }: FormProps) {
           <Input id="email" name="email" type="email" placeholder="you@example.com" required autoComplete="email" />
         </div>
         <PasswordInput name="password" label="Пароль" required autoComplete="new-password" placeholder="••••••••" />
-        {error && <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2 border border-red-500/20">{error}</p>}
+        {error && <p className="text-xs text-red-400 bg-red-500/10 rounded-lg px-3 py-2 ring-1 ring-red-500/20">{error}</p>}
         <Button type="submit" variant="outline" className="mt-2" disabled={loading}>
-          {loading ? "Загрузка..." : "Создать аккаунт"}
+          {loading ? "Loading..." : "Создать аккаунт"}
         </Button>
       </div>
     </form>
@@ -254,7 +254,7 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
   const signUpQuote = "Новый аккаунт. Новые возможности.";
 
   return (
-    <div className="w-full min-h-screen bg-background md:grid md:grid-cols-2">
+    <div className="w-full min-h-screen bg-[#06080f] md:grid md:grid-cols-2">
       <style>{`
         input[type="password"]::-ms-reveal,
         input[type="password"]::-ms-clear { display: none; }
@@ -265,8 +265,8 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
         <div className="mx-auto grid w-[350px] gap-4">
           {/* Logo */}
           <a href="/" className="flex flex-col items-center leading-none mb-2">
-            <span className="font-display text-xl font-medium text-foreground tracking-[-0.04em]">DeCentra</span>
-            <span className="text-[11px] text-muted-foreground mt-1 tracking-widest uppercase">Shadow Map</span>
+            <span className="font-display text-xl font-medium text-white tracking-[-0.04em]">DeCentra</span>
+            <span className="ui-mono text-[10px] text-white/30 mt-1 tracking-widest uppercase">Shadow Map</span>
           </a>
 
           {isSignIn
@@ -274,10 +274,10 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
             : <SignUpForm onSubmit={(e, p) => handleSubmit(onSignUp, e, p)} error={error} loading={loading} />
           }
 
-          <div className="text-center text-sm text-muted-foreground">
+          <div className="text-center text-sm text-white/30">
             {isSignIn ? "Нет аккаунта?" : "Уже есть аккаунт?"}{" "}
             <button
-              className="text-foreground underline-offset-4 hover:underline pl-1"
+              className="text-[#f0c24c]/70 hover:text-[#f0c24c] transition-colors pl-1"
               onClick={() => { setIsSignIn((p) => !p); setError(null); }}
             >
               {isSignIn ? "Зарегистрироваться" : "Войти"}
@@ -289,16 +289,17 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
       {/* Right — photo */}
       <div
         className="hidden md:block relative bg-cover bg-center"
-        style={{ backgroundImage: `url(/imgs/alem.jpg)` }}
+        style={{ backgroundImage: `url(/imgs/image2.png)` }}
       >
-        <div className="absolute inset-0 bg-black/40" />
-        <div className="absolute inset-x-0 bottom-0 h-[120px] bg-gradient-to-t from-background to-transparent" />
-        <div className="relative z-10 flex h-full flex-col items-center justify-end p-2 pb-8">
-          <blockquote className="space-y-2 text-center text-foreground">
-            <p className="text-lg font-medium">
+        <div className="absolute inset-0 bg-[#06080f]/60" />
+        <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 70%, rgba(240,194,76,0.06) 0%, transparent 70%)' }} />
+        <div className="absolute inset-x-0 bottom-0 h-[160px] bg-gradient-to-t from-[#06080f] to-transparent" />
+        <div className="relative z-10 flex h-full flex-col items-center justify-end p-2 pb-10">
+          <blockquote className="space-y-2 text-center">
+            <p className="text-lg font-medium text-white">
               "<Typewriter key={isSignIn ? signInQuote : signUpQuote} text={isSignIn ? signInQuote : signUpQuote} speed={60} />"
             </p>
-            <cite className="block text-sm font-light text-muted-foreground not-italic">— DeCentra</cite>
+            <cite className="block text-sm font-light text-white/30 not-italic">— DeCentra</cite>
           </blockquote>
         </div>
       </div>
