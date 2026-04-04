@@ -187,7 +187,7 @@ export default function ControlPanel({
   ];
 
   return (
-    <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[288px] max-w-[calc(100vw-2rem)] rounded-lg p-3 text-[var(--ink)] md:top-4">
+    <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] hidden w-[288px] max-w-[calc(100vw-2rem)] rounded-lg p-3 text-[var(--ink)] md:top-4 md:block">
       <div className="mb-3 flex items-start justify-between gap-2.5">
         <div>
           <div className="ui-mono text-[10px] text-[var(--ink-soft)]">

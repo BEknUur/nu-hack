@@ -8,12 +8,12 @@ export default function AuthPage() {
 
     const handleSignIn = async (email: string, password: string) => {
         await signIn(email, password);
-        navigate('/app', { replace: true });
+        navigate('/en', { replace: true });
     };
 
     const handleSignUp = async (email: string, password: string) => {
         await signUp(email, password);
-        navigate('/app', { replace: true });
+        navigate('/en', { replace: true });
     };
 
     return <AuthUI onSignIn={handleSignIn} onSignUp={handleSignUp} />;

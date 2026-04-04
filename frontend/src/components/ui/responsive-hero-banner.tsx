@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { NavbarFlagLanguages } from '@/components/NavbarFlagLanguages';
 
 interface NavLink {
   label: string;
@@ -18,8 +19,6 @@ interface ResponsiveHeroBannerProps {
   backgroundSlides?: string[];
   slideInterval?: number;
   navLinks?: NavLink[];
-  ctaButtonText?: string;
-  ctaButtonHref?: string;
   title?: string;
   titleLine2?: string;
   description?: string;
@@ -37,12 +36,11 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   backgroundSlides,
   slideInterval = 5000,
   navLinks = [
+    { label: 'Home', href: '/' },
     { label: 'Apartments', href: '/app/apartments' },
     { label: 'Trees', href: '/app/trees' },
     { label: 'Workers', href: '/app/workers' },
   ],
-  ctaButtonText = 'Open Map',
-  ctaButtonHref = '/app/apartments',
   title = 'Sunlight',
   titleLine2 = 'in Motion.',
   description = 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
@@ -152,38 +150,19 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
 
             {/* Desktop nav */}
             <nav className="hidden md:flex items-center gap-2">
-              <div className="flex items-center gap-1 rounded-full bg-white/5 px-1 py-1 ring-1 ring-white/10 backdrop-blur-md">
+              <div className="flex items-center gap-1 rounded-full bg-white/5 px-4 py-1 ring-1 ring-white/10 backdrop-blur-md">
                 {navLinks.map((link, i) => (
                   <a
                     key={i}
                     href={link.href}
-                    className={`px-3 py-2 text-sm font-medium transition-colors hover:text-white ${
+                    className={`min-w-[5.75rem] px-3 py-2 text-center text-sm font-medium transition-colors hover:text-white ${
                       link.isActive ? 'text-white' : 'text-white/65'
                     }`}
                   >
                     {link.label}
                   </a>
                 ))}
-                <a
-                  href={ctaButtonHref}
-                  className="ml-1 inline-flex items-center gap-1.5 rounded-full bg-[#f0c24c] px-4 py-2 text-sm font-semibold text-[#06080f] hover:bg-[#f0c24c]/90 transition-colors"
-                >
-                  {ctaButtonText}
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  >
-                    <path d="M7 7h10v10" />
-                    <path d="M7 17 17 7" />
-                  </svg>
-                </a>
+                <NavbarFlagLanguages />
               </div>
             </nav>
 
@@ -239,6 +218,9 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
                   {link.label}
                 </a>
               ))}
+              <div className="flex justify-center border-t border-white/5 px-2 py-3">
+                <NavbarFlagLanguages className="pl-0 ml-0" />
+              </div>
               {rightSlot && (
                 <div className="px-4 py-3 border-t border-white/5 mt-1">{rightSlot}</div>
               )}

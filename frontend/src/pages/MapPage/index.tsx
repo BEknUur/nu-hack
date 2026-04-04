@@ -10,6 +10,7 @@ import ControlPanel from '@/components/ControlPanel';
 import TimeSliderBar from '@/components/TimeSliderBar';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
+import { ScenarioModeNavBar, type ScenarioNavCase } from '@/components/ScenarioModeNavBar';
 import TreeCandidateCard from '@/components/TreeCandidateCard';
 import ChatSidebar from '@/components/ChatSidebar';
 import { useChat } from '@/hooks/useChat';
@@ -67,6 +68,10 @@ export default function MapPage() {
 
   const isTreeMode = caseId === 'trees';
   const isWorkerMode = caseId === 'workers';
+  const showScenarioNav =
+    caseId === 'apartments' || caseId === 'trees' || caseId === 'workers';
+  const scenarioNavActive: ScenarioNavCase =
+    caseId === 'trees' || caseId === 'workers' ? caseId : 'apartments';
   const treeUi = getTreeUiMessages(language);
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
@@ -483,21 +488,29 @@ export default function MapPage() {
     <div className="relative w-screen h-screen overflow-hidden">
       <MapView containerRef={containerRef} />
 
+      {showScenarioNav && (
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-[1000] flex justify-center px-4">
+          <ScenarioModeNavBar active={scenarioNavActive} className="pointer-events-auto" />
+        </div>
+      )}
+
       <SearchBar onSelect={handleSearchSelect} />
 
-      {/* User badge + logout */}
-      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
-        {user && (
-          <span className="text-xs text-white/40 hidden sm:block">{user.email}</span>
-        )}
-        <button
-          onClick={handleSignOut}
-          className="text-xs text-white/50 hover:text-white/80 transition px-3 py-1.5 rounded-lg"
-          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
-        >
-          Выйти
-        </button>
-      </div>
+      {/* User badge + logout — hidden on apartments / trees / workers (nav bar covers top area) */}
+      {!showScenarioNav && (
+        <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+          {user && (
+            <span className="text-xs text-white/40 hidden sm:block">{user.email}</span>
+          )}
+          <button
+            onClick={handleSignOut}
+            className="text-xs text-white/50 hover:text-white/80 transition px-3 py-1.5 rounded-lg"
+            style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+          >
+            Выйти
+          </button>
+        </div>
+      )}
 
       {!isTreeMode && !isWorkerMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
         <div

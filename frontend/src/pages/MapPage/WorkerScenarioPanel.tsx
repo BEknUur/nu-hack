@@ -101,7 +101,7 @@ export function WorkerScenarioPanel({
   ];
 
   return (
-    <div className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4">
+    <div className="map-panel absolute right-4 top-[8.5rem] z-[1100] hidden w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4 md:block">
       <div className="text-[17px] font-semibold tracking-[-0.04em]">{panelExtra.scenarioTitle}</div>
 
       <div className="mt-2.5 space-y-2">

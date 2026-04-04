@@ -6,6 +6,8 @@ Read this file before doing anything.
 
 ## What This Is
 
+## IMPORTANT/CRITIVAL DO NOT USE REACT LUCID ICONS
+
 Interactive map that visualizes **building and terrain shadows** for any date/time. Users move a time slider and shadows shift in real time. Clicking a point tells if it's in sun or shade.
 
 Built for the **alem+ hackathon** (deadline: April 5 2026). Uses `mapbox-gl-shadow-simulator` for shadows, MapLibre GL for rendering, OpenStreetMap buildings via Overpass API.

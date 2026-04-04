@@ -2,7 +2,6 @@ import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
 import type { GeocodingResult } from '@/services/geocoding';
 import { useGeocoding } from '@/hooks/useGeocoding';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import { useTranslation } from '@/i18n';
 import { cn } from '@/lib/utils';
 
@@ -79,17 +78,12 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   return (
     <div
       ref={wrapperRef}
-      className="absolute left-4 top-4 z-[1000] w-[min(340px,calc(100vw-2rem))]"
+      className="absolute left-4 top-4 z-[1000] hidden w-[min(340px,calc(100vw-2rem))] md:block"
     >
       <div className="map-panel rounded-lg p-2.5">
-        <div className="mb-2.5 flex items-start justify-between gap-2.5">
-          <div>
-            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{messages.map.searchTag}</div>
-            <div className="mt-1 text-[15px] font-semibold tracking-[-0.04em]">{messages.map.searchTitle}</div>
-          </div>
-          <div className="flex items-center gap-2">
-            <LanguageSwitcher />
-          </div>
+        <div className="mb-2.5">
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{messages.map.searchTag}</div>
+          <div className="mt-1 text-[15px] font-semibold tracking-[-0.04em]">{messages.map.searchTitle}</div>
         </div>
 
         <div className="map-input flex items-center gap-2 rounded-md px-2.5 py-2">

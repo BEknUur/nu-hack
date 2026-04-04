@@ -106,7 +106,7 @@ For dark pages (landing, auth), build components inline using tokens above:
 <button class="rounded-full bg-white/5 ring-1 ring-white/10 px-3 py-1.5 text-xs text-white/50 hover:text-white hover:bg-white/8">
 
 <!-- Nav bar container -->
-<div class="flex items-center gap-1 rounded-full bg-white/5 px-1 py-1 ring-1 ring-white/10 backdrop-blur-md">
+<div class="flex items-center gap-1 rounded-full bg-white/5 px-4 py-1 ring-1 ring-white/10 backdrop-blur-md">
 ```
 
 ## Photo Overlays

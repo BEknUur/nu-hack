@@ -276,7 +276,7 @@ export default function TreeOptimizerWizard({
   return (
     <aside
       data-tree-wizard-panel="true"
-      className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4"
+      className="map-panel absolute right-4 top-[8.5rem] z-[1100] hidden w-[264px] max-w-[calc(100vw-2rem)] rounded-lg p-2.5 text-[var(--ink)] md:top-4 md:block"
     >
       <div className="text-[17px] font-semibold tracking-[-0.04em]">{copy.title}</div>
 
