@@ -27,7 +27,7 @@ Uses the `leaflet-shadow-simulator` library (shademap.app). Buildings are loaded
 
 ## Tech Stack
 
-| Layer | Technology |
+| Layer | Technology |1
 |-------|-----------|
 | Framework | React 19 + TypeScript |
 | Build tool | Vite 8 |
