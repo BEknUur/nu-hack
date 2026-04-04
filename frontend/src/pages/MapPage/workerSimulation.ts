@@ -77,72 +77,58 @@ export function getWorkerActivity(taskType: WorkerTaskType) {
   return taskType === 'facade_maintenance' ? 'Facade maintenance' : 'Road repair';
 }
 
-type WorkerRoute = [number, number][];
-
-function clamp(value: number, min: number, max: number) {
-  return Math.min(max, Math.max(min, value));
+/** Stable seed from ring vertices so the same drawn area gives reproducible layouts. */
+function ringSeed(ring: [number, number][]): number {
+  let h = 2166136261;
+  for (let i = 0; i < ring.length; i += 1) {
+    const [lng, lat] = ring[i];
+    h ^= Math.round(lng * 1e7);
+    h = Math.imul(h, 16777619);
+    h ^= Math.round(lat * 1e7);
+    h = Math.imul(h, 16777619);
+  }
+  return h >>> 0;
 }
 
-function routeDistance(route: WorkerRoute) {
-  let total = 0;
-  for (let i = 0; i < route.length - 1; i += 1) {
-    const [ax, ay] = route[i];
-    const [bx, by] = route[i + 1];
-    total += Math.hypot(bx - ax, by - ay);
-  }
-  return total;
+function mulberry32(seed: number) {
+  return () => {
+    let t = (seed += 0x6d2b79f5);
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }
 
-function pointOnRoute(route: WorkerRoute, progress: number): [number, number] {
-  if (route.length === 0) return [0, 0];
-  if (route.length === 1) return route[0];
-
-  const total = routeDistance(route);
-  if (total <= 1e-9) return route[0];
-
-  const wrapped = ((progress % 2) + 2) % 2;
-  const pingPong = wrapped <= 1 ? wrapped : 2 - wrapped;
-  let targetDistance = pingPong * total;
-
-  for (let i = 0; i < route.length - 1; i += 1) {
-    const [ax, ay] = route[i];
-    const [bx, by] = route[i + 1];
-    const segment = Math.hypot(bx - ax, by - ay);
-    if (segment <= 1e-9) continue;
-    if (targetDistance <= segment) {
-      const t = targetDistance / segment;
-      return [ax + (bx - ax) * t, ay + (by - ay) * t];
-    }
-    targetDistance -= segment;
+function randomPointInPolygon(
+  ring: [number, number][],
+  minLng: number,
+  maxLng: number,
+  minLat: number,
+  maxLat: number,
+  pointInPolygon: (lng: number, lat: number) => boolean,
+  rng: () => number,
+  maxAttempts = 120,
+): [number, number] {
+  for (let k = 0; k < maxAttempts; k += 1) {
+    const lng = minLng + rng() * (maxLng - minLng);
+    const lat = minLat + rng() * (maxLat - minLat);
+    if (pointInPolygon(lng, lat)) return [lng, lat];
   }
-
-  return route[route.length - 1];
-}
-
-function sampleSegmentRoute(
-  start: [number, number],
-  end: [number, number],
-  normal: [number, number],
-  offset: number,
-  samples: number,
-): WorkerRoute {
-  const route: WorkerRoute = [];
-  const safeSamples = Math.max(2, samples);
-  for (let i = 0; i < safeSamples; i += 1) {
-    const t = safeSamples === 1 ? 0 : i / (safeSamples - 1);
-    route.push([
-      start[0] + (end[0] - start[0]) * t + normal[0] * offset,
-      start[1] + (end[1] - start[1]) * t + normal[1] * offset,
-    ]);
+  let sumLng = 0;
+  let sumLat = 0;
+  const n = Math.max(1, ring.length - 1);
+  for (let i = 0; i < n; i += 1) {
+    sumLng += ring[i][0];
+    sumLat += ring[i][1];
   }
-  return route;
+  return [sumLng / n, sumLat / n];
 }
 
 export function buildWorkerFeatureCollection(
   geometry: RankAreaGeometry | null,
   taskType: WorkerTaskType,
   buildings: GeoJSON.Feature[],
-  simMinute: number,
+  tick: number,
 ): GeoJSON.FeatureCollection {
   if (!geometry || geometry.type !== 'Polygon') {
     return { type: 'FeatureCollection', features: [] };
@@ -170,8 +156,6 @@ export function buildWorkerFeatureCollection(
 
   const lngRange = Math.max(1e-6, maxLng - minLng);
   const latRange = Math.max(1e-6, maxLat - minLat);
-  const padX = lngRange * 0.1;
-  const padY = latRange * 0.1;
 
   const pointInPolygon = (lng: number, lat: number) => {
     let inside = false;
@@ -244,7 +228,12 @@ export function buildWorkerFeatureCollection(
 
   const areaKm2 = estimateGeometryAreaKm2(geometry);
   const buildingCenters: [number, number][] = [];
-  const facadeRoutes: WorkerRoute[] = [];
+  const facadeAnchors: Array<{
+    point: [number, number];
+    geometry: GeoJSON.Geometry;
+    tangent: [number, number];
+    normal: [number, number];
+  }> = [];
   const anchorOffset = Math.max(lngRange, latRange) * 0.014;
   for (const feature of buildings) {
     const geometryObj = feature.geometry as GeoJSON.Geometry | null | undefined;
@@ -255,41 +244,34 @@ export function buildWorkerFeatureCollection(
     if (!pointInPolygon(lng, lat)) continue;
     buildingCenters.push([lng, lat]);
 
-    const pushRouteForRing = (targetRing: [number, number][]) => {
+    const pushAnchorsForRing = (targetRing: [number, number][]) => {
       if (!targetRing || targetRing.length < 4) return;
       const usableVertices = Math.max(1, targetRing.length - 1);
-      const route: WorkerRoute = [];
-      for (let i = 0; i < usableVertices; i += 1) {
-        const current = targetRing[i] as [number, number];
-        const next = (targetRing[(i + 1) % usableVertices] ?? current) as [number, number];
-        const mx = (current[0] + next[0]) / 2;
-        const my = (current[1] + next[1]) / 2;
-        const nxRaw = mx - lng;
-        const nyRaw = my - lat;
-        const nLen = Math.hypot(nxRaw, nyRaw) || 1e-9;
-        const normal: [number, number] = [nxRaw / nLen, nyRaw / nLen];
-        const segmentLen = Math.hypot(next[0] - current[0], next[1] - current[1]);
-        const samples = clamp(Math.round((segmentLen / Math.max(lngRange, latRange)) * 18), 3, 8);
-        const segmentRoute = sampleSegmentRoute(current, next, normal, anchorOffset, samples);
-        for (const [sx, sy] of segmentRoute) {
-          if (!pointInPolygon(sx, sy)) continue;
-          if (geometryContainsPoint(geometryObj, sx, sy)) continue;
-          const prevPoint = route[route.length - 1];
-          if (!prevPoint || Math.hypot(prevPoint[0] - sx, prevPoint[1] - sy) > 1e-7) {
-            route.push([sx, sy]);
-          }
-        }
-      }
-      if (route.length >= 2) {
-        facadeRoutes.push(route);
+      const step = Math.max(1, Math.floor(usableVertices / 6));
+      for (let i = 0; i < usableVertices; i += step) {
+        const [vx, vy] = targetRing[i];
+        const dx = vx - lng;
+        const dy = vy - lat;
+        const len = Math.hypot(dx, dy) || 1e-9;
+        const ax = vx + (dx / len) * anchorOffset;
+        const ay = vy + (dy / len) * anchorOffset;
+        if (!pointInPolygon(ax, ay)) continue;
+        if (geometryContainsPoint(geometryObj, ax, ay)) continue;
+        const next = targetRing[(i + 1) % usableVertices] ?? targetRing[i];
+        const txRaw = next[0] - vx;
+        const tyRaw = next[1] - vy;
+        const tLen = Math.hypot(txRaw, tyRaw) || 1e-9;
+        const tangent: [number, number] = [txRaw / tLen, tyRaw / tLen];
+        const normal: [number, number] = [dx / len, dy / len];
+        facadeAnchors.push({ point: [ax, ay], geometry: geometryObj, tangent, normal });
       }
     };
 
     if (geometryObj.type === 'Polygon') {
-      pushRouteForRing((geometryObj.coordinates?.[0] ?? []) as [number, number][]);
+      pushAnchorsForRing((geometryObj.coordinates?.[0] ?? []) as [number, number][]);
     } else if (geometryObj.type === 'MultiPolygon') {
       for (const polygon of geometryObj.coordinates ?? []) {
-        pushRouteForRing((polygon?.[0] ?? []) as [number, number][]);
+        pushAnchorsForRing((polygon?.[0] ?? []) as [number, number][]);
       }
     }
   }
@@ -303,12 +285,27 @@ export function buildWorkerFeatureCollection(
     return Math.max(4, Math.min(18, roadCount));
   })();
 
+  const ringTyped = ring as [number, number][];
+  const areaSeed = ringSeed(ringTyped);
+
   const features: GeoJSON.Feature[] = [];
-  const progressBase = (simMinute - 9 * 60) / 45;
-  if (taskType === 'facade_maintenance' && facadeRoutes.length > 0) {
+  if (taskType === 'facade_maintenance' && facadeAnchors.length > 0) {
     for (let i = 0; i < workerCount; i += 1) {
-      const route = facadeRoutes[i % facadeRoutes.length];
-      const [lng, lat] = pointOnRoute(route, progressBase + i * 0.18);
+      const anchor = facadeAnchors[i % facadeAnchors.length];
+      const [baseLng, baseLat] = anchor.point;
+      const phase = tick * 0.55 + i * 0.9;
+      const tangentAmp = Math.max(lngRange, latRange) * 0.012;
+      const normalAmp = Math.max(lngRange, latRange) * 0.0026;
+      const tangentShift = Math.sin(phase) * tangentAmp;
+      const normalShift = Math.cos(phase * 0.75) * normalAmp;
+      const driftLng = anchor.tangent[0] * tangentShift + anchor.normal[0] * normalShift;
+      const driftLat = anchor.tangent[1] * tangentShift + anchor.normal[1] * normalShift;
+      let lng = baseLng + driftLng;
+      let lat = baseLat + driftLat;
+      if (geometryContainsPoint(anchor.geometry, lng, lat)) {
+        lng = baseLng + anchor.tangent[0] * tangentShift - anchor.normal[0] * Math.abs(normalShift);
+        lat = baseLat + anchor.tangent[1] * tangentShift - anchor.normal[1] * Math.abs(normalShift);
+      }
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -324,35 +321,25 @@ export function buildWorkerFeatureCollection(
   }
 
   if (taskType === 'road_repair') {
-    let edgeStart: [number, number] = [minLng + padX, minLat + padY];
-    let edgeEnd: [number, number] = [maxLng - padX, minLat + padY];
-    let bestLen = 0;
-    let edgeNormal: [number, number] = [0, 1];
-    for (let i = 0; i < ring.length - 1; i += 1) {
-      const a = ring[i] as [number, number];
-      const b = ring[i + 1] as [number, number];
-      const len = ((b[0] - a[0]) ** 2) + ((b[1] - a[1]) ** 2);
-      if (len > bestLen) {
-        bestLen = len;
-        edgeStart = a;
-        edgeEnd = b;
-        const mx = (a[0] + b[0]) / 2;
-        const my = (a[1] + b[1]) / 2;
-        const nx = mx - (minLng + maxLng) / 2;
-        const ny = my - (minLat + maxLat) / 2;
-        const nLen = Math.hypot(nx, ny) || 1e-9;
-        edgeNormal = [nx / nLen, ny / nLen];
-      }
-    }
-    const laneOffsetBase = Math.max(lngRange, latRange) * 0.004;
-    const baseRoute = sampleSegmentRoute(edgeStart, edgeEnd, edgeNormal, 0, 12);
     for (let i = 0; i < workerCount; i += 1) {
-      const laneShift = ((i % 3) - 1) * laneOffsetBase;
-      const laneRoute = baseRoute.map(([lng, lat]) => [
-        lng + edgeNormal[0] * laneShift,
-        lat + edgeNormal[1] * laneShift,
-      ] as [number, number]);
-      const [lng, lat] = pointOnRoute(laneRoute, progressBase + i * 0.22);
+      const rng = mulberry32(areaSeed + i * 10007 + 3331);
+      const [baseLng, baseLat] = randomPointInPolygon(
+        ringTyped,
+        minLng,
+        maxLng,
+        minLat,
+        maxLat,
+        pointInPolygon,
+        rng,
+      );
+      const driftLng = Math.sin((tick + i) * 0.7) * lngRange * 0.004;
+      const driftLat = Math.cos((tick + i) * 0.7) * latRange * 0.004;
+      let lng = baseLng + driftLng;
+      let lat = baseLat + driftLat;
+      if (!pointInPolygon(lng, lat)) {
+        lng = baseLng;
+        lat = baseLat;
+      }
       features.push({
         type: 'Feature',
         geometry: { type: 'Point', coordinates: [lng, lat] },
@@ -367,17 +354,25 @@ export function buildWorkerFeatureCollection(
     return { type: 'FeatureCollection', features };
   }
 
-  const cols = Math.max(1, Math.ceil(Math.sqrt(workerCount)));
-  const rows = Math.max(1, Math.ceil(workerCount / cols));
-  const innerW = Math.max(1e-6, lngRange - padX * 2);
-  const innerH = Math.max(1e-6, latRange - padY * 2);
   for (let i = 0; i < workerCount; i += 1) {
-    const col = i % cols;
-    const row = Math.floor(i / cols);
-    const x = cols === 1 ? 0.5 : col / (cols - 1);
-    const y = rows === 1 ? 0.5 : row / (rows - 1);
-    const lng = minLng + padX + innerW * x;
-    const lat = maxLat - padY - innerH * y;
+    const rng = mulberry32(areaSeed + i * 10007 + 7777);
+    const [baseLng, baseLat] = randomPointInPolygon(
+      ringTyped,
+      minLng,
+      maxLng,
+      minLat,
+      maxLat,
+      pointInPolygon,
+      rng,
+    );
+    const driftLng = Math.sin((tick + i) * 0.55) * lngRange * 0.003;
+    const driftLat = Math.cos((tick + i) * 0.52) * latRange * 0.003;
+    let lng = baseLng + driftLng;
+    let lat = baseLat + driftLat;
+    if (!pointInPolygon(lng, lat)) {
+      lng = baseLng;
+      lat = baseLat;
+    }
     features.push({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [lng, lat] },
