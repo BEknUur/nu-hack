@@ -1,8 +1,9 @@
-import type { CSSProperties, ReactNode } from 'react';
 import { CalendarDays, Cuboid, Layers3, LoaderCircle, Sprout, SunMedium } from 'lucide-react';
-import { cn } from '@/lib/utils';
 import { useTranslation } from '@/i18n';
 import type { TreeDrawMode } from '@/types/tree-optimizer';
+import { PanelSection, SegmentedOptionGroup } from '@/components/mapControls/primitives';
+import { TreeAreaDrawControls } from '@/components/treeShared/TreeAreaDrawControls';
+import { TreeRankingControls } from '@/components/treeShared/TreeRankingControls';
 
 interface TreeOptimizerControls {
   enabled: boolean;
@@ -37,11 +38,6 @@ interface ControlPanelProps {
   onBasemapChange?: (satellite: boolean) => void;
   loadingBuildings: boolean;
   treeOptimizer?: TreeOptimizerControls;
-}
-
-interface ToggleOption<T extends boolean> {
-  label: string;
-  value: T;
 }
 
 interface TreeCopy {
@@ -168,55 +164,6 @@ const TREE_COPY: Record<'ru' | 'kk' | 'en', TreeCopy> = {
   },
 };
 
-function ToggleGroup<T extends boolean>({
-  value,
-  onChange,
-  options,
-}: {
-  value: T;
-  onChange: (value: T) => void;
-  options: ToggleOption<T>[];
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-2">
-      {options.map((option) => (
-        <button
-          key={option.label}
-          onClick={() => onChange(option.value)}
-          className={cn(
-            'map-segment rounded-lg px-3 py-2 text-sm font-medium',
-            value === option.value && 'is-active',
-          )}
-        >
-          {option.label}
-        </button>
-      ))}
-    </div>
-  );
-}
-
-function PanelSection({
-  icon,
-  title,
-  children,
-}: {
-  icon: ReactNode;
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="space-y-2.5 border-t border-[color:var(--line)] pt-4 first:border-t-0 first:pt-0">
-      <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
-        <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--blue-strong)]">
-          {icon}
-        </span>
-        <span>{title}</span>
-      </div>
-      {children}
-    </section>
-  );
-}
-
 export default function ControlPanel({
   dateStr,
   onDateChange,
@@ -277,9 +224,9 @@ export default function ControlPanel({
 
         {!isTreeMode && (
           <PanelSection icon={<SunMedium className="h-4 w-4" />} title={messages.map.analysisMode}>
-            <ToggleGroup
+            <SegmentedOptionGroup
               value={sunExposure}
-              onChange={onModeChange}
+              onChange={(value) => onModeChange(value as boolean)}
               options={[
                 { label: messages.map.shadows, value: false },
                 { label: messages.map.exposure, value: true },
@@ -290,9 +237,9 @@ export default function ControlPanel({
 
         {onViewModeChange && !isTreeMode && (
           <PanelSection icon={<Cuboid className="h-4 w-4" />} title={messages.map.view}>
-            <ToggleGroup
+            <SegmentedOptionGroup
               value={Boolean(is3D)}
-              onChange={onViewModeChange}
+              onChange={(value) => onViewModeChange(value as boolean)}
               options={[
                 { label: '2D', value: false },
                 { label: '3D', value: true },
@@ -303,9 +250,9 @@ export default function ControlPanel({
 
         {onBasemapChange && !isTreeMode && (
           <PanelSection icon={<Layers3 className="h-4 w-4" />} title={messages.map.baseMap}>
-            <ToggleGroup
+            <SegmentedOptionGroup
               value={Boolean(isSatellite)}
-              onChange={onBasemapChange}
+              onChange={(value) => onBasemapChange(value as boolean)}
               options={[
                 { label: messages.map.standard, value: false },
                 { label: messages.map.satellite, value: true },
@@ -321,123 +268,67 @@ export default function ControlPanel({
 
               <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
                 <div className="text-sm font-medium text-[var(--ink)]">{treeCopy.areaStepTitle}</div>
-                <div className="mt-2 text-sm text-[var(--ink-soft)]">{treeCopy.shapeLabel}</div>
-                <div className="mt-2 grid grid-cols-2 gap-2">
-                  {drawModeOptions.map((option) => (
-                    <button
-                      key={option.mode}
-                      type="button"
-                      onClick={() => treeOptimizer.onDrawModeChange(option.mode)}
-                      className={cn(
-                        'map-segment rounded-lg px-2.5 py-2 text-sm font-medium',
-                        treeOptimizer.drawMode === option.mode && 'is-active',
+                <TreeAreaDrawControls
+                  variant="panel"
+                  shapeLabel={treeCopy.shapeLabel}
+                  drawMode={treeOptimizer.drawMode}
+                  drawModeOptions={drawModeOptions}
+                  onDrawModeChange={treeOptimizer.onDrawModeChange}
+                  hasArea={treeOptimizer.hasArea}
+                  isDrawing={treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress}
+                  onStartDrawing={treeOptimizer.onStartDraw}
+                  onClearArea={treeOptimizer.onClearArea}
+                  drawActionLabel={treeCopy.drawAction}
+                  redrawActionLabel={treeCopy.redrawAction}
+                  clearActionLabel={treeCopy.clearArea}
+                  clearDisabled={!treeOptimizer.hasArea && !treeOptimizer.drawingArmed}
+                  postActionsContent={(
+                    <>
+                      {(treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress) && (
+                        <p className="mt-2 text-sm text-[var(--blue-strong)]">{treeCopy.drawingHint}</p>
                       )}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
 
-                <div className="mt-3 flex items-center gap-2">
-                  <button
-                    onClick={treeOptimizer.onStartDraw}
-                    className="inline-flex flex-1 items-center justify-center rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
-                  >
-                    {treeOptimizer.hasArea ? treeCopy.redrawAction : treeCopy.drawAction}
-                  </button>
-                  <button
-                    onClick={treeOptimizer.onClearArea}
-                    className="inline-flex items-center justify-center rounded-lg border border-[color:var(--line)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-                    disabled={!treeOptimizer.hasArea && !treeOptimizer.drawingArmed}
-                  >
-                    {treeCopy.clearArea}
-                  </button>
-                </div>
-
-                {(treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress) && (
-                  <p className="mt-2 text-sm text-[var(--blue-strong)]">{treeCopy.drawingHint}</p>
-                )}
-
-                {treeOptimizer.hasArea && treeOptimizer.areaKm2 !== null ? (
-                  <p className="mt-2 text-sm text-[var(--ink)]">
-                    {treeCopy.areaReady(treeOptimizer.areaKm2.toFixed(2))}
-                  </p>
-                ) : (
-                  <p className="mt-2 text-sm text-[var(--ink-soft)]">{treeCopy.areaMissing}</p>
-                )}
+                      {treeOptimizer.hasArea && treeOptimizer.areaKm2 !== null ? (
+                        <p className="mt-2 text-sm text-[var(--ink)]">
+                          {treeCopy.areaReady(treeOptimizer.areaKm2.toFixed(2))}
+                        </p>
+                      ) : (
+                        <p className="mt-2 text-sm text-[var(--ink-soft)]">{treeCopy.areaMissing}</p>
+                      )}
+                    </>
+                  )}
+                />
               </div>
 
               <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
                 <div className="text-sm font-medium text-[var(--ink)]">{treeCopy.rankStepTitle}</div>
 
-                <div className="mt-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="text-sm font-medium text-[var(--ink)]">{treeCopy.priority}</span>
-                    <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                      {treeCopy.seasonShare(summerPct, winterPct)}
-                    </span>
-                  </div>
-                  <input
-                    type="range"
-                    className="time-slider mt-2"
-                    min={0}
-                    max={100}
-                    step={1}
-                    value={summerPct}
-                    style={{ '--pct': `${summerPct}%` } as CSSProperties}
-                    onChange={(event) => treeOptimizer.onSummerWeightChange(Number(event.target.value) / 100)}
-                    disabled={!treeOptimizer.hasArea || treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress}
-                  />
-                  <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--ink-soft)]">
-                    <span>{treeCopy.summerHint}</span>
-                    <span>{treeCopy.winterHint}</span>
-                  </div>
-                </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2">
-                  <label className="text-sm text-[var(--ink-soft)]">
-                    {treeCopy.topN}
-                    <select
-                      className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
-                      value={treeOptimizer.topK}
-                      onChange={(event) => treeOptimizer.onTopKChange(Number(event.target.value))}
-                      disabled={!treeOptimizer.hasArea || treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress}
-                    >
-                      <option value={10}>10</option>
-                      <option value={25}>25</option>
-                      <option value={50}>50</option>
-                    </select>
-                  </label>
-
-                  <label className="text-sm text-[var(--ink-soft)]">
-                    {treeCopy.minWinterLight}
-                    <select
-                      className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
-                      value={treeOptimizer.minWinterLight}
-                      onChange={(event) => treeOptimizer.onMinWinterLightChange(Number(event.target.value))}
-                      disabled={!treeOptimizer.hasArea || treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress}
-                    >
-                      <option value={0.2}>20%</option>
-                      <option value={0.3}>30%</option>
-                      <option value={0.4}>40%</option>
-                      <option value={0.5}>50%</option>
-                    </select>
-                  </label>
-                </div>
-
-                <button
-                  onClick={treeOptimizer.onRun}
-                  className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-70"
-                  disabled={
+                <TreeRankingControls
+                  variant="panel"
+                  balanceLabel={treeCopy.priority}
+                  seasonShareLabel={treeCopy.seasonShare(summerPct, winterPct)}
+                  summerHint={treeCopy.summerHint}
+                  winterHint={treeCopy.winterHint}
+                  topNLabel={treeCopy.topN}
+                  minWinterLightLabel={treeCopy.minWinterLight}
+                  summerPct={summerPct}
+                  topK={treeOptimizer.topK}
+                  minWinterLight={treeOptimizer.minWinterLight}
+                  onSummerWeightChange={treeOptimizer.onSummerWeightChange}
+                  onTopKChange={treeOptimizer.onTopKChange}
+                  onMinWinterLightChange={treeOptimizer.onMinWinterLightChange}
+                  controlsDisabled={!treeOptimizer.hasArea || treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress}
+                  loading={treeOptimizer.loading}
+                  runLabel={treeCopy.run}
+                  runningLabel={treeCopy.running}
+                  onRun={treeOptimizer.onRun}
+                  runDisabled={
                     treeOptimizer.loading
                     || !treeOptimizer.hasArea
                     || treeOptimizer.drawingArmed
                     || treeOptimizer.drawingInProgress
                   }
-                >
-                  {treeOptimizer.loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-                  {treeOptimizer.loading ? treeCopy.running : treeCopy.run}
-                </button>
+                />
               </div>
 
               {treeOptimizer.error && (
