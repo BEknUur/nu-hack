@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import L from 'leaflet';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
 import SearchBar from '@/components/SearchBar';
 import MapView from '@/components/MapView';
 import TimeSliderBar from '@/components/TimeSliderBar';
@@ -24,6 +25,13 @@ import { useSolarFlowersState } from '@/pages/MapPage/useSolarFlowersState';
 export default function MapPage() {
   const { messages, language } = useTranslation();
   const { caseId } = useParams();
+  const { user, signOut } = useAuth();
+  const navigate = useNavigate();
+
+  const handleSignOut = useCallback(async () => {
+    await signOut();
+    navigate('/auth', { replace: true });
+  }, [signOut, navigate]);
   const scenarioMode = getScenarioMode(caseId);
   const isTreeMode = scenarioMode === 'trees';
   const isWorkerMode = scenarioMode === 'workers';
@@ -106,6 +114,20 @@ export default function MapPage() {
     <div className="relative h-screen w-screen overflow-hidden">
       <MapView containerRef={engineState.containerRef} />
       <SearchBar onSelect={handleSearchSelect} />
+
+      {/* User badge + logout */}
+      <div className="absolute top-3 right-3 z-10 flex items-center gap-2">
+        {user && (
+          <span className="text-xs text-white/40 hidden sm:block">{user.email}</span>
+        )}
+        <button
+          onClick={handleSignOut}
+          className="text-xs text-white/50 hover:text-white/80 transition px-3 py-1.5 rounded-lg"
+          style={{ background: 'rgba(0,0,0,0.5)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          Выйти
+        </button>
+      </div>
 
       <MapPageStandardInfo
         visible={isStandardInfoMode}
