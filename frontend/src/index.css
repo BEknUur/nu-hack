@@ -6,6 +6,24 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
+/* shadcn/ui CSS variables — dark theme matching app */
+:root {
+  --background: 240 6% 4%;
+  --foreground: 0 0% 98%;
+  --muted-foreground: 0 0% 55%;
+  --border: 0 0% 14%;
+  --input: 0 0% 14%;
+  --primary: 0 0% 98%;
+  --primary-foreground: 0 0% 9%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 98%;
+  --accent: 0 0% 12%;
+  --accent-foreground: 0 0% 98%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 98%;
+  --ring: 0 0% 28%;
+}
+
 :root {
   color-scheme: light;
   --bg: #f3efe4;

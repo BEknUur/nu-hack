@@ -8,8 +8,11 @@ import {
   useParams,
   useLocation,
 } from 'react-router-dom';
+import { AuthProvider } from '@/hooks/useAuth';
+import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
+import AuthPage from '@/pages/AuthPage';
 import { I18nProvider, useTranslation, type Language } from '@/i18n';
 import { isLangSlug } from '@/i18n/langRoutes';
 
@@ -40,21 +43,24 @@ function LegacyAppCaseRedirect() {
 export default function App() {
   return (
     <I18nProvider>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Navigate to="/en" replace />} />
-          <Route path="/app" element={<Navigate to="/en/app" replace />} />
-          <Route path="/app/:caseId" element={<LegacyAppCaseRedirect />} />
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Navigate to="/en" replace />} />
+            <Route path="/auth" element={<AuthPage />} />
+            <Route path="/app" element={<Navigate to="/en/app" replace />} />
+            <Route path="/app/:caseId" element={<LegacyAppCaseRedirect />} />
 
-          <Route path="/:lang" element={<LanguageLayout />}>
-            <Route index element={<LandingPage />} />
-            <Route path="app" element={<MapPage />} />
-            <Route path="app/:caseId" element={<MapPage />} />
-          </Route>
+            <Route path="/:lang" element={<LanguageLayout />}>
+              <Route index element={<LandingPage />} />
+              <Route path="app" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+              <Route path="app/:caseId" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+            </Route>
 
-          <Route path="*" element={<Navigate to="/en" replace />} />
-        </Routes>
-      </BrowserRouter>
+            <Route path="*" element={<Navigate to="/en" replace />} />
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
     </I18nProvider>
   );
 }

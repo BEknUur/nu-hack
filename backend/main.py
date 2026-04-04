@@ -18,6 +18,7 @@ from services.chat.router.router import router as chat_router
 from services.voice.router.router import router as voice_router
 from services.telegram_bot.router.router import router as telegram_router
 from services.telegram_bot.bot import get_application as get_telegram_app
+from services.auth.router.router import router as auth_router
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -40,6 +41,7 @@ app.include_router(solar_optimizer_router)
 app.include_router(chat_router)
 app.include_router(voice_router)
 app.include_router(telegram_router)
+app.include_router(auth_router)
 
 
 @app.on_event("startup")
