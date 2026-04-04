@@ -538,7 +538,7 @@ const translations: Record<Language, TranslationSet> = {
         {
           title: 'Solar and flowers',
           titleEn: 'Solar and flowers',
-          description: 'Match crops, flowers, or solar spots to the actual daily light pattern of the parcel.',
+          description: 'Match solar spots to the actual daily light pattern of the parcel.',
         },
         {
           title: 'Worker rotation',
@@ -591,7 +591,7 @@ const translations: Record<Language, TranslationSet> = {
           tag: 'Planning',
         },
         {
-          title: 'Solar & Flowers',
+          title: 'Solar Panel',
           description: 'Match crops, flowers, or solar panels to the daily light path. Compare potential zones quickly on one map.',
           tag: 'Coming soon',
         },
