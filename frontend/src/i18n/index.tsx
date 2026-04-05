@@ -64,6 +64,7 @@ interface TranslationSet {
       apartments: string;
       trees: string;
       workers: string;
+      solar: string;
     };
     workflows: {
       tag: string;
@@ -78,6 +79,12 @@ interface TranslationSet {
     }>;
     openScene: string;
     inDevelopment: string;
+    telegram: {
+      title: string;
+      description: string;
+      cta: string;
+      features: string[];
+    };
     footer: {
       tagline: string;
     };
@@ -229,6 +236,7 @@ const translations: Record<Language, TranslationSet> = {
         apartments: 'Квартиры',
         trees: 'Деревья',
         workers: 'Рабочие',
+        solar: 'Солнечные панели',
       },
       workflows: {
         tag: 'Четыре инструмента',
@@ -260,6 +268,12 @@ const translations: Record<Language, TranslationSet> = {
       ],
       openScene: 'Открыть сцену',
       inDevelopment: 'В разработке',
+      telegram: {
+        title: 'Sun Advisor — Telegram Bot',
+        description: 'AI-помощник по солнечному свету Астаны. Ежедневные брифинги с реальными данными, голосовые сообщения, консультации по нормам.',
+        cta: 'Открыть бот',
+        features: ['Утренний брифинг 7:00', 'Вечерний брифинг 20:00', 'Голосовые сообщения', 'Нормы СН РК и ТК РК'],
+      },
       footer: {
         tagline: 'карта солнца и тени',
       },
@@ -400,6 +414,7 @@ const translations: Record<Language, TranslationSet> = {
         apartments: 'Пәтерлер',
         trees: 'Ағаштар',
         workers: 'Жұмысшылар',
+        solar: 'Күн панельдері',
       },
       workflows: {
         tag: 'Төрт жұмыс ағыны',
@@ -431,6 +446,12 @@ const translations: Record<Language, TranslationSet> = {
       ],
       openScene: 'Сахнаны ашу',
       inDevelopment: 'Әзірлеуде',
+      telegram: {
+        title: 'Sun Advisor — Telegram Bot',
+        description: 'Астананың күн сәулесі бойынша AI-көмекші. Нақты деректермен күнделікті брифингтер, дауыстық хабарламалар, нормалар бойынша кеңестер.',
+        cta: 'Ботты ашу',
+        features: ['Таңғы брифинг 7:00', 'Кешкі брифинг 20:00', 'Дауыстық хабарламалар', 'СН РК және ТК РК нормалары'],
+      },
       footer: {
         tagline: 'күн мен көлеңке картасы',
       },
@@ -571,6 +592,7 @@ const translations: Record<Language, TranslationSet> = {
         apartments: 'Apartments',
         trees: 'Trees',
         workers: 'Workers',
+        solar: 'Solar Panels',
       },
       workflows: {
         tag: 'Four workflows',
@@ -602,6 +624,12 @@ const translations: Record<Language, TranslationSet> = {
       ],
       openScene: 'Open scene',
       inDevelopment: 'In development',
+      telegram: {
+        title: 'Sun Advisor — Telegram Bot',
+        description: 'AI sunlight assistant for Astana. Daily briefings with real-time data, voice messages, regulation consultations.',
+        cta: 'Open bot',
+        features: ['Morning briefing 7:00', 'Evening briefing 20:00', 'Voice messages', 'KZ building & labor norms'],
+      },
       footer: {
         tagline: 'sunlight and shadow map',
       },

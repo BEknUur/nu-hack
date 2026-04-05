@@ -1,4 +1,4 @@
-import { LogIn, User, LogOut } from 'lucide-react';
+import { LogIn, User, LogOut, Send, Mic, Bell, BookOpen } from 'lucide-react';
 import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 import { AnimatedText } from '@/components/ui/animated-underline-text-one';
 import WhisperText from '@/components/ui/whisper-text';
@@ -222,6 +222,7 @@ export default function LandingPage() {
           { label: l.nav.apartments, href: langPath('/app/apartments') },
           { label: l.nav.trees,      href: langPath('/app/trees'),      hideOnMobile: true },
           { label: l.nav.workers,    href: langPath('/app/workers'),    hideOnMobile: true },
+          { label: l.nav.solar,      href: langPath('/app/solar-flowers'), hideOnMobile: true },
         ]}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
@@ -301,6 +302,67 @@ export default function LandingPage() {
           />
         ))}
       </div>
+
+      {/* ── Telegram / Sun Advisor section ── */}
+      <section className="relative px-4 md:px-6 py-20 md:py-32 overflow-hidden">
+        {/* Ambient glow */}
+        <div
+          className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 rounded-full blur-[200px]"
+          style={{ background: 'rgba(240,194,76,0.12)', width: '600px', height: '600px' }}
+        />
+
+        <div className="mx-auto max-w-7xl relative z-10">
+          {/* Header */}
+          <div className="text-center mb-14">
+            <div className="inline-flex items-center gap-2 rounded-full bg-[#f0c24c]/10 ring-1 ring-[#f0c24c]/20 px-4 py-1.5 mb-6">
+              <Send className="h-3.5 w-3.5 text-[#f0c24c]" />
+              <span className="ui-mono text-[11px] text-[#f0c24c] uppercase tracking-[1px]">
+                {l.telegram.title}
+              </span>
+            </div>
+            <h2 className="font-display text-3xl md:text-5xl font-light tracking-[-0.04em] text-white leading-[1.05]">
+              Sun Advisor
+            </h2>
+            <p className="mt-4 text-base md:text-lg text-white/40 max-w-xl mx-auto leading-relaxed">
+              {l.telegram.description}
+            </p>
+          </div>
+
+          {/* Feature cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-12">
+            {[
+              { icon: <Bell className="h-5 w-5 text-[#f0c24c]" />, text: l.telegram.features[0] },
+              { icon: <Bell className="h-5 w-5 text-[#f0c24c]" />, text: l.telegram.features[1] },
+              { icon: <Mic className="h-5 w-5 text-[#f0c24c]" />, text: l.telegram.features[2] },
+              { icon: <BookOpen className="h-5 w-5 text-[#f0c24c]" />, text: l.telegram.features[3] },
+            ].map((item, i) => (
+              <div
+                key={i}
+                className="rounded-2xl bg-white/[0.03] ring-1 ring-white/[0.08] p-5 flex items-center gap-4 hover:bg-white/[0.05] hover:ring-white/[0.12] transition-all"
+              >
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#f0c24c]/10 ring-1 ring-[#f0c24c]/20">
+                  {item.icon}
+                </div>
+                <span className="text-sm font-medium text-white/70">{item.text}</span>
+              </div>
+            ))}
+          </div>
+
+          {/* CTA */}
+          <div className="text-center">
+            <a
+              href="https://t.me/alem_aiI_bot"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-3 rounded-xl bg-[#f0c24c] px-8 py-3.5 text-base font-semibold text-[#06080f] hover:bg-[#f0c24c]/90 transition-colors shadow-[0_4px_30px_rgba(240,194,76,0.25)]"
+            >
+              <Send className="h-4 w-4" />
+              {l.telegram.cta}
+            </a>
+            <p className="mt-4 ui-mono text-[11px] text-white/25">@alem_aiI_bot</p>
+          </div>
+        </div>
+      </section>
 
       {/* ── Footer ── */}
       <Footer

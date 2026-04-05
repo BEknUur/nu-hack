@@ -1,4 +1,4 @@
-import { LogOut } from 'lucide-react';
+import { LogOut, Send } from 'lucide-react';
 import { useLangPath, useTranslation } from '@/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { BentoGrid, type BentoItem } from '@/components/ui/bento-grid';
@@ -37,8 +37,17 @@ export default function DashboardPage() {
       title: l.features[3]?.title ?? 'Solar Panel',
       description: l.features[3]?.description ?? '',
       status: l.features[3]?.tag,
+      href: langPath('/app/solar-flowers'),
+      cta: l.openScene,
+    },
+    {
+      title: l.telegram.title,
+      description: l.telegram.description,
+      icon: <Send className="h-4 w-4 text-[#f0c24c]" />,
+      tags: l.telegram.features,
       colSpan: 2,
-      meta: l.inDevelopment,
+      href: 'https://t.me/alem_aiI_bot',
+      cta: l.telegram.cta,
     },
   ];
 

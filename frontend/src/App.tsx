@@ -12,7 +12,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
-import DashboardPage from '@/pages/DashboardPage';
+// DashboardPage removed — /app redirects to /app/apartments
 import AuthPage from '@/pages/AuthPage';
 import { I18nProvider, useTranslation, type Language } from '@/i18n';
 import { isLangSlug } from '@/i18n/langRoutes';
@@ -49,12 +49,12 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Navigate to="/en" replace />} />
             <Route path="/auth" element={<AuthPage />} />
-            <Route path="/app" element={<Navigate to="/en/app" replace />} />
+            <Route path="/app" element={<Navigate to="/en/app/apartments" replace />} />
             <Route path="/app/:caseId" element={<LegacyAppCaseRedirect />} />
 
             <Route path="/:lang" element={<LanguageLayout />}>
               <Route index element={<LandingPage />} />
-              <Route path="app" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
+              <Route path="app" element={<Navigate to="apartments" replace />} />
               <Route path="app/:caseId" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
             </Route>
 
