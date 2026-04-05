@@ -2,6 +2,7 @@ import { useState, useRef, useEffect, useCallback, type ComponentPropsWithoutRef
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
+import { PromptBox } from '@/components/ui/chatgpt-prompt-input';
 import { X, MessageCircle } from 'lucide-react';
 
 /* ─────────────────────────────── types ─────────────────────────────── */
@@ -423,61 +424,32 @@ export default function ChatSidebar({
             </div>
           )}
 
-          <div className="map-input flex items-end gap-1.5 rounded-xl px-2 py-1">
-            <button
-              type="button"
-              onClick={isRecording ? onStopRecording : onStartRecording}
-              disabled={isTranscribing}
-              className={cn(
-                'mb-px shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150',
-                isRecording
-                  ? 'bg-red-50 text-red-600'
-                  : 'text-[var(--ink-soft)] hover:bg-[rgba(31,79,156,0.06)] hover:text-[var(--blue-strong)]',
-                isTranscribing && 'opacity-30',
-              )}
-              aria-label={isRecording ? 'Stop' : 'Record'}
-            >
-              {isTranscribing ? '…' : isRecording ? 'Stop' : 'Voice'}
-            </button>
-
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => {
-                setInputValue(e.target.value);
-                e.target.style.height = 'auto';
-                e.target.style.height = Math.min(e.target.scrollHeight, 100) + 'px';
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
-                  e.preventDefault();
-                  submit();
-                }
-              }}
-              placeholder={s.placeholder}
-              rows={1}
-              disabled={isRecording || isTranscribing}
-              className={cn(
-                'max-h-[100px] min-h-[28px] flex-1 resize-none border-0 bg-transparent py-1 text-[12.5px] leading-[1.5]',
-                'text-[var(--ink)] placeholder:text-[var(--ink-soft)]/50 outline-none',
-                'disabled:opacity-40',
-              )}
-            />
-
-            <button
-              type="button"
-              onClick={submit}
-              disabled={!inputValue.trim() || isRecording || isTranscribing}
-              className={cn(
-                'mb-px shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all duration-150',
-                inputValue.trim()
-                  ? 'bg-[var(--blue-strong)] text-white hover:bg-[var(--blue)]'
-                  : 'text-[var(--ink-soft)]/30',
-              )}
-            >
-              Send
-            </button>
-          </div>
+          <PromptBox
+            ref={inputRef}
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            placeholder={s.placeholder}
+            disabled={isRecording || isTranscribing}
+            voiceDisabled={isTranscribing}
+            onSend={submit}
+            onVoiceClick={() => {
+              if (isRecording) onStopRecording();
+              else onStartRecording();
+            }}
+            voiceActive={isRecording}
+            showExtras={false}
+            maxInputHeight={72}
+            className={cn(
+              'map-input rounded-xl border-[color:var(--line)] !bg-[rgba(255,255,255,0.92)] shadow-none',
+              '[&_textarea]:min-h-[26px] [&_textarea]:py-0.5 [&_textarea]:text-[12.5px] [&_textarea]:leading-[1.45] [&_textarea]:text-[var(--ink)] [&_textarea]:placeholder:text-[var(--ink-soft)]/50',
+            )}
+          />
         </div>
       </div>
 
