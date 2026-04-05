@@ -369,7 +369,11 @@ export default function TreeCandidateCard({
           )}
         </div>
 
-        <ImageGenerator defaultPrompt="Visualize a tree planted at this urban location in Astana" />
+        <ImageGenerator mapContext={{
+          scenario: 'trees',
+          lat: candidate.lat,
+          lng: candidate.lng,
+        }} />
       </div>
       </div>
     </div>

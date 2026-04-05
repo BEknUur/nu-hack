@@ -10,7 +10,6 @@ import {
 } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
-import { ImageGenerator } from '@/components/ImageGenerator';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
 // DashboardPage removed — /app redirects to /app/apartments
@@ -18,17 +17,8 @@ import AuthPage from '@/pages/AuthPage';
 import { I18nProvider, useTranslation, type Language } from '@/i18n';
 import { isLangSlug } from '@/i18n/langRoutes';
 
-function NonLandingWithImageGenerator({ children }: { children: React.ReactNode }) {
-  return (
-    <>
-      {children}
-      <div className="pointer-events-none fixed bottom-4 right-4 z-[1200] w-[min(360px,calc(100vw-1rem))]">
-        <div className="pointer-events-auto">
-          <ImageGenerator defaultPrompt="Create a realistic visualization for this scenario in Astana" />
-        </div>
-      </div>
-    </>
-  );
+function NonLandingWrapper({ children }: { children: React.ReactNode }) {
+  return <>{children}</>;
 }
 
 function LanguageLayout() {
@@ -65,9 +55,9 @@ export default function App() {
             <Route
               path="/auth"
               element={(
-                <NonLandingWithImageGenerator>
+                <NonLandingWrapper>
                   <AuthPage />
-                </NonLandingWithImageGenerator>
+                </NonLandingWrapper>
               )}
             />
             <Route path="/app" element={<Navigate to="/en/app/apartments" replace />} />
@@ -79,11 +69,11 @@ export default function App() {
               <Route
                 path="app/:caseId"
                 element={(
-                  <NonLandingWithImageGenerator>
+                  <NonLandingWrapper>
                     <ProtectedRoute>
                       <MapPage />
                     </ProtectedRoute>
-                  </NonLandingWithImageGenerator>
+                  </NonLandingWrapper>
                 )}
               />
             </Route>

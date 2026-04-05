@@ -231,7 +231,11 @@ export default function SolarCandidateCard({
             <ScoreBar label={copy.access} value={candidate.factors.access_score} />
           </div>
 
-          <ImageGenerator defaultPrompt={`Solar panel installation, ${candidate.kwhPerYearEst.toLocaleString()} kWh/year, Astana`} />
+          <ImageGenerator mapContext={{
+            scenario: 'solar-flowers',
+            lat: candidate.lat,
+            lng: candidate.lng,
+          }} />
         </div>
       </div>
     </div>
