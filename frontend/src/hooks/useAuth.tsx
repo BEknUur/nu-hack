@@ -21,6 +21,15 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+const fallbackAuthContext: AuthContextValue = {
+    user: null,
+    loading: false,
+    signIn: async () => {},
+    signUp: async () => {},
+    signOut: async () => {},
+    getToken: () => localStorage.getItem(TOKEN_KEY),
+};
+
 export function AuthProvider({ children }: { children: ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
@@ -83,6 +92,5 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
 export function useAuth(): AuthContextValue {
     const ctx = useContext(AuthContext);
-    if (!ctx) throw new Error('useAuth must be used inside AuthProvider');
-    return ctx;
+    return ctx ?? fallbackAuthContext;
 }
