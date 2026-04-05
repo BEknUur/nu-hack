@@ -20,6 +20,7 @@ from services.telegram_bot.lifecycle import startup_telegram, shutdown_telegram
 from services.telegram_bot.router.router import router as telegram_router
 from services.tree_optimizer.router.router import router as tree_optimizer_router
 from services.voice.router.router import router as voice_router
+from services.text_to_image.router.router import router as text_to_image_router
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -43,6 +44,7 @@ app.include_router(chat_router)
 app.include_router(voice_router)
 app.include_router(telegram_router)
 app.include_router(auth_router)
+app.include_router(text_to_image_router)
 
 
 @app.on_event("startup")

@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from '@/i18n';
 import type { SolarCandidate } from '@/types/solar-flowers';
+import { ImageGenerator } from '@/components/ImageGenerator';
 
 type CardPlacement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -192,7 +193,7 @@ export default function SolarCandidateCard({
           style={pointerStyle(pos)}
         />
 
-        <div className="map-panel relative rounded-xl p-4 text-[var(--ink)]">
+        <div className="map-panel relative max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-xl p-4 text-[var(--ink)]">
           {/* Header */}
           <div className="flex items-start justify-between gap-3">
             <div>
@@ -229,6 +230,8 @@ export default function SolarCandidateCard({
             <ScoreBar label={copy.slope} value={candidate.factors.slope_suitability} />
             <ScoreBar label={copy.access} value={candidate.factors.access_score} />
           </div>
+
+          <ImageGenerator defaultPrompt={`Solar panel installation, ${candidate.kwhPerYearEst.toLocaleString()} kWh/year, Astana`} />
         </div>
       </div>
     </div>
