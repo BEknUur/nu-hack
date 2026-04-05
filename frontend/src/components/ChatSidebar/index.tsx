@@ -278,7 +278,10 @@ export default function ChatSidebar({
     <>
       {/* ── draggable FAB ─────────────────────────────────────────── */}
       <div
-        className="fixed z-[1002] touch-none select-none"
+        className={cn(
+          'fixed touch-none select-none',
+          isOpen ? 'z-[1202]' : 'z-[1002]',
+        )}
         style={{ left: drag.pos.x, top: drag.pos.y }}
         onPointerDown={drag.onPointerDown}
         onPointerMove={drag.onPointerMove}
@@ -312,8 +315,8 @@ export default function ChatSidebar({
       {/* ── floating card (map-panel style) ────────────────────────── */}
       <div
         className={cn(
-          'fixed z-[1001]',
-          'flex w-[340px] flex-col',
+          'fixed z-[1201]',
+          'flex w-[min(340px,calc(100vw-2rem))] flex-col',
           'map-panel rounded-2xl',
           'origin-bottom-right transition-all duration-250 ease-[cubic-bezier(0.32,0.72,0,1)]',
           isOpen
