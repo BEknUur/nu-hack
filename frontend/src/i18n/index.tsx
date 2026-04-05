@@ -130,6 +130,12 @@ interface TranslationSet {
     south: string;
     west: string;
   };
+  solarComingSoon: {
+    subtitle: string;
+    line1: string;
+    line2: string | null;
+    tagline: string;
+  };
 }
 
 const STORAGE_KEY = 'decentra-language';
@@ -319,6 +325,12 @@ const translations: Record<Language, TranslationSet> = {
       south: 'Юг',
       west: 'Запад',
     },
+    solarComingSoon: {
+      subtitle: 'Солнечные панели',
+      line1: 'Скоро.',
+      line2: null,
+      tagline: 'Солнце в\u00A0движении.',
+    },
   },
   kk: {
     common: {
@@ -497,6 +509,12 @@ const translations: Record<Language, TranslationSet> = {
       south: 'Оңтүстік',
       west: 'Батыс',
     },
+    solarComingSoon: {
+      subtitle: 'Күн панельдері',
+      line1: 'Жақында.',
+      line2: null,
+      tagline: 'Күн қозғалыста.',
+    },
   },
   en: {
     common: {
@@ -674,6 +692,12 @@ const translations: Record<Language, TranslationSet> = {
       east: 'East',
       south: 'South',
       west: 'West',
+    },
+    solarComingSoon: {
+      subtitle: 'Solar Panels',
+      line1: 'Coming',
+      line2: 'Soon.',
+      tagline: 'Sunlight in\u00A0Motion.',
     },
   },
 };
