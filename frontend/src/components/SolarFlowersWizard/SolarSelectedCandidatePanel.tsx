@@ -1,22 +1,17 @@
 import type { SolarCandidate } from '@/types/solar-flowers';
 import type { SolarWizardCopy } from '@/components/SolarFlowersWizard/copy';
-import {
-  ACCENT_BORDER,
-  DARK_CARD,
-  ORANGE,
-} from '@/components/SolarFlowersWizard/styles';
 
 function FactorBar({ label, value }: { label: string; value: number }) {
   return (
     <div>
       <div className="flex justify-between items-center mb-1">
-        <span className="text-[11px] text-white/40">{label}</span>
-        <span className="text-[11px] text-white/55 tabular-nums">{value}</span>
+        <span className="text-[11px] text-[var(--ink-soft)]">{label}</span>
+        <span className="text-[11px] text-[var(--ink)] tabular-nums">{value}</span>
       </div>
-      <div className="h-1 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
+      <div className="h-1 rounded-full overflow-hidden bg-[var(--line)]">
         <div
           className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${value}%`, background: `linear-gradient(90deg, #c2620a, ${ORANGE})` }}
+          style={{ width: `${value}%`, background: 'linear-gradient(90deg, var(--yellow-strong), var(--yellow))' }}
         />
       </div>
     </div>
@@ -35,21 +30,18 @@ export function SolarSelectedCandidatePanel({
   onClose,
 }: SolarSelectedCandidatePanelProps) {
   return (
-    <div
-      className="rounded-xl p-4 space-y-3"
-      style={{ background: DARK_CARD, border: `1px solid ${ACCENT_BORDER}` }}
-    >
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 space-y-3">
       <div className="flex items-start justify-between gap-2">
         <div>
-          <span className="font-mono text-[10px] text-white/30">Candidate #{candidate.rank}</span>
+          <span className="font-mono text-[10px] text-[var(--ink-soft)]">Candidate #{candidate.rank}</span>
           <div className="flex items-baseline gap-2 mt-0.5">
-            <span className="text-xl font-bold text-white">{candidate.score}</span>
-            <span className="text-xs text-white/35">{copy.scoreLabel.toLowerCase()}</span>
+            <span className="text-xl font-bold text-[var(--ink)]">{candidate.score}</span>
+            <span className="text-xs text-[var(--ink-soft)]">{copy.scoreLabel.toLowerCase()}</span>
           </div>
         </div>
         <div className="text-right">
-          <div className="text-[10px] text-white/30">{copy.kwhLabel}</div>
-          <div className="font-mono text-sm" style={{ color: ORANGE }}>
+          <div className="text-[10px] text-[var(--ink-soft)]">{copy.kwhLabel}</div>
+          <div className="font-mono text-sm text-[var(--yellow-strong)]">
             {candidate.kwhPerYearEst.toLocaleString()}
           </div>
         </div>
@@ -66,7 +58,7 @@ export function SolarSelectedCandidatePanel({
       <button
         type="button"
         onClick={onClose}
-        className="w-full text-center text-[11px] text-white/25 hover:text-white/45 transition-colors py-1"
+        className="w-full text-center text-[11px] text-[var(--ink-soft)] hover:text-[var(--ink)] transition-colors py-1"
       >
         ✕ close
       </button>

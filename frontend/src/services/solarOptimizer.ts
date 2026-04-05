@@ -39,13 +39,13 @@ export interface RankSolarCandidatesInput {
 }
 
 export async function rankSolarCandidates(input: RankSolarCandidatesInput): Promise<SolarCandidate[]> {
-    const res = await fetch(`${getBackendUrl()}/ml/solar-flowers/rank`, {
+    const res = await fetch(`${getBackendUrl()}/ml/solar-optimizer/rank`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
             area_geometry: input.areaGeometry,
             top_k: input.topK,
-            target: input.optimizationTarget,
+            optimization_target: input.optimizationTarget,
             panel_type: input.panelType,
             min_spacing_m: input.minSpacingM ?? 10,
         }),

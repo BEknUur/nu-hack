@@ -53,8 +53,8 @@ export interface SolarWizardCopy {
 export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
   en: {
     tag: 'Scenario 04',
-    title: 'Solar Flowers',
-    subtitle: 'Find optimal placements for solar trackers',
+    title: 'Solar Panels',
+    subtitle: 'Find optimal placements for solar panels',
     steps: ['Area', 'Settings', 'Results'],
 
     drawTitle: 'Select the analysis area',
@@ -104,8 +104,8 @@ export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
   },
   ru: {
     tag: 'Сценарий 04',
-    title: 'Солнечные цветы',
-    subtitle: 'Поиск оптимальных мест для солнечных трекеров',
+    title: 'Солнечные панели',
+    subtitle: 'Поиск оптимальных мест для солнечных панелей',
     steps: ['Область', 'Настройки', 'Результаты'],
 
     drawTitle: 'Выберите область анализа',
@@ -155,8 +155,8 @@ export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
   },
   kk: {
     tag: 'Сценарий 04',
-    title: 'Күн гүлдері',
-    subtitle: 'Күн трекерлері үшін оңтайлы орындарды табу',
+    title: 'Күн панельдері',
+    subtitle: 'Күн панельдері үшін оңтайлы орындарды табу',
     steps: ['Аймақ', 'Параметрлер', 'Нәтижелер'],
 
     drawTitle: 'Талдау аймағын таңдаңыз',
