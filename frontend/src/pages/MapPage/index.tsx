@@ -4,9 +4,11 @@ import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import { useDateTime } from '@/hooks/useDateTime';
 import { useShadeMapSetup } from '@/hooks/useShadeMapSetup';
 import type { ClickInfo } from '@/types/map';
+import type { GeocodingResult } from '@/services/geocoding';
 import MapView from '@/components/MapView';
 import ControlPanel from '@/components/ControlPanel';
 import SunInfoPopup from '@/components/SunInfoPopup';
+import SearchBar from '@/components/SearchBar';
 
 export default function MapPage() {
   const dt = useDateTime();
@@ -62,9 +64,23 @@ export default function MapPage() {
     return () => { map.off('click', handleClick); };
   }, [mapRef, shadeMapRef]);
 
+  // Search result → fly to location
+  function handleSearchSelect(result: GeocodingResult) {
+    const map = mapRef.current;
+    if (!map) return;
+
+    const [south, north, west, east] = result.boundingBox;
+    map.flyToBounds(
+      [[south, west], [north, east]],
+      { duration: 1.2, padding: [40, 40] },
+    );
+  }
+
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       <MapView containerRef={containerRef} />
+
+      <SearchBar onSelect={handleSearchSelect} />
 
       <ControlPanel
         dateStr={dt.dateStr}

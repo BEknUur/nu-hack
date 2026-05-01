@@ -1,4 +1,4 @@
-declare module 'leaflet-shadow-simulator' {
+  declare module 'leaflet-shadow-simulator' {
   import { Map } from 'leaflet';
 
   interface TerrainSource {
