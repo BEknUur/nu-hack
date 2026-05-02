@@ -32,6 +32,7 @@
     setColor(color: string): this;
     setOpacity(opacity: number): this;
     setSunExposure(enabled: boolean, options: SunExposureOptions): Promise<this>;
+    getHoursOfSun(x: number, y: number): Promise<number>;
     isPositionInSun(x: number, y: number): Promise<boolean>;
     isPositionInShade(x: number, y: number): Promise<boolean>;
     on(event: string, listener: (...args: unknown[]) => void): () => void;
