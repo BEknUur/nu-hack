@@ -9,15 +9,6 @@ interface BBox {
   e: number;
 }
 
-function buildQuery({ s, w, n, e }: BBox): string {
-  return (
-    `[out:json][timeout:25];` +
-    `(way["building"](${s},${w},${n},${e});` +
-    `relation["building"](${s},${w},${n},${e}););` +
-    `out body;>;out skel qt;`
-  );
-}
-
 function getBuildingHeight(props: Record<string, unknown>): number {
   if (props.height) return Number(props.height);
   if (props['building:height']) return Number(props['building:height']);
@@ -26,7 +17,12 @@ function getBuildingHeight(props: Record<string, unknown>): number {
 }
 
 export async function fetchBuildings(bbox: BBox): Promise<GeoJSON.Feature[]> {
-  const query = buildQuery(bbox);
+  const query = (
+    `[out:json][timeout:25];` +
+    `(way["building"](${bbox.s},${bbox.w},${bbox.n},${bbox.e});` +
+    `relation["building"](${bbox.s},${bbox.w},${bbox.n},${bbox.e}););` +
+    `out body;>;out skel qt;`
+  );
   const url = `${OVERPASS_ENDPOINT}?data=${encodeURIComponent(query)}`;
 
   const res = await fetch(url);

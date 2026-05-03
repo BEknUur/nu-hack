@@ -1,6 +1,6 @@
 # Third-party modules
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Project modules
 from core.database.config import alemdb_settings 
@@ -15,6 +15,16 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+Base = declarative_base()
+
+# Analog migration
+def create_db_schema() -> None:
+    """
+    Ensure database tables exist for all registered ORM models.
+    """
+    import services.ml_data.models  # noqa: F401
+
+    Base.metadata.create_all(bind=engine)
 
 def get_db():
     """
