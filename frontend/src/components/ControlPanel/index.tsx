@@ -3,23 +3,16 @@ import { MAP_CONFIG } from '@/config/map';
 interface ControlPanelProps {
   dateStr: string;
   onDateChange: (v: string) => void;
-  sliderValue: number;
-  sliderPct: number;
-  timeLabel: string;
-  onSliderChange: (val: number) => void;
   sunExposure: boolean;
   onModeChange: (exposure: boolean) => void;
   zoom: number;
   loadingBuildings: boolean;
 }
 
+
 export default function ControlPanel({
   dateStr,
   onDateChange,
-  sliderValue,
-  sliderPct,
-  timeLabel,
-  onSliderChange,
   sunExposure,
   onModeChange,
   zoom,
@@ -52,32 +45,6 @@ export default function ControlPanel({
           value={dateStr}
           onChange={(e) => onDateChange(e.target.value)}
         />
-      </div>
-
-      {/* Time */}
-      <div className="mb-[14px]">
-        <div className="flex justify-between items-baseline mb-1.5">
-          <label className="text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)]">
-            Time
-          </label>
-          <span className="text-sm font-bold text-[#4fc3f7] tabular-nums">{timeLabel}</span>
-        </div>
-        <input
-          type="range"
-          className="time-slider"
-          min={0}
-          max={47}
-          value={sliderValue}
-          onChange={(e) => onSliderChange(Number(e.target.value))}
-          style={{ '--pct': `${sliderPct}%` } as React.CSSProperties}
-        />
-        <div className="flex justify-between text-[9px] text-white/30 mt-[5px]">
-          <span>00:00</span>
-          <span>06:00</span>
-          <span>12:00</span>
-          <span>18:00</span>
-          <span>23:30</span>
-        </div>
       </div>
 
       {/* Mode toggle */}
