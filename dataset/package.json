@@ -1,0 +1,13 @@
+{
+  "name": "decentra-dataset",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "generate:block": "node src/generate-static-block.mjs"
+  },
+  "dependencies": {
+    "osmtogeojson": "^3.0.0-beta.5",
+    "suncalc": "^1.9.0"
+  }
+}
