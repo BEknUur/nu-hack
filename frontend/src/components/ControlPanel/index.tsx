@@ -9,6 +9,7 @@ interface ControlPanelProps {
   loadingBuildings: boolean;
 }
 
+
 export default function ControlPanel({
   dateStr,
   onDateChange,

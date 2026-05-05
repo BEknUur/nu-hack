@@ -1,4 +1,3 @@
-# Third-party modules
 from fastapi import FastAPI
 from fastapi import Depends
 from fastapi.middleware.cors import CORSMiddleware
