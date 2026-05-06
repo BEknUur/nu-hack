@@ -6,9 +6,6 @@ COPY frontend/package.json frontend/package-lock.json ./
 
 RUN npm ci
 
-ARG VITE_SHADEMAP_API_KEY
-ENV VITE_SHADEMAP_API_KEY=${VITE_SHADEMAP_API_KEY}
-
 COPY frontend/ ./
 
 RUN npm run build

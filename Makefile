@@ -16,14 +16,14 @@ help:
 	@echo "  make dev                          Run frontend in dev mode"
 	@echo "  make build                        Build frontend locally"
 	@echo "  make ssh-prod                     SSH into production server"
-	@echo "  make prod-build VITE_SHADEMAP_API_KEY=...   Build frontend Docker image"
+	@echo "  make prod-build                   Build frontend Docker image from frontend/.env"
 	@echo "  make prod-run                     Run production container on port $(PORT)"
 	@echo "  make prod-stop                    Stop production container"
 	@echo "  make prod-rm                      Remove production container"
 	@echo "  make prod-restart                 Recreate production container"
 	@echo "  make prod-logs                    Tail production logs"
 	@echo "  make prod-status                  Show production container status"
-	@echo "  make prod-deploy VITE_SHADEMAP_API_KEY=...  Build and restart production container"
+	@echo "  make prod-deploy                  Build and restart production container"
 
 install:
 	npm install --prefix $(FRONTEND_DIR)
@@ -38,8 +38,9 @@ ssh-prod:
 	ssh $(PROD_SSH)
 
 prod-build:
-	@test -n "$(VITE_SHADEMAP_API_KEY)" || (echo "VITE_SHADEMAP_API_KEY is required"; exit 1)
-	docker build -f $(DOCKERFILE) --build-arg VITE_SHADEMAP_API_KEY=$(VITE_SHADEMAP_API_KEY) -t $(IMAGE_NAME):latest .
+	@test -f $(FRONTEND_DIR)/.env || (echo "$(FRONTEND_DIR)/.env is required"; exit 1)
+	@grep -q '^VITE_SHADEMAP_API_KEY=' $(FRONTEND_DIR)/.env || (echo "VITE_SHADEMAP_API_KEY is missing in $(FRONTEND_DIR)/.env"; exit 1)
+	docker build -f $(DOCKERFILE) -t $(IMAGE_NAME):latest .
 
 prod-run:
 	docker run -d --name $(CONTAINER_NAME) -p $(PORT):5173 --restart unless-stopped $(IMAGE_NAME):latest

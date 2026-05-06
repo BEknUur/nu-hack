@@ -48,26 +48,25 @@ Server should have:
 From the project root:
 
 ```bash
-docker build \
-  -f dockerfiles/frontend.Dockerfile \
-  --build-arg VITE_SHADEMAP_API_KEY=YOUR_REAL_KEY \
-  -t map-frontend:latest \
-  .
+make prod-build
 ```
 
 Important:
 
 - `VITE_` variables are embedded at build time by Vite
+- before build, create `frontend/.env` on the server
 - if the key changes, the image must be rebuilt
+
+Example `frontend/.env`:
+
+```env
+VITE_SHADEMAP_API_KEY=YOUR_REAL_KEY
+```
 
 ### 3. Run the container
 
 ```bash
-docker run -d \
-  --name map-frontend \
-  -p 5173:5173 \
-  --restart unless-stopped \
-  map-frontend:latest
+make prod-run
 ```
 
 After this, the frontend should be reachable at:
@@ -105,19 +104,7 @@ When frontend code changes:
 Commands:
 
 ```bash
-docker build \
-  -f dockerfiles/frontend.Dockerfile \
-  --build-arg VITE_SHADEMAP_API_KEY=YOUR_REAL_KEY \
-  -t map-frontend:latest \
-  .
-
-docker rm -f map-frontend
-
-docker run -d \
-  --name map-frontend \
-  -p 5173:5173 \
-  --restart unless-stopped \
-  map-frontend:latest
+make prod-deploy
 ```
 
 ## Notes
