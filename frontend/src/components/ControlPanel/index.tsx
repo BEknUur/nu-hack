@@ -5,6 +5,8 @@ interface ControlPanelProps {
   onDateChange: (v: string) => void;
   sunExposure: boolean;
   onModeChange: (exposure: boolean) => void;
+  is3D?: boolean;
+  onViewModeChange?: (enabled: boolean) => void;
   zoom: number;
   loadingBuildings: boolean;
 }
@@ -15,6 +17,8 @@ export default function ControlPanel({
   onDateChange,
   sunExposure,
   onModeChange,
+  is3D,
+  onViewModeChange,
   zoom,
   loadingBuildings,
 }: ControlPanelProps) {
@@ -75,6 +79,36 @@ export default function ControlPanel({
           </button>
         </div>
       </div>
+
+      {onViewModeChange && (
+        <div className="mb-[14px]">
+          <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
+            View
+          </label>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => onViewModeChange(false)}
+              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
+                ${!is3D
+                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
+                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
+                }`}
+            >
+              2D
+            </button>
+            <button
+              onClick={() => onViewModeChange(true)}
+              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
+                ${is3D
+                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
+                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
+                }`}
+            >
+              3D
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Zoom hint */}
       <div className="flex items-center gap-[7px] text-[11px] text-white/35">
