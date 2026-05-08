@@ -6,12 +6,14 @@ import { useMapEngine } from '@/hooks/useMapEngine';
 import { astanaLocalToDate } from '@/utils/astanaTime';
 import type { ClickInfo } from '@/types/map';
 import type { GeocodingResult } from '@/services/geocoding';
+import { getBuildingMetadata } from '@/services/buildingDetails';
 import MapView from '@/components/MapView';
 import ControlPanel from '@/components/ControlPanel';
 import TimeSliderBar from '@/components/TimeSliderBar';
 import MapContextMenu from '@/components/MapContextMenu';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
+import { findBuildingAtPoint } from '@/utils/buildings';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
 import type { ContextMenuState } from '@/pages/MapPage/types';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
@@ -36,6 +38,7 @@ export default function MapPage() {
     engine,
     containerRef,
     rawMapRef,
+    buildingsRef,
     controller,
     shadow,
     zoom,
@@ -112,15 +115,62 @@ export default function MapPage() {
         return;
       }
 
-      menuRequestIdRef.current += 1;
+      const requestId = menuRequestIdRef.current + 1;
+      menuRequestIdRef.current = requestId;
       setContextMenu(null);
+      const pickedBuilding = findBuildingAtPoint(buildingsRef.current, point);
       if (!shadow) return;
       const screenPoint = controller.getContainerPoint(point);
       if (!screenPoint) return;
-      setClickInfo({ lat: point.lat, lng: point.lng, inSun: null });
+      setClickInfo({
+        lat: point.lat,
+        lng: point.lng,
+        inSun: null,
+        buildingId: pickedBuilding?.id ?? null,
+        buildingLabel: pickedBuilding?.label ?? null,
+        complexName: null,
+        address: null,
+        buildingInfoLoading: Boolean(pickedBuilding?.id),
+        photoUrl: null,
+        photoPlaceName: null,
+      });
+
+      if (pickedBuilding?.id) {
+        getBuildingMetadata(pickedBuilding.id, point.lat, point.lng)
+          .then((meta) => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  complexName: meta.complexName,
+                  address: meta.address,
+                  photoUrl: meta.photoUrl,
+                  photoPlaceName: meta.photoPlaceName,
+                  buildingInfoLoading: false,
+                }
+              : null));
+          })
+          .catch(() => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  buildingInfoLoading: false,
+                }
+              : null));
+          });
+      }
 
       shadow.isPositionInSun(screenPoint)
-        .then((inSun: boolean) => setClickInfo({ lat: point.lat, lng: point.lng, inSun }))
+        .then((inSun: boolean) => {
+          if (menuRequestIdRef.current !== requestId) return;
+          setClickInfo((prev) => (prev
+            ? {
+                ...prev,
+                inSun,
+              }
+            : null));
+        })
         .catch(() => setClickInfo(null));
     }
 
@@ -196,7 +246,7 @@ export default function MapPage() {
       unsubscribeClick();
       unsubscribeContextMenu();
     };
-  }, [shadow, controller, dt.dateStr, sunExposure]);
+  }, [shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
