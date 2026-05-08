@@ -7,6 +7,8 @@ interface ControlPanelProps {
   onModeChange: (exposure: boolean) => void;
   is3D?: boolean;
   onViewModeChange?: (enabled: boolean) => void;
+  isSatellite?: boolean;
+  onBasemapChange?: (satellite: boolean) => void;
   zoom: number;
   loadingBuildings: boolean;
 }
@@ -19,6 +21,8 @@ export default function ControlPanel({
   onModeChange,
   is3D,
   onViewModeChange,
+  isSatellite,
+  onBasemapChange,
   zoom,
   loadingBuildings,
 }: ControlPanelProps) {
@@ -105,6 +109,36 @@ export default function ControlPanel({
                 }`}
             >
               3D
+            </button>
+          </div>
+        </div>
+      )}
+
+      {onBasemapChange && (
+        <div className="mb-[14px]">
+          <label className="block text-[10px] font-semibold tracking-[0.9px] uppercase text-[rgba(163,175,220,0.7)] mb-1.5">
+            Map
+          </label>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => onBasemapChange(false)}
+              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
+                ${!isSatellite
+                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
+                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
+                }`}
+            >
+              Standard
+            </button>
+            <button
+              onClick={() => onBasemapChange(true)}
+              className={`flex-1 py-2 text-xs font-medium rounded-lg border cursor-pointer transition-all
+                ${isSatellite
+                  ? 'bg-[rgba(79,195,247,0.18)] border-[rgba(79,195,247,0.6)] text-[#4fc3f7] font-semibold'
+                  : 'bg-white/[0.06] border-white/[0.12] text-white/[0.55] hover:bg-white/10 hover:text-white/80'
+                }`}
+            >
+              Satellite
             </button>
           </div>
         </div>

@@ -26,16 +26,22 @@ export const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
   W: 270,
 };
 
+export const OSM_TILE_URLS = [
+  'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
+  'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
+];
+
+export const SATELLITE_TILE_URLS = [
+  'https://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+];
+
 export const MAPLIBRE_STYLE: maplibregl.StyleSpecification = {
   version: 8,
   sources: {
     osm: {
       type: 'raster',
-      tiles: [
-        'https://a.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://b.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        'https://c.tile.openstreetmap.org/{z}/{x}/{y}.png',
-      ],
+      tiles: OSM_TILE_URLS,
       tileSize: 256,
       attribution: MAP_CONFIG.tileAttribution,
     },

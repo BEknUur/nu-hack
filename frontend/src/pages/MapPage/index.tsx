@@ -17,6 +17,7 @@ import { findBuildingAtPoint } from '@/utils/buildings';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
 import type { ContextMenuState } from '@/pages/MapPage/types';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
+import { OSM_TILE_URLS, SATELLITE_TILE_URLS } from '@/hooks/maplibre/constants';
 
 function isMapReadyForShadeOps(engineController: { isReady: () => boolean }) {
   return engineController.isReady();
@@ -26,6 +27,7 @@ export default function MapPage() {
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
   const [is3D, setIs3D] = useState(false);
+  const [isSatellite, setIsSatellite] = useState(false);
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [loadingBuildings, setLoadingBuildings] = useState(false);
@@ -76,6 +78,28 @@ export default function MapPage() {
 
     map.once?.('load', applyView);
   }, [engine, is3D, rawMapRef]);
+
+  // Toggle basemap tiles in MapLibre without re-creating the map.
+  useEffect(() => {
+    if (engine !== 'maplibre') return;
+    const map = rawMapRef.current as {
+      getSource?: (id: string) => unknown;
+      isStyleLoaded?: () => boolean;
+      once?: (event: 'load', listener: () => void) => void;
+    } | null;
+    if (!map) return;
+
+    const applyTiles = () => {
+      const source = map.getSource?.('osm') as { setTiles?: (tiles: string[]) => void } | undefined;
+      source?.setTiles?.(isSatellite ? SATELLITE_TILE_URLS : OSM_TILE_URLS);
+    };
+
+    if (map.isStyleLoaded?.()) {
+      applyTiles();
+      return;
+    }
+    map.once?.('load', applyTiles);
+  }, [engine, isSatellite, rawMapRef]);
 
   // Sync date/time → shade map
   useEffect(() => {
@@ -281,6 +305,8 @@ export default function MapPage() {
         onModeChange={setSunExposure}
         is3D={is3D}
         onViewModeChange={setIs3D}
+        isSatellite={isSatellite}
+        onBasemapChange={engine === 'maplibre' ? setIsSatellite : undefined}
         zoom={zoom}
         loadingBuildings={loadingBuildings}
       />
