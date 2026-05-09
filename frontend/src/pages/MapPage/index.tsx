@@ -10,12 +10,10 @@ import { getBuildingMetadata } from '@/services/buildingDetails';
 import MapView from '@/components/MapView';
 import ControlPanel from '@/components/ControlPanel';
 import TimeSliderBar from '@/components/TimeSliderBar';
-import MapContextMenu from '@/components/MapContextMenu';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 import { findBuildingAtPoint } from '@/utils/buildings';
 import type { MapBounds, MapPoint } from '@/types/map-engine';
-import type { ContextMenuState } from '@/pages/MapPage/types';
 import { setupLeafletStaticLayer } from '@/pages/MapPage/leafletStaticLayer';
 import { OSM_TILE_URLS, SATELLITE_TILE_URLS } from '@/hooks/maplibre/constants';
 
@@ -29,7 +27,6 @@ export default function MapPage() {
   const [is3D, setIs3D] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
-  const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
   const [loadingBuildings, setLoadingBuildings] = useState(false);
   const menuRequestIdRef = useRef(0);
   const staticDatasetLayerRef = useRef<L.GeoJSON | null>(null);
@@ -103,13 +100,16 @@ export default function MapPage() {
 
   // Sync date/time → shade map
   useEffect(() => {
+    // In sun-exposure mode, simulator uses interval-based rendering and
+    // frequent setDate calls can race render buffers in maplibre.
+    if (sunExposure) return;
     if (!shadow || !isMapReadyForShadeOps(controller)) return;
     try {
       shadow.setDate(dt.date);
     } catch {
       return;
     }
-  }, [dt.date, shadow, controller]);
+  }, [dt.date, sunExposure, shadow, controller]);
 
   function getDefaultSunExposureRange(dateStr: string) {
     return {
@@ -131,8 +131,6 @@ export default function MapPage() {
 
   // Map click → check sun/shade at that pixel
   useEffect(() => {
-    let disposed = false;
-
     function handleClick(point: MapPoint) {
       if (suppressNextMapClickRef.current) {
         suppressNextMapClickRef.current = false;
@@ -141,7 +139,6 @@ export default function MapPage() {
 
       const requestId = menuRequestIdRef.current + 1;
       menuRequestIdRef.current = requestId;
-      setContextMenu(null);
       const pickedBuilding = findBuildingAtPoint(buildingsRef.current, point);
       if (!shadow) return;
       const screenPoint = controller.getContainerPoint(point);
@@ -198,79 +195,11 @@ export default function MapPage() {
         .catch(() => setClickInfo(null));
     }
 
-    async function handleContextMenu(point: MapPoint) {
-      if (disposed || !isMapReadyForShadeOps(controller)) return;
-      if (!shadow) return;
-
-      const requestId = menuRequestIdRef.current + 1;
-      menuRequestIdRef.current = requestId;
-
-      setClickInfo(null);
-      const screenPoint = controller.getContainerPoint(point);
-      if (!screenPoint) return;
-      setContextMenu({
-        x: screenPoint.x + 8,
-        y: screenPoint.y - 8,
-        lat: point.lat,
-        lng: point.lng,
-        annualSunHours: null,
-        dailySunHours: null,
-        loadingInfo: true,
-        error: null,
-      });
-
-      const dayStart = astanaLocalToDate(dt.dateStr, 0, 0);
-      const dayEnd = astanaLocalToDate(dt.dateStr, 23, 59);
-      const [year] = dt.dateStr.split('-').map(Number);
-      const yearStart = astanaLocalToDate(`${year}-01-01`, 0, 0);
-      const yearEnd = astanaLocalToDate(`${year}-12-31`, 23, 59);
-
-      try {
-        if (disposed || !isMapReadyForShadeOps(controller)) return;
-        await shadow.setSunExposure(true, { startDate: dayStart, endDate: dayEnd, iterations: 48 });
-        if (disposed || !isMapReadyForShadeOps(controller)) return;
-        const dailySunHours = await shadow.getHoursOfSun(screenPoint);
-
-        if (disposed || !isMapReadyForShadeOps(controller)) return;
-        await shadow.setSunExposure(true, { startDate: yearStart, endDate: yearEnd, iterations: 96 });
-        if (disposed || !isMapReadyForShadeOps(controller)) return;
-        const annualSunHours = await shadow.getHoursOfSun(screenPoint);
-
-        if (menuRequestIdRef.current !== requestId) return;
-        setContextMenu((prev) => (prev
-          ? {
-              ...prev,
-              dailySunHours,
-              annualSunHours,
-              loadingInfo: false,
-            }
-          : null));
-      } catch {
-        if (menuRequestIdRef.current !== requestId) return;
-        setContextMenu((prev) => (prev
-          ? {
-              ...prev,
-              loadingInfo: false,
-              error: 'Failed to load',
-            }
-          : null));
-      } finally {
-        if (!disposed && isMapReadyForShadeOps(controller)) {
-          await shadow.setSunExposure(sunExposure, {
-            ...getDefaultSunExposureRange(dt.dateStr),
-          });
-        }
-      }
-    }
-
     const unsubscribeClick = controller.onClick(handleClick);
-    const unsubscribeContextMenu = controller.onContextMenu(handleContextMenu);
     return () => {
-      disposed = true;
       unsubscribeClick();
-      unsubscribeContextMenu();
     };
-  }, [shadow, controller, buildingsRef, dt.dateStr, sunExposure]);
+  }, [shadow, controller, buildingsRef]);
 
   // Search result → fly to location
   function handleSearchSelect(result: GeocodingResult) {
@@ -287,7 +216,7 @@ export default function MapPage() {
       staticDatasetLayerRef,
       sunEdgesLayerRef,
       suppressNextMapClickRef,
-      setContextMenu: () => setContextMenu(null),
+      setContextMenu: () => {},
       setClickInfo: () => setClickInfo(null),
     });
   }, [engine, rawMapRef]);
@@ -317,34 +246,6 @@ export default function MapPage() {
         timeLabel={dt.timeLabel}
         onSliderChange={dt.setSlider}
       />
-
-      {contextMenu && (
-        <MapContextMenu
-          x={contextMenu.x}
-          y={contextMenu.y}
-          lat={contextMenu.lat}
-          lng={contextMenu.lng}
-          annualSunHours={contextMenu.annualSunHours}
-          dailySunHours={contextMenu.dailySunHours}
-          loadingInfo={contextMenu.loadingInfo}
-          error={contextMenu.error}
-          onShadows={() => {
-            setSunExposure(false);
-            menuRequestIdRef.current += 1;
-            setContextMenu(null);
-          }}
-          onCenterMap={() => {
-            const point: MapPoint = { lat: contextMenu.lat, lng: contextMenu.lng };
-            controller.panTo(point, { animate: true, duration: 0.5 });
-            menuRequestIdRef.current += 1;
-            setContextMenu(null);
-          }}
-          onClose={() => {
-            menuRequestIdRef.current += 1;
-            setContextMenu(null);
-          }}
-        />
-      )}
 
       {clickInfo && (
         <SunInfoPopup info={clickInfo} onClose={() => setClickInfo(null)} />
