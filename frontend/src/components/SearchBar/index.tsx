@@ -1,6 +1,9 @@
+import type { KeyboardEvent } from 'react';
 import { useEffect, useRef, useState } from 'react';
+import { MapPinned, Search, X } from 'lucide-react';
 import type { GeocodingResult } from '@/services/geocoding';
 import { useGeocoding } from '@/hooks/useGeocoding';
+import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
   onSelect: (result: GeocodingResult) => void;
@@ -13,19 +16,18 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Open dropdown when results arrive
   useEffect(() => {
     setOpen(results.length > 0);
     setActiveIndex(-1);
   }, [results]);
 
-  // Close on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
         setOpen(false);
       }
     }
+
     document.addEventListener('mousedown', handleClick);
     return () => document.removeEventListener('mousedown', handleClick);
   }, []);
@@ -36,27 +38,36 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
     setOpen(false);
   }
 
-  function handleKeyDown(e: React.KeyboardEvent) {
+  function handleKeyDown(e: KeyboardEvent) {
     if (!open) return;
 
     if (e.key === 'ArrowDown') {
       e.preventDefault();
-      setActiveIndex((i) => Math.min(i + 1, results.length - 1));
-    } else if (e.key === 'ArrowUp') {
+      setActiveIndex((index) => Math.min(index + 1, results.length - 1));
+      return;
+    }
+
+    if (e.key === 'ArrowUp') {
       e.preventDefault();
-      setActiveIndex((i) => Math.max(i - 1, 0));
-    } else if (e.key === 'Enter' && activeIndex >= 0) {
+      setActiveIndex((index) => Math.max(index - 1, 0));
+      return;
+    }
+
+    if (e.key === 'Enter' && activeIndex >= 0) {
       e.preventDefault();
       handleSelect(results[activeIndex]);
-    } else if (e.key === 'Escape') {
+      return;
+    }
+
+    if (e.key === 'Escape') {
       setOpen(false);
       inputRef.current?.blur();
     }
   }
 
-  // Shorten long display names: keep first two parts
-  function formatName(displayName: string): { main: string; sub: string } {
+  function formatName(displayName: string) {
     const parts = displayName.split(', ');
+
     return {
       main: parts[0],
       sub: parts.slice(1, 3).join(', '),
@@ -66,74 +77,76 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   return (
     <div
       ref={wrapperRef}
-      className="absolute top-4 left-4 z-[1000] w-[300px] font-sans"
+      className="absolute left-4 top-4 z-[1000] w-[min(380px,calc(100vw-2rem))]"
     >
-      {/* Input */}
-      <div className="flex items-center gap-2 bg-[rgba(8,12,28,0.9)] backdrop-blur-[16px] border border-white/[0.08] rounded-2xl px-3 py-2.5 shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
-        {/* Search icon */}
-        <svg
-          className="w-4 h-4 text-white/40 shrink-0"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-          strokeWidth={2}
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
-        </svg>
+      <div className="map-panel rounded-xl p-3">
+        <div className="mb-3 flex items-start justify-between gap-3">
+          <div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Search</div>
+            <div className="mt-1 text-lg font-semibold tracking-[-0.04em]">Find a location</div>
+          </div>
+          <div className="map-chip flex h-10 w-10 items-center justify-center rounded-lg">
+            <MapPinned className="h-4 w-4 text-[var(--blue-strong)]" />
+          </div>
+        </div>
 
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          onKeyDown={handleKeyDown}
-          onFocus={() => results.length > 0 && setOpen(true)}
-          placeholder="Search location…"
-          className="flex-1 bg-transparent text-[13px] text-white placeholder-white/30 outline-none"
-        />
+        <div className="map-input flex items-center gap-2 rounded-lg px-3 py-2.5">
+          <Search className="h-4 w-4 shrink-0 text-[var(--ink-soft)]" />
+          <input
+            ref={inputRef}
+            type="text"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            onFocus={() => results.length > 0 && setOpen(true)}
+            placeholder="Search address, ЖК, or district"
+            className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--ink-soft)]"
+          />
 
-        {/* Loading spinner */}
-        {loading && (
-          <svg
-            className="w-4 h-4 text-[#4fc3f7] shrink-0 animate-spin"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z" />
-          </svg>
-        )}
+          {loading && (
+            <div className="ui-mono text-[11px] text-[var(--blue-strong)]">
+              searching
+            </div>
+          )}
 
-        {/* Clear button */}
-        {query && !loading && (
-          <button
-            onClick={() => { clear(); inputRef.current?.focus(); }}
-            className="text-white/30 hover:text-white/70 transition-colors text-base leading-none"
-          >
-            ×
-          </button>
-        )}
+          {query && !loading && (
+            <button
+              onClick={() => {
+                clear();
+                inputRef.current?.focus();
+              }}
+              className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-[rgba(31,79,156,0.08)] hover:text-[var(--ink)]"
+              aria-label="Clear search"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
+
+        <p className="mt-2 text-sm text-[var(--ink-soft)]">
+          Start with Astana locations and jump directly into the map view.
+        </p>
       </div>
 
-      {/* Dropdown */}
       {open && (
-        <ul className="mt-1.5 bg-[rgba(8,12,28,0.95)] backdrop-blur-[16px] border border-white/[0.08] rounded-xl overflow-hidden shadow-[0_12px_40px_rgba(0,0,0,0.5)]">
-          {results.map((result, idx) => {
+        <ul className="map-panel mt-2 overflow-hidden rounded-xl p-1.5">
+          {results.map((result, index) => {
             const { main, sub } = formatName(result.displayName);
-            const isActive = idx === activeIndex;
+            const isActive = index === activeIndex;
 
             return (
               <li key={result.id}>
                 <button
                   onClick={() => handleSelect(result)}
-                  onMouseEnter={() => setActiveIndex(idx)}
-                  className={`w-full text-left px-4 py-2.5 transition-colors ${
-                    isActive ? 'bg-white/[0.08]' : 'hover:bg-white/[0.05]'
-                  }`}
+                  onMouseEnter={() => setActiveIndex(index)}
+                  className={cn(
+                    'w-full rounded-lg px-3 py-3 text-left transition-colors',
+                    isActive ? 'bg-[rgba(31,79,156,0.1)]' : 'hover:bg-[rgba(31,79,156,0.06)]',
+                  )}
                 >
-                  <div className="text-[13px] text-white font-medium truncate">{main}</div>
+                  <div className="text-sm font-medium text-[var(--ink)]">{main}</div>
                   {sub && (
-                    <div className="text-[11px] text-white/40 truncate mt-0.5">{sub}</div>
+                    <div className="mt-1 text-sm text-[var(--ink-soft)]">{sub}</div>
                   )}
                 </button>
               </li>
