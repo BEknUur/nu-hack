@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { CalendarDays, Cuboid, Layers3, LoaderCircle, SunMedium } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useTranslation } from '@/i18n';
 import { MAP_CONFIG } from '@/config/map';
 
 interface ControlPanelProps {
@@ -83,13 +84,14 @@ export default function ControlPanel({
   loadingBuildings,
 }: ControlPanelProps) {
   const buildingsActive = zoom >= MAP_CONFIG.buildingsMinZoom;
+  const { messages, t } = useTranslation();
 
   return (
     <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4">
       <div className="mb-4 flex items-start justify-between gap-3">
         <div>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Map controls</div>
-          <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">Shadow map</div>
+          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.mapControlsTag}</div>
+          <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">{messages.map.shadowMapTitle}</div>
         </div>
 
         <div className="map-chip flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3">
@@ -102,7 +104,7 @@ export default function ControlPanel({
       </div>
 
       <div className="space-y-4">
-        <PanelSection icon={<CalendarDays className="h-4 w-4" />} title="Date">
+        <PanelSection icon={<CalendarDays className="h-4 w-4" />} title={messages.map.date}>
           <input
             type="date"
             className="map-input date-picker w-full rounded-lg px-3 py-2.5 text-sm text-[var(--ink)]"
@@ -111,19 +113,19 @@ export default function ControlPanel({
           />
         </PanelSection>
 
-        <PanelSection icon={<SunMedium className="h-4 w-4" />} title="Analysis mode">
+        <PanelSection icon={<SunMedium className="h-4 w-4" />} title={messages.map.analysisMode}>
           <ToggleGroup
             value={sunExposure}
             onChange={onModeChange}
             options={[
-              { label: 'Shadows', value: false },
-              { label: 'Exposure', value: true },
+              { label: messages.map.shadows, value: false },
+              { label: messages.map.exposure, value: true },
             ]}
           />
         </PanelSection>
 
         {onViewModeChange && (
-          <PanelSection icon={<Cuboid className="h-4 w-4" />} title="View">
+          <PanelSection icon={<Cuboid className="h-4 w-4" />} title={messages.map.view}>
             <ToggleGroup
               value={Boolean(is3D)}
               onChange={onViewModeChange}
@@ -136,13 +138,13 @@ export default function ControlPanel({
         )}
 
         {onBasemapChange && (
-          <PanelSection icon={<Layers3 className="h-4 w-4" />} title="Base map">
+          <PanelSection icon={<Layers3 className="h-4 w-4" />} title={messages.map.baseMap}>
             <ToggleGroup
               value={Boolean(isSatellite)}
               onChange={onBasemapChange}
               options={[
-                { label: 'Standard', value: false },
-                { label: 'Satellite', value: true },
+                { label: messages.map.standard, value: false },
+                { label: messages.map.satellite, value: true },
               ]}
             />
           </PanelSection>
@@ -150,8 +152,8 @@ export default function ControlPanel({
 
         <section className="rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
           <div className="flex items-center justify-between gap-3 text-sm">
-            <span className="font-medium text-[var(--ink)]">Building coverage</span>
-            <span className="ui-mono text-[11px] text-[var(--ink-soft)]">zoom {Math.round(zoom)}</span>
+            <span className="font-medium text-[var(--ink)]">{messages.map.buildingCoverage}</span>
+            <span className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.zoomLabel} {Math.round(zoom)}</span>
           </div>
           <div className="mt-3 h-2 overflow-hidden rounded-full bg-[rgba(31,79,156,0.1)]">
             <div
@@ -166,8 +168,8 @@ export default function ControlPanel({
           </div>
           <p className="mt-3 text-sm leading-6 text-[var(--ink-soft)]">
             {buildingsActive
-              ? 'OSM buildings are active for this zoom level.'
-              : `Zoom to ${MAP_CONFIG.buildingsMinZoom}+ to load building geometry.`}
+              ? messages.map.buildingsActive
+              : t(messages.map.zoomToLoad, { zoom: MAP_CONFIG.buildingsMinZoom })}
           </p>
         </section>
       </div>

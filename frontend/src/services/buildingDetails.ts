@@ -1,3 +1,5 @@
+import { getPreferredApiLanguage } from '@/i18n';
+
 interface BuildingMetadata {
   complexName: string | null;
   address: string | null;
@@ -120,7 +122,7 @@ async function fetchReverseAddress(lat: number, lng: number): Promise<string | n
   });
   const res = await fetch(`https://nominatim.openstreetmap.org/reverse?${params.toString()}`, {
     headers: {
-      'Accept-Language': 'ru',
+      'Accept-Language': getPreferredApiLanguage(),
       'User-Agent': 'ShadowMapApp/1.0',
     },
   });

@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from 'react';
 import { MapPinned, Search, X } from 'lucide-react';
 import type { GeocodingResult } from '@/services/geocoding';
 import { useGeocoding } from '@/hooks/useGeocoding';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/i18n';
 import { cn } from '@/lib/utils';
 
 interface SearchBarProps {
@@ -11,6 +13,7 @@ interface SearchBarProps {
 
 export default function SearchBar({ onSelect }: SearchBarProps) {
   const { query, setQuery, results, loading, clear } = useGeocoding();
+  const { messages } = useTranslation();
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -82,11 +85,14 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
       <div className="map-panel rounded-xl p-3">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div>
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Search</div>
-            <div className="mt-1 text-lg font-semibold tracking-[-0.04em]">Find a location</div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.searchTag}</div>
+            <div className="mt-1 text-lg font-semibold tracking-[-0.04em]">{messages.map.searchTitle}</div>
           </div>
-          <div className="map-chip flex h-10 w-10 items-center justify-center rounded-lg">
-            <MapPinned className="h-4 w-4 text-[var(--blue-strong)]" />
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            <div className="map-chip flex h-10 w-10 items-center justify-center rounded-lg">
+              <MapPinned className="h-4 w-4 text-[var(--blue-strong)]" />
+            </div>
           </div>
         </div>
 
@@ -99,13 +105,13 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={handleKeyDown}
             onFocus={() => results.length > 0 && setOpen(true)}
-            placeholder="Search address, ЖК, or district"
+            placeholder={messages.map.searchPlaceholder}
             className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--ink-soft)]"
           />
 
           {loading && (
             <div className="ui-mono text-[11px] text-[var(--blue-strong)]">
-              searching
+              {messages.map.searching}
             </div>
           )}
 
@@ -116,7 +122,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                 inputRef.current?.focus();
               }}
               className="flex h-7 w-7 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-[rgba(31,79,156,0.08)] hover:text-[var(--ink)]"
-              aria-label="Clear search"
+              aria-label={messages.map.clearSearchAria}
             >
               <X className="h-4 w-4" />
             </button>
@@ -124,7 +130,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
         </div>
 
         <p className="mt-2 text-sm text-[var(--ink-soft)]">
-          Start with Astana locations and jump directly into the map view.
+          {messages.map.searchHint}
         </p>
       </div>
 

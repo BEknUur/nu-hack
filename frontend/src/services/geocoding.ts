@@ -1,3 +1,5 @@
+import { getPreferredApiLanguage } from '@/i18n';
+
 export interface GeocodingResult {
   id: string;
   displayName: string;
@@ -26,7 +28,7 @@ export async function searchLocation(query: string): Promise<GeocodingResult[]> 
 
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-    { headers: { 'Accept-Language': 'en', 'User-Agent': 'ShadowMapApp/1.0' } },
+    { headers: { 'Accept-Language': getPreferredApiLanguage(), 'User-Agent': 'ShadowMapApp/1.0' } },
   );
 
   if (!res.ok) throw new Error(`Nominatim error: ${res.status}`);

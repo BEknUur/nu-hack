@@ -4,115 +4,58 @@ import {
   Building2,
   Clock3,
   Compass,
-  MapPinned,
+  Play,
   ScanSearch,
   Sprout,
   SunMedium,
   Trees,
-  Workflow,
   type LucideIcon,
 } from 'lucide-react';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
+import { useTranslation } from '@/i18n';
 
-type Feature = {
-  icon: LucideIcon;
-  title: string;
-  description: string;
-  note: string;
-};
-
-type UseCase = {
-  title: string;
-  titleEn: string;
-  description: string;
+type UseCaseVisual = {
   path: string;
   accent: string;
+  borderAccent: string;
 };
 
-const METRICS = [
-  { value: '48', label: 'time steps per day' },
-  { value: '3D', label: 'building view modes' },
-  { value: '24/7', label: 'site checks for any hour' },
-];
+const FEATURE_ICONS: LucideIcon[] = [Clock3, Building2, ScanSearch];
 
-const FEATURES: Feature[] = [
+const USE_CASE_VISUALS: UseCaseVisual[] = [
   {
-    icon: Clock3,
-    title: 'Minute-level light control',
-    description: 'Shift the clock and watch shadows move across façades, courtyards, and work zones in real time.',
-    note: 'Live shadow playback',
-  },
-  {
-    icon: Building2,
-    title: 'Readable urban geometry',
-    description: 'Inspect building massing in 2D or 3D without leaving the map or switching tools.',
-    note: '2D and 3D in one view',
-  },
-  {
-    icon: ScanSearch,
-    title: 'Decision-ready analysis',
-    description: 'Move from a quick location search to sun exposure checks, building context, and side recommendations.',
-    note: 'Search, inspect, decide',
-  },
-];
-
-const WORKFLOW = [
-  {
-    number: '01',
-    title: 'Search a place',
-    description: 'Find an address, ЖК, or site in Astana and jump directly into the working area.',
-  },
-  {
-    number: '02',
-    title: 'Set the date and hour',
-    description: 'Move between seasons and evaluate how sunlight changes through the day.',
-  },
-  {
-    number: '03',
-    title: 'Choose with evidence',
-    description: 'Check sun, shade, building sides, and exposure before making a planning decision.',
-  },
-];
-
-const USE_CASES: UseCase[] = [
-  {
-    title: 'Посадка деревьев',
-    titleEn: 'Tree planting',
-    description: 'Pick planting zones that stay cooler in summer and still receive enough winter light.',
     path: '/app/trees',
     accent: 'bg-[#d8a62c]',
+    borderAccent: 'border-l-[#d8a62c]',
   },
   {
-    title: 'Анализ квартиры',
-    titleEn: 'Apartment analysis',
-    description: 'Review sunlight access before buying or renting, with a better sense of orientation and blockage.',
     path: '/app/apartments',
     accent: 'bg-[#1f4f9c]',
+    borderAccent: 'border-l-[#1f4f9c]',
   },
   {
-    title: 'Солнечные цветы',
-    titleEn: 'Solar and flowers',
-    description: 'Match crops, flowers, or solar spots to the actual daily light pattern of the parcel.',
     path: '/app/solar-flowers',
     accent: 'bg-[#f0c24c]',
+    borderAccent: 'border-l-[#f0c24c]',
   },
   {
-    title: 'Ротация рабочих',
-    titleEn: 'Worker rotation',
-    description: 'Plan safer outdoor schedules by understanding where heat, sun, and shade accumulate.',
     path: '/app/workers',
     accent: 'bg-[#2f67bf]',
+    borderAccent: 'border-l-[#2f67bf]',
   },
 ];
 
-const TIMELINE = ['06:10 sunrise', '09:30 courtyards', '12:00 peak light', '17:40 façade shift'];
+const SHOWREEL_VIDEO_SRC = '';
 
 function HeroBlueprint() {
+  const { messages } = useTranslation();
+
   return (
     <div className="rounded-xl border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.9),rgba(237,242,250,0.94))] p-4 shadow-[var(--shadow)]">
       <div className="flex items-center justify-between border-b border-[color:var(--line)] pb-3">
         <div>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Astana · March 31</div>
-          <div className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--ink)]">Sun path study</div>
+          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.landing.heroBlueprintDate}</div>
+          <div className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--ink)]">{messages.landing.heroBlueprintTitle}</div>
         </div>
         <div className="flex items-center gap-2 text-sm text-[var(--blue-strong)]">
           <SunMedium className="h-4 w-4" />
@@ -133,7 +76,7 @@ function HeroBlueprint() {
             <SunMedium className="h-7 w-7 text-[var(--yellow-strong)]" />
           </div>
           <div className="absolute bottom-4 left-4 right-4 flex flex-wrap items-center gap-2 border-t border-[rgba(31,79,156,0.14)] pt-3 ui-mono text-[11px] text-[var(--ink-soft)]">
-            {TIMELINE.map((item) => (
+            {messages.landing.timeline.map((item) => (
               <span key={item}>{item}</span>
             ))}
           </div>
@@ -141,15 +84,15 @@ function HeroBlueprint() {
 
         <div className="mt-4 grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">coverage</div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.landing.heroBlueprintCoverage}</div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.03em]">6h 42m</div>
           </div>
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">best side</div>
-            <div className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--blue-strong)]">South</div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.landing.heroBlueprintBestSide}</div>
+            <div className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--blue-strong)]">{messages.landing.heroBlueprintSouth}</div>
           </div>
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">shadow shift</div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.landing.heroBlueprintShift}</div>
             <div className="mt-1 text-xl font-semibold tracking-[-0.03em] text-[var(--yellow-strong)]">14.2 m</div>
           </div>
         </div>
@@ -160,6 +103,7 @@ function HeroBlueprint() {
 
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { messages } = useTranslation();
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-[var(--bg)] text-[var(--ink)]">
@@ -170,17 +114,18 @@ export default function LandingPage() {
               <SunMedium className="h-5 w-5 text-[var(--blue-strong)]" />
             </div>
             <div>
-              <div className="text-base font-semibold tracking-[-0.03em]">DeCentra</div>
-              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">sun and shadow mapping</div>
+              <div className="text-base font-semibold tracking-[-0.03em]">{messages.common.appName}</div>
+              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.common.appTagline}</div>
             </div>
           </div>
 
           <div className="flex items-center gap-3">
+            <LanguageSwitcher />
             <button
               onClick={() => navigate('/app')}
               className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
             >
-              Open app
+              {messages.common.openApp}
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
@@ -193,18 +138,17 @@ export default function LandingPage() {
             <div className="flex flex-col justify-between gap-10">
               <div className="space-y-6">
                 <div className="ui-mono text-[12px] text-[var(--blue-strong)]">
-                  Urban daylight intelligence for Astana
+                  {messages.landing.heroTag}
                 </div>
                 <div className="max-w-3xl">
                   <h1 className="text-[clamp(3.3rem,8vw,7.1rem)] font-[780] leading-[0.92] tracking-[-0.08em]">
-                    Plan with sun.
+                    {messages.landing.heroTitleTop}
                     <br />
-                    Decide with shadow.
+                    {messages.landing.heroTitleBottom}
                   </h1>
                 </div>
                 <p className="max-w-xl text-lg leading-8 text-[var(--ink-soft)]">
-                  A working map for planting, apartments, solar potential, and labor safety.
-                  Search a site, move through the day, and read what sunlight actually does on the ground.
+                  {messages.landing.heroDescription}
                 </p>
               </div>
 
@@ -214,20 +158,20 @@ export default function LandingPage() {
                     onClick={() => navigate('/app')}
                     className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
                   >
-                    Start analysis
+                    {messages.common.startAnalysis}
                     <ArrowRight className="h-4 w-4" />
                   </button>
                   <a
                     href="#use-cases"
                     className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--line-strong)] bg-[var(--surface)] px-5 py-3 text-sm font-medium text-[var(--ink)] transition-colors hover:border-[color:var(--blue-strong)]"
                   >
-                    Review use cases
+                    {messages.common.reviewUseCases}
                     <Compass className="h-4 w-4 text-[var(--yellow-strong)]" />
                   </a>
                 </div>
 
                 <div className="grid gap-3 sm:grid-cols-3">
-                  {METRICS.map((metric) => (
+                  {messages.landing.metrics.map((metric) => (
                     <div
                       key={metric.label}
                       className="rounded-xl border border-[color:var(--line)] bg-[var(--surface)] px-4 py-4"
@@ -250,33 +194,37 @@ export default function LandingPage() {
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
             <div className="grid gap-8 lg:grid-cols-[0.72fr_1fr]">
               <div className="max-w-md">
-                <div className="ui-mono text-[12px] text-[var(--ink-soft)]">Core tools</div>
+                <div className="ui-mono text-[12px] text-[var(--ink-soft)]">{messages.landing.coreToolsTag}</div>
                 <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em] text-[var(--ink)]">
-                  Built like a product tool, not a demo.
+                  {messages.landing.coreToolsTitle}
                 </h2>
                 <p className="mt-4 text-base leading-7 text-[var(--ink-soft)]">
-                  The interface stays clear and work-focused, while the visuals still carry a strong point of view.
+                  {messages.landing.coreToolsDescription}
                 </p>
               </div>
 
               <div className="grid gap-4 md:grid-cols-3">
-                {FEATURES.map((feature) => (
-                  <article
-                    key={feature.title}
-                    className="flex h-full flex-col rounded-xl border border-[color:var(--line)] bg-[var(--surface)] p-5"
-                  >
-                    <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white">
-                      <feature.icon className="h-5 w-5 text-[var(--blue-strong)]" />
-                    </div>
-                    <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em]">{feature.title}</h3>
-                    <p className="mt-3 flex-1 text-sm leading-7 text-[var(--ink-soft)]">
-                      {feature.description}
-                    </p>
-                    <div className="mt-5 border-t border-[color:var(--line)] pt-3 ui-mono text-[11px] text-[var(--yellow-strong)]">
-                      {feature.note}
-                    </div>
-                  </article>
-                ))}
+                {messages.landing.features.map((feature, index) => {
+                  const Icon = FEATURE_ICONS[index];
+
+                  return (
+                    <article
+                      key={feature.title}
+                      className="flex h-full flex-col rounded-xl border border-[color:var(--line)] bg-[var(--surface)] p-5"
+                    >
+                      <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white">
+                        <Icon className="h-5 w-5 text-[var(--blue-strong)]" />
+                      </div>
+                      <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em]">{feature.title}</h3>
+                      <p className="mt-3 flex-1 text-sm leading-7 text-[var(--ink-soft)]">
+                        {feature.description}
+                      </p>
+                      <div className="mt-5 border-t border-[color:var(--line)] pt-3 ui-mono text-[11px] text-[var(--yellow-strong)]">
+                        {feature.note}
+                      </div>
+                    </article>
+                  );
+                })}
               </div>
             </div>
           </div>
@@ -284,90 +232,96 @@ export default function LandingPage() {
 
         <section id="use-cases" className="border-b border-[color:var(--line)]">
           <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <div className="flex flex-col gap-3">
-              <div className="ui-mono text-[12px] text-[var(--ink-soft)]">Use cases</div>
-              <h2 className="text-4xl font-semibold tracking-[-0.05em]">
-                Four decisions, one map interface.
-              </h2>
-            </div>
-
-            <div className="mt-8 grid gap-4 md:grid-cols-2">
-              {USE_CASES.map((item) => (
-                <button
-                  key={item.path}
-                  onClick={() => navigate(item.path)}
-                  className="group flex w-full flex-col rounded-xl border border-[color:var(--line)] bg-[var(--surface)] p-0 text-left transition-colors hover:border-[color:var(--line-strong)]"
-                >
-                  <div className={`h-2 w-full rounded-t-xl ${item.accent}`} />
-                  <div className="flex flex-1 flex-col gap-4 p-5">
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <div className="text-xl font-semibold tracking-[-0.04em]">{item.title}</div>
-                        <div className="mt-1 ui-mono text-[11px] text-[var(--ink-soft)]">{item.titleEn}</div>
-                      </div>
-                      <ArrowRight className="mt-1 h-5 w-5 text-[var(--blue-strong)] transition-transform group-hover:translate-x-0.5" />
-                    </div>
-                    <p className="text-sm leading-7 text-[var(--ink-soft)]">{item.description}</p>
-                  </div>
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-
-        <section className="border-b border-[color:var(--line)]">
-          <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <div className="grid gap-8 lg:grid-cols-[0.7fr_1fr]">
-              <div className="max-w-md">
-                <div className="ui-mono text-[12px] text-[var(--ink-soft)]">Workflow</div>
+            <div className="grid gap-8 lg:grid-cols-[0.44fr_1fr] lg:items-center">
+              <div className="max-w-lg">
+                <div className="ui-mono text-[12px] text-[var(--ink-soft)]">{messages.landing.useCasesTag}</div>
                 <h2 className="mt-3 text-4xl font-semibold tracking-[-0.05em]">
-                  A short path from map view to action.
+                  {messages.landing.useCasesTitle}
                 </h2>
-              </div>
-
-              <div className="grid gap-4 md:grid-cols-3">
-                {WORKFLOW.map((step) => (
-                  <article
-                    key={step.number}
-                    className="rounded-xl border border-[color:var(--line)] bg-white/80 p-5"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="ui-mono text-sm text-[var(--ink-soft)]">{step.number}</span>
-                      <Workflow className="h-4 w-4 text-[var(--yellow-strong)]" />
-                    </div>
-                    <h3 className="mt-5 text-xl font-semibold tracking-[-0.04em]">{step.title}</h3>
-                    <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{step.description}</p>
-                  </article>
-                ))}
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section>
-          <div className="mx-auto max-w-[1280px] px-4 py-10 md:px-8 md:py-14">
-            <div className="grid gap-5 rounded-xl border border-[color:var(--line)] bg-[linear-gradient(135deg,rgba(255,255,255,0.95),rgba(228,236,248,0.9))] p-6 md:grid-cols-[1fr_auto] md:items-center">
-              <div>
-                <div className="flex items-center gap-2 text-[var(--blue-strong)]">
-                  <MapPinned className="h-4 w-4" />
-                  <span className="ui-mono text-[12px]">Open the live map</span>
-                </div>
-                <h2 className="mt-3 text-3xl font-semibold tracking-[-0.05em]">
-                  Start with Astana and move directly into the real interface.
-                </h2>
-                <p className="mt-3 max-w-2xl text-base leading-7 text-[var(--ink-soft)]">
-                  The app is already structured for tree planning, apartment checks, solar matching, and worker rotation.
+                <p className="mt-4 text-base leading-7 text-[var(--ink-soft)]">
+                  {messages.landing.useCasesDescription}
                 </p>
+
+                <div className="mt-6 grid gap-3">
+                  {messages.landing.useCases.map((item, index) => {
+                    const visual = USE_CASE_VISUALS[index];
+
+                    return (
+                      <button
+                        key={visual.path}
+                        onClick={() => navigate(visual.path)}
+                        className={`w-full rounded-xl border border-[color:var(--line)] border-l-4 bg-[var(--surface-strong)] px-4 py-4 text-left transition-colors hover:border-[color:var(--line-strong)] ${visual.borderAccent}`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div>
+                            <div className="text-lg font-semibold tracking-[-0.04em] text-[var(--ink)]">{item.title}</div>
+                            <div className="mt-1 ui-mono text-[11px] text-[var(--ink-soft)]">{item.titleEn}</div>
+                          </div>
+                          <ArrowRight className="mt-1 h-4 w-4 text-[var(--blue-strong)]" />
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-[var(--ink-soft)]">{item.description}</p>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-2 md:block">
-                <button
-                  onClick={() => navigate('/app')}
-                  className="inline-flex items-center justify-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
-                >
-                  Open shadow map
-                  <ArrowRight className="h-4 w-4" />
-                </button>
+              <div className="overflow-hidden rounded-2xl border border-[color:var(--line)] bg-[var(--surface-strong)] shadow-[var(--shadow)]">
+                <div className="flex items-center justify-between border-b border-[color:var(--line)] px-5 py-4">
+                  <div>
+                    <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.landing.showreelTag}</div>
+                    <div className="mt-1 text-xl font-semibold tracking-[-0.04em] text-[var(--ink)]">{messages.landing.showreelTitle}</div>
+                  </div>
+                  <div className="ui-mono hidden text-[11px] text-[var(--ink-soft)] md:block">{messages.landing.showreelPlaceholderHint}</div>
+                </div>
+
+                <div className="bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(231,238,248,0.92))] p-4">
+                  <div className="aspect-video overflow-hidden rounded-xl border border-[color:var(--line)] bg-[#101424]">
+                    {SHOWREEL_VIDEO_SRC ? (
+                      <video
+                        src={SHOWREEL_VIDEO_SRC}
+                        controls
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="relative flex h-full flex-col justify-between overflow-hidden bg-[radial-gradient(circle_at_top_left,rgba(47,103,191,0.36),transparent_28%),linear-gradient(135deg,#0f1424_0%,#171d31_52%,#111624_100%)] p-6 text-white">
+                        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(255,255,255,0.05)_1px,transparent_1px),linear-gradient(rgba(255,255,255,0.05)_1px,transparent_1px)] bg-[size:28px_28px] opacity-20" />
+
+                        <div className="relative flex items-start justify-between gap-4">
+                          <div className="max-w-xl">
+                            <div className="ui-mono text-[11px] text-white/65">{messages.landing.showreelPlaceholderHint}</div>
+                            <div className="mt-3 text-3xl font-semibold tracking-[-0.05em]">
+                              {messages.landing.showreelPlaceholderTitle}
+                            </div>
+                          </div>
+
+                          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full border border-white/20 bg-white/10 backdrop-blur-sm">
+                            <Play className="h-6 w-6" />
+                          </div>
+                        </div>
+
+                        <div className="relative grid gap-3 sm:grid-cols-2">
+                          {messages.landing.useCases.map((item, index) => (
+                            <div
+                              key={item.title}
+                              className="rounded-xl border border-white/12 bg-white/8 px-4 py-3 backdrop-blur-sm"
+                            >
+                              <div className="flex items-center gap-2">
+                                <span className={`h-2.5 w-2.5 rounded-full ${USE_CASE_VISUALS[index].accent}`} />
+                                <span className="text-sm font-medium text-white">{item.title}</span>
+                              </div>
+                              <div className="mt-1 ui-mono text-[11px] text-white/60">{item.titleEn}</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -379,14 +333,14 @@ export default function LandingPage() {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2">
               <Trees className="h-4 w-4 text-[var(--yellow-strong)]" />
-              <span>Urban planning</span>
+              <span>{messages.landing.footerUrbanPlanning}</span>
             </div>
             <div className="flex items-center gap-2">
               <Sprout className="h-4 w-4 text-[var(--blue-strong)]" />
-              <span>Sun exposure</span>
+              <span>{messages.landing.footerSunExposure}</span>
             </div>
           </div>
-          <div className="ui-mono text-[11px]">Powered by OpenStreetMap, MapLibre GL, and live shadow simulation.</div>
+          <div className="ui-mono text-[11px]">{messages.landing.footerCredits}</div>
         </div>
       </footer>
     </div>

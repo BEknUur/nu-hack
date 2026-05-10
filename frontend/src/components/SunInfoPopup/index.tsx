@@ -1,4 +1,5 @@
 import { MapPin, SunMedium, X } from 'lucide-react';
+import { useTranslation } from '@/i18n';
 import type { ClickInfo } from '@/types/map';
 
 interface SunInfoPopupProps {
@@ -6,35 +7,37 @@ interface SunInfoPopupProps {
   onClose: () => void;
 }
 
-function formatDirection(side: ClickInfo['predictedBestSide']) {
-  if (side === 'N') return 'North';
-  if (side === 'E') return 'East';
-  if (side === 'S') return 'South';
-  if (side === 'W') return 'West';
+function formatDirection(side: ClickInfo['predictedBestSide'], labels: Record<'N' | 'E' | 'S' | 'W', string>) {
+  if (side === 'N') return labels.N;
+  if (side === 'E') return labels.E;
+  if (side === 'S') return labels.S;
+  if (side === 'W') return labels.W;
   return '—';
 }
 
 export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
+  const { messages, t } = useTranslation();
+
   return (
     <div className="absolute bottom-24 left-1/2 z-[1000] w-[min(380px,calc(100vw-2rem))] -translate-x-1/2">
       <div className="map-panel rounded-xl p-4 text-[var(--ink)]">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Location sample</div>
+            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.locationSample}</div>
             <div className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
               {info.inSun === null ? (
-                <span>Checking light</span>
+                <span>{messages.map.checkingLight}</span>
               ) : info.inSun ? (
-                <span className="text-[var(--yellow-strong)]">In sunlight</span>
+                <span className="text-[var(--yellow-strong)]">{messages.map.inSunlight}</span>
               ) : (
-                <span className="text-[var(--blue-strong)]">In shadow</span>
+                <span className="text-[var(--blue-strong)]">{messages.map.inShadow}</span>
               )}
             </div>
           </div>
 
           <button
             onClick={onClose}
-            aria-label="Close light details"
+            aria-label={messages.map.closeLightDetails}
             className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
           >
             <X className="h-4 w-4" />
@@ -45,7 +48,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
               <MapPin className="h-4 w-4 text-[var(--blue-strong)]" />
-              Coordinates
+              {messages.map.coordinates}
             </div>
             <div className="mt-2 ui-mono text-[12px] text-[var(--ink-soft)]">
               {info.lat.toFixed(5)}, {info.lng.toFixed(5)}
@@ -55,14 +58,21 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
           <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
             <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
               <SunMedium className="h-4 w-4 text-[var(--yellow-strong)]" />
-              Best side
+              {messages.map.bestSide}
             </div>
             <div className="mt-2 text-sm text-[var(--ink-soft)]">
-              {info.predictionLoading ? 'Predicting orientation...' : formatDirection(info.predictedBestSide)}
+              {info.predictionLoading
+                ? messages.map.predictingOrientation
+                : formatDirection(info.predictedBestSide, {
+                    N: messages.map.north,
+                    E: messages.map.east,
+                    S: messages.map.south,
+                    W: messages.map.west,
+                  })}
             </div>
             {info.predictedConfidence !== null && info.predictedConfidence !== undefined && !info.predictionLoading && (
               <div className="mt-1 ui-mono text-[11px] text-[var(--ink-soft)]">
-                confidence {Math.round(info.predictedConfidence * 100)}%
+                {t(messages.map.confidence, { value: Math.round(info.predictedConfidence * 100) })}
               </div>
             )}
           </div>
@@ -70,7 +80,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
 
         {(info.complexName || info.address || info.photoUrl || info.buildingInfoLoading) && (
           <div className="mt-4 rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-            <div className="text-sm font-medium text-[var(--ink)]">Building context</div>
+            <div className="text-sm font-medium text-[var(--ink)]">{messages.map.buildingContext}</div>
 
             {info.photoUrl && (
               <div className="mt-3 overflow-hidden rounded-lg border border-[color:var(--line)]">
@@ -85,20 +95,20 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
 
             {info.photoPlaceName && (
               <div className="mt-2 ui-mono text-[11px] text-[var(--ink-soft)]">
-                Source: {info.photoPlaceName}
+                {messages.map.source}: {info.photoPlaceName}
               </div>
             )}
 
             {info.complexName && (
-              <div className="mt-3 text-sm text-[var(--ink)]">ЖК: {info.complexName}</div>
+              <div className="mt-3 text-sm text-[var(--ink)]">{messages.map.complex}: {info.complexName}</div>
             )}
 
             {info.address && (
-              <div className="mt-2 text-sm text-[var(--ink-soft)]">Адрес: {info.address}</div>
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">{messages.map.address}: {info.address}</div>
             )}
 
             {info.buildingInfoLoading && (
-              <div className="mt-2 text-sm text-[var(--ink-soft)]">Loading address and building details...</div>
+              <div className="mt-2 text-sm text-[var(--ink-soft)]">{messages.map.loadingDetails}</div>
             )}
           </div>
         )}
