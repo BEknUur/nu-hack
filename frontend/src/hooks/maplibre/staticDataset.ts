@@ -27,15 +27,15 @@ export async function ensureStaticFeaturesLoaded({
       fetch('/dataset/block-buildings.geojson'),
       fetch('/dataset/block-summary.json'),
     ]);
-    if (!geoRes.ok) {
-      throw new Error('Static buildings dataset not found');
-    }
-    if (!summaryRes.ok) {
-      throw new Error('Static summary dataset not found');
+    // Dataset files are optional in older revisions.
+    if (!geoRes.ok || !summaryRes.ok) {
+      staticFeaturesRef.current = [];
+      staticFeaturesLoadedRef.current = true;
+      return [];
     }
 
-    const geo = await geoRes.json() as GeoJSON.FeatureCollection;
-    const summary = await summaryRes.json() as {
+    let geo: GeoJSON.FeatureCollection;
+    let summary: {
       meta?: {
         bbox?: {
           s?: number;
@@ -46,6 +46,24 @@ export async function ensureStaticFeaturesLoaded({
       };
       buildings?: Array<{ id?: string; height?: number }>;
     };
+    try {
+      geo = await geoRes.json() as GeoJSON.FeatureCollection;
+      summary = await summaryRes.json() as {
+        meta?: {
+          bbox?: {
+            s?: number;
+            w?: number;
+            n?: number;
+            e?: number;
+          };
+        };
+        buildings?: Array<{ id?: string; height?: number }>;
+      };
+    } catch {
+      staticFeaturesRef.current = [];
+      staticFeaturesLoadedRef.current = true;
+      return [];
+    }
 
     const metaBBox = summary.meta?.bbox;
     if (
