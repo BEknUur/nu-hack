@@ -128,10 +128,6 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
             </button>
           )}
         </div>
-
-        <p className="mt-2 text-sm text-[var(--ink-soft)]">
-          {messages.map.searchHint}
-        </p>
       </div>
 
       {open && (

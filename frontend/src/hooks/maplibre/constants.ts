@@ -1,6 +1,6 @@
 import maplibregl from 'maplibre-gl';
 import { MAP_CONFIG } from '@/config/map';
-import type { StaticRegionBBox } from './types';
+import type { StaticRegionBBox } from '@/hooks/maplibre/types';
 
 export const BUILDING_SOURCE_ID = 'osm-buildings';
 export const SUN_WALLS_SOURCE_ID = 'sun-walls';
@@ -18,7 +18,7 @@ export const TREE_RANK_LABEL_LAYER_ID = 'tree-rank-label-layer';
 export const TREE_AOI_SOURCE_ID = 'tree-aoi-source';
 export const TREE_AOI_FILL_LAYER_ID = 'tree-aoi-fill-layer';
 export const TREE_AOI_LINE_LAYER_ID = 'tree-aoi-line-layer';
-export const MAX_VISIBLE_STATIC_FEATURES = 4500;
+export const MAX_VISIBLE_STATIC_FEATURES = 12000;
 
 export const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
   type: 'FeatureCollection',
@@ -26,10 +26,10 @@ export const EMPTY_FEATURE_COLLECTION: GeoJSON.FeatureCollection = {
 };
 
 export const DEFAULT_STATIC_REGION: StaticRegionBBox = {
-  s: MAP_CONFIG.center[0] - 0.12,
-  w: MAP_CONFIG.center[1] - 0.2,
-  n: MAP_CONFIG.center[0] + 0.12,
-  e: MAP_CONFIG.center[1] + 0.2,
+  s: 50.97,
+  w: 71.19,
+  n: 51.27,
+  e: 71.66,
 };
 
 export const SIDE_BEARINGS: Record<'N' | 'E' | 'S' | 'W', number> = {
