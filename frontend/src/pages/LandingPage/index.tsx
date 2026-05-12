@@ -36,7 +36,7 @@ const HERO_FEATURES: HeroFeature[] = [
   {
     title: 'Worker rotation',
     description:
-      'Plan safer outdoor shifts around heat, sun, and shade. Identify high-risk windows and redistribute tasks by light conditions.',
+      'Pick a work zone like in Tree planting, choose task type, set crew size, and preview how teams rotate through sun and shade.',
     path: '/app/workers',
     reverse: true,
     icon: Clock3,
@@ -72,6 +72,41 @@ function FeatureMedia({ feature }: { feature: HeroFeature }) {
           className="h-full w-full object-cover"
         />
         <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,14,34,0.08)_0%,rgba(10,14,34,0.62)_100%)]" />
+      </div>
+    );
+  }
+
+  if (feature.path === '/app/workers') {
+    return (
+      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(236,242,249,0.98))] shadow-[0_24px_48px_rgba(15,23,42,0.12)]">
+        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,79,156,0.07)_1px,transparent_1px),linear-gradient(rgba(31,79,156,0.07)_1px,transparent_1px)] bg-[size:24px_24px]" />
+        <span className="absolute left-3 top-3 rounded-full border border-[color:var(--line)] bg-white/90 px-3 py-1 text-[11px] text-[var(--ink-soft)] backdrop-blur-sm">
+          Coming soon
+        </span>
+
+        <div className="absolute left-4 right-4 top-12 rounded-xl border border-[color:var(--line)] bg-white/92 p-3">
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Task type</div>
+          <div className="mt-2 flex gap-2">
+            <span className="rounded-full border border-[color:var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[10px] text-[var(--ink)]">
+              Facade maintenance
+            </span>
+            <span className="rounded-full border border-[color:var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[10px] text-[var(--ink)]">
+              Road repair
+            </span>
+          </div>
+          <div className="mt-3 ui-mono text-[10px] text-[var(--ink-soft)]">Crew size</div>
+          <div className="mt-1 text-base leading-none">👷 👷 👷 👷 👷</div>
+        </div>
+
+        <div className="absolute bottom-5 left-5 right-5 h-[42%] rounded-xl border border-dashed border-[color:var(--line-strong)] bg-white/65">
+          <div className="absolute left-[14%] top-[20%] text-lg animate-bounce [animation-delay:0ms]">👷</div>
+          <div className="absolute left-[36%] top-[56%] text-lg animate-bounce [animation-delay:220ms]">👷</div>
+          <div className="absolute left-[58%] top-[22%] text-lg animate-bounce [animation-delay:420ms]">👷</div>
+          <div className="absolute left-[78%] top-[58%] text-lg animate-bounce [animation-delay:620ms]">👷</div>
+          <div className="absolute bottom-2 left-3 right-3 ui-mono text-[10px] text-[var(--ink-soft)]">
+            Rotation simulation: workers move between shaded and sunny points
+          </div>
+        </div>
       </div>
     );
   }

@@ -27,6 +27,7 @@ import {
   EMPTY_FEATURE_COLLECTION,
   OSM_TILE_URLS,
   SATELLITE_TILE_URLS,
+  SUN_WALLS_LAYER_ID,
   TREE_AOI_FILL_LAYER_ID,
   TREE_AOI_LINE_LAYER_ID,
   TREE_AOI_SOURCE_ID,
@@ -66,10 +67,294 @@ function sideToLabel(
   return null;
 }
 
+interface WorkerExposureStat {
+  sunMinutes: number;
+  shadeMinutes: number;
+  focusScore: number;
+}
+
+interface WorkerFeatureProps {
+  emoji: string;
+  worker_id: number;
+  worker_name: string;
+  activity: string;
+}
+
+function minuteToClockLabel(totalMinutes: number): string {
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function getWorkerActivity(taskType: 'facade_maintenance' | 'road_repair') {
+  return taskType === 'facade_maintenance' ? 'Facade maintenance' : 'Road repair';
+}
+
+function buildWorkerFeatureCollection(
+  geometry: RankAreaGeometry | null,
+  taskType: 'facade_maintenance' | 'road_repair',
+  buildings: GeoJSON.Feature[],
+  tick: number,
+): GeoJSON.FeatureCollection {
+  if (!geometry || geometry.type !== 'Polygon') {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  const ring = geometry.coordinates?.[0];
+  if (!ring || ring.length < 4) {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  let minLng = Infinity;
+  let maxLng = -Infinity;
+  let minLat = Infinity;
+  let maxLat = -Infinity;
+  for (const [lng, lat] of ring) {
+    if (lng < minLng) minLng = lng;
+    if (lng > maxLng) maxLng = lng;
+    if (lat < minLat) minLat = lat;
+    if (lat > maxLat) maxLat = lat;
+  }
+
+  if (!Number.isFinite(minLng) || !Number.isFinite(maxLng) || !Number.isFinite(minLat) || !Number.isFinite(maxLat)) {
+    return { type: 'FeatureCollection', features: [] };
+  }
+
+  const lngRange = Math.max(1e-6, maxLng - minLng);
+  const latRange = Math.max(1e-6, maxLat - minLat);
+  const padX = lngRange * 0.1;
+  const padY = latRange * 0.1;
+
+  const pointInPolygon = (lng: number, lat: number) => {
+    let inside = false;
+    for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+      const xi = ring[i][0];
+      const yi = ring[i][1];
+      const xj = ring[j][0];
+      const yj = ring[j][1];
+      const intersects = ((yi > lat) !== (yj > lat))
+        && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-9) + xi);
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  };
+
+  const pointInRing = (targetRing: [number, number][], lng: number, lat: number) => {
+    let inside = false;
+    for (let i = 0, j = targetRing.length - 1; i < targetRing.length; j = i, i += 1) {
+      const xi = targetRing[i][0];
+      const yi = targetRing[i][1];
+      const xj = targetRing[j][0];
+      const yj = targetRing[j][1];
+      const intersects = ((yi > lat) !== (yj > lat))
+        && (lng < ((xj - xi) * (lat - yi)) / ((yj - yi) || 1e-9) + xi);
+      if (intersects) inside = !inside;
+    }
+    return inside;
+  };
+
+  const geometryContainsPoint = (g: GeoJSON.Geometry, lng: number, lat: number) => {
+    if (g.type === 'Polygon') {
+      const polyRing = g.coordinates?.[0] as [number, number][] | undefined;
+      if (!polyRing?.length) return false;
+      return pointInRing(polyRing, lng, lat);
+    }
+    if (g.type === 'MultiPolygon') {
+      for (const polygon of g.coordinates ?? []) {
+        const polyRing = polygon?.[0] as [number, number][] | undefined;
+        if (polyRing?.length && pointInRing(polyRing, lng, lat)) return true;
+      }
+    }
+    return false;
+  };
+
+  const getGeometryCenter = (g: GeoJSON.Geometry): [number, number] | null => {
+    if (g.type === 'Polygon') {
+      const points = g.coordinates?.[0];
+      if (!points?.length) return null;
+      let sumLng = 0;
+      let sumLat = 0;
+      for (const [lng, lat] of points) {
+        sumLng += lng;
+        sumLat += lat;
+      }
+      return [sumLng / points.length, sumLat / points.length];
+    }
+    if (g.type === 'MultiPolygon') {
+      const points = g.coordinates?.[0]?.[0];
+      if (!points?.length) return null;
+      let sumLng = 0;
+      let sumLat = 0;
+      for (const [lng, lat] of points) {
+        sumLng += lng;
+        sumLat += lat;
+      }
+      return [sumLng / points.length, sumLat / points.length];
+    }
+    return null;
+  };
+
+  const areaKm2 = estimateGeometryAreaKm2(geometry);
+  const buildingCenters: [number, number][] = [];
+  const facadeAnchors: Array<{
+    point: [number, number];
+    geometry: GeoJSON.Geometry;
+    tangent: [number, number];
+    normal: [number, number];
+  }> = [];
+  const anchorOffset = Math.max(lngRange, latRange) * 0.014;
+  for (const feature of buildings) {
+    const geometryObj = feature.geometry as GeoJSON.Geometry | null | undefined;
+    if (!geometryObj) continue;
+    const center = getGeometryCenter(geometryObj);
+    if (!center) continue;
+    const [lng, lat] = center;
+    if (!pointInPolygon(lng, lat)) continue;
+    buildingCenters.push([lng, lat]);
+
+    const pushAnchorsForRing = (targetRing: [number, number][]) => {
+      if (!targetRing || targetRing.length < 4) return;
+      const usableVertices = Math.max(1, targetRing.length - 1);
+      const step = Math.max(1, Math.floor(usableVertices / 6));
+      for (let i = 0; i < usableVertices; i += step) {
+        const [vx, vy] = targetRing[i];
+        const dx = vx - lng;
+        const dy = vy - lat;
+        const len = Math.hypot(dx, dy) || 1e-9;
+        const ax = vx + (dx / len) * anchorOffset;
+        const ay = vy + (dy / len) * anchorOffset;
+        if (!pointInPolygon(ax, ay)) continue;
+        if (geometryContainsPoint(geometryObj, ax, ay)) continue;
+        const next = targetRing[(i + 1) % usableVertices] ?? targetRing[i];
+        const txRaw = next[0] - vx;
+        const tyRaw = next[1] - vy;
+        const tLen = Math.hypot(txRaw, tyRaw) || 1e-9;
+        const tangent: [number, number] = [txRaw / tLen, tyRaw / tLen];
+        const normal: [number, number] = [dx / len, dy / len];
+        facadeAnchors.push({ point: [ax, ay], geometry: geometryObj, tangent, normal });
+      }
+    };
+
+    if (geometryObj.type === 'Polygon') {
+      pushAnchorsForRing((geometryObj.coordinates?.[0] ?? []) as [number, number][]);
+    } else if (geometryObj.type === 'MultiPolygon') {
+      for (const polygon of geometryObj.coordinates ?? []) {
+        pushAnchorsForRing((polygon?.[0] ?? []) as [number, number][]);
+      }
+    }
+  }
+
+  const workerCount = (() => {
+    if (taskType === 'facade_maintenance') {
+      // More buildings and larger area -> larger crew; capped for readability.
+      const count = Math.round(2 + areaKm2 * 8 + buildingCenters.length * 0.22);
+      return Math.max(3, Math.min(24, count));
+    }
+    const roadCount = Math.round(3 + areaKm2 * 10);
+    return Math.max(4, Math.min(18, roadCount));
+  })();
+
+  const features: GeoJSON.Feature[] = [];
+  if (taskType === 'facade_maintenance' && facadeAnchors.length > 0) {
+    for (let i = 0; i < workerCount; i += 1) {
+      const anchor = facadeAnchors[i % facadeAnchors.length];
+      const [baseLng, baseLat] = anchor.point;
+      const phase = tick * 0.55 + i * 0.9;
+      const tangentAmp = Math.max(lngRange, latRange) * 0.012;
+      const normalAmp = Math.max(lngRange, latRange) * 0.0026;
+      const tangentShift = Math.sin(phase) * tangentAmp;
+      const normalShift = Math.cos(phase * 0.75) * normalAmp;
+      const driftLng = anchor.tangent[0] * tangentShift + anchor.normal[0] * normalShift;
+      const driftLat = anchor.tangent[1] * tangentShift + anchor.normal[1] * normalShift;
+      let lng = baseLng + driftLng;
+      let lat = baseLat + driftLat;
+      if (geometryContainsPoint(anchor.geometry, lng, lat)) {
+        lng = baseLng + anchor.tangent[0] * tangentShift - anchor.normal[0] * Math.abs(normalShift);
+        lat = baseLat + anchor.tangent[1] * tangentShift - anchor.normal[1] * Math.abs(normalShift);
+      }
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+        properties: {
+          emoji: '👷',
+          worker_id: i + 1,
+          worker_name: `Worker #${i + 1}`,
+          activity: getWorkerActivity(taskType),
+        } satisfies WorkerFeatureProps,
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  }
+
+  if (taskType === 'road_repair') {
+    // Use the longest polygon edge as a road-like segment.
+    let edgeStart: [number, number] = [minLng + padX, minLat + padY];
+    let edgeEnd: [number, number] = [maxLng - padX, minLat + padY];
+    let bestLen = 0;
+    for (let i = 0; i < ring.length - 1; i += 1) {
+      const a = ring[i] as [number, number];
+      const b = ring[i + 1] as [number, number];
+      const len = ((b[0] - a[0]) ** 2) + ((b[1] - a[1]) ** 2);
+      if (len > bestLen) {
+        bestLen = len;
+        edgeStart = a;
+        edgeEnd = b;
+      }
+    }
+    for (let i = 0; i < workerCount; i += 1) {
+      const x = workerCount === 1 ? 0.5 : i / (workerCount - 1);
+      const baseLng = edgeStart[0] + (edgeEnd[0] - edgeStart[0]) * x;
+      const baseLat = edgeStart[1] + (edgeEnd[1] - edgeStart[1]) * x;
+      const driftLng = Math.sin((tick + i) * 0.7) * lngRange * 0.004;
+      const driftLat = Math.cos((tick + i) * 0.7) * latRange * 0.004;
+      const lng = baseLng + driftLng;
+      const lat = baseLat + driftLat;
+      features.push({
+        type: 'Feature',
+        geometry: { type: 'Point', coordinates: [lng, lat] },
+        properties: {
+          emoji: '👷',
+          worker_id: i + 1,
+          worker_name: `Worker #${i + 1}`,
+          activity: getWorkerActivity(taskType),
+        } satisfies WorkerFeatureProps,
+      });
+    }
+    return { type: 'FeatureCollection', features };
+  }
+
+  // Fallback: distribute workers in-zone.
+  const cols = Math.max(1, Math.ceil(Math.sqrt(workerCount)));
+  const rows = Math.max(1, Math.ceil(workerCount / cols));
+  const innerW = Math.max(1e-6, lngRange - padX * 2);
+  const innerH = Math.max(1e-6, latRange - padY * 2);
+  for (let i = 0; i < workerCount; i += 1) {
+    const col = i % cols;
+    const row = Math.floor(i / cols);
+    const x = cols === 1 ? 0.5 : col / (cols - 1);
+    const y = rows === 1 ? 0.5 : row / (rows - 1);
+    const lng = minLng + padX + innerW * x;
+    const lat = maxLat - padY - innerH * y;
+    features.push({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [lng, lat] },
+      properties: {
+        emoji: '👷',
+        worker_id: i + 1,
+        worker_name: `Worker #${i + 1}`,
+        activity: getWorkerActivity(taskType),
+      } satisfies WorkerFeatureProps,
+    });
+  }
+
+  return { type: 'FeatureCollection', features };
+}
+
 export default function MapPage() {
   const { messages, language } = useTranslation();
   const { caseId } = useParams();
   const isTreeMode = caseId === 'trees';
+  const isWorkerMode = caseId === 'workers';
   const treeUi = {
     ru: {
       mapNotReady: 'Карта еще загружается. Попробуйте через секунду.',
@@ -123,6 +408,20 @@ export default function MapPage() {
   const [treeExplanation, setTreeExplanation] = useState<TreeExplainResponse | null>(null);
   const [treeExplainLoading, setTreeExplainLoading] = useState(false);
   const [treeExplainError, setTreeExplainError] = useState<string | null>(null);
+  const [workerDrawMode, setWorkerDrawMode] = useState<TreeDrawMode | null>(null);
+  const [workerAreaGeometry, setWorkerAreaGeometry] = useState<RankAreaGeometry | null>(null);
+  const [workerDraftGeometry, setWorkerDraftGeometry] = useState<RankAreaGeometry | null>(null);
+  const [workerAreaKm2, setWorkerAreaKm2] = useState<number | null>(null);
+  const [workerTaskType, setWorkerTaskType] = useState<'facade_maintenance' | 'road_repair'>('facade_maintenance');
+  const [workerSimTick, setWorkerSimTick] = useState(0);
+  const [workerSimRunning, setWorkerSimRunning] = useState(false);
+  const [workerSimMinute, setWorkerSimMinute] = useState<number>(9 * 60);
+  const [workerStats, setWorkerStats] = useState<Record<number, WorkerExposureStat>>({});
+  const [workerSimSpeedMs, setWorkerSimSpeedMs] = useState<number>(1400);
+  const [selectedWorker, setSelectedWorker] = useState<WorkerFeatureProps | null>(null);
+  const workerSimTimerRef = useRef<number | null>(null);
+  const workerSimStartTimeoutRef = useRef<number | null>(null);
+  const workerSimBusyRef = useRef(false);
 
   const {
     engine,
@@ -136,6 +435,12 @@ export default function MapPage() {
     initialDate: dt.date,
     onLoadingChange: setLoadingBuildings,
   });
+  const shadowRef = useRef(shadow);
+  const controllerRef = useRef(controller);
+  const setSliderRef = useRef(dt.setSlider);
+  shadowRef.current = shadow;
+  controllerRef.current = controller;
+  setSliderRef.current = dt.setSlider;
 
   const handleRunTreeRanking = useCallback(async () => {
     if (!isTreeMode) return;
@@ -295,7 +600,7 @@ export default function MapPage() {
   }, [controller, engine, isTreeMode, rawMapRef, selectedTreeCandidate]);
 
   useEffect(() => {
-    if (isTreeMode) return;
+    if (isTreeMode || isWorkerMode) return;
     setTreeDrawArmed(false);
     setTreeDrawing(false);
     setTreeDraftGeometry(null);
@@ -307,7 +612,29 @@ export default function MapPage() {
     setTreeExplainError(null);
     setTreeError(null);
     setTreeWizardStep('shape');
-  }, [isTreeMode]);
+  }, [isTreeMode, isWorkerMode]);
+
+  useEffect(() => {
+    if (isWorkerMode) return;
+    if (workerSimStartTimeoutRef.current != null) {
+      window.clearTimeout(workerSimStartTimeoutRef.current);
+      workerSimStartTimeoutRef.current = null;
+    }
+    if (workerSimTimerRef.current != null) {
+      window.clearInterval(workerSimTimerRef.current);
+      workerSimTimerRef.current = null;
+    }
+    workerSimBusyRef.current = false;
+    setWorkerSimRunning(false);
+    setWorkerSimMinute(9 * 60);
+    setWorkerStats({});
+    setSelectedWorker(null);
+    setWorkerDrawMode(null);
+    setWorkerDraftGeometry(null);
+    setWorkerAreaGeometry(null);
+    setWorkerAreaKm2(null);
+    setWorkerTaskType('facade_maintenance');
+  }, [isWorkerMode]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;
@@ -349,8 +676,10 @@ export default function MapPage() {
       const source = map.getSource(TREE_AOI_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
       if (!source) return;
 
-      const geometry = treeDraftGeometry ?? treeAreaGeometry;
-      if (!isTreeMode || !geometry) {
+      const geometry = isTreeMode
+        ? (treeDraftGeometry ?? treeAreaGeometry)
+        : (isWorkerMode ? (workerDraftGeometry ?? workerAreaGeometry) : null);
+      if ((!isTreeMode && !isWorkerMode) || !geometry) {
         source.setData(EMPTY_FEATURE_COLLECTION);
         return;
       }
@@ -362,7 +691,7 @@ export default function MapPage() {
             type: 'Feature',
             geometry,
             properties: {
-              mode: treeDrawMode,
+              mode: isTreeMode ? treeDrawMode : 'worker-zone',
             },
           },
         ],
@@ -375,7 +704,17 @@ export default function MapPage() {
     }
 
     map.once('load', upsertAoiOverlay);
-  }, [engine, isTreeMode, rawMapRef, treeAreaGeometry, treeDraftGeometry, treeDrawMode]);
+  }, [
+    engine,
+    isTreeMode,
+    isWorkerMode,
+    rawMapRef,
+    treeAreaGeometry,
+    treeDraftGeometry,
+    treeDrawMode,
+    workerAreaGeometry,
+    workerDraftGeometry,
+  ]);
 
   useEffect(() => {
     if (engine !== 'maplibre' || !isTreeMode || !treeDrawArmed) return;
@@ -543,6 +882,161 @@ export default function MapPage() {
   }, [engine, isTreeMode, rawMapRef, treeDrawArmed, treeDrawMode, applyTreeAreaGeometry, treeUi.areaMissing]);
 
   useEffect(() => {
+    if (engine !== 'maplibre' || !isWorkerMode || !workerDrawMode) return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    let isMouseDown = false;
+    let startPoint: [number, number] | null = null;
+    let polygonPoints: [number, number][] = [];
+    let freehandPoints: [number, number][] = [];
+
+    map.getCanvas().style.cursor = 'crosshair';
+
+    const beginDrawing = () => {
+      setWorkerDraftGeometry(null);
+      map.dragPan.disable();
+      map.doubleClickZoom.disable();
+    };
+
+    const finishDrawing = (geometry: RankAreaGeometry | null, cancelled = false) => {
+      if (geometry) {
+        setWorkerAreaGeometry(geometry);
+        setWorkerAreaKm2(estimateGeometryAreaKm2(geometry));
+      } else if (!cancelled) {
+        setWorkerAreaGeometry(null);
+        setWorkerAreaKm2(null);
+      }
+      setWorkerDraftGeometry(null);
+      map.dragPan.enable();
+      map.doubleClickZoom.enable();
+      map.getCanvas().style.cursor = '';
+    };
+
+    const onMouseDown = (event: maplibregl.MapMouseEvent) => {
+      if (workerDrawMode !== 'rectangle' && workerDrawMode !== 'circle' && workerDrawMode !== 'freehand') return;
+      beginDrawing();
+      isMouseDown = true;
+      const p: [number, number] = [event.lngLat.lng, event.lngLat.lat];
+      if (workerDrawMode === 'freehand') {
+        freehandPoints = [p];
+      } else {
+        startPoint = p;
+      }
+    };
+
+    const onMouseMove = (event: maplibregl.MapMouseEvent) => {
+      if (!isMouseDown) {
+        if (workerDrawMode === 'polygon' && polygonPoints.length >= 2) {
+          const preview = polygonFromVertices([
+            ...polygonPoints,
+            [event.lngLat.lng, event.lngLat.lat],
+          ]);
+          if (preview) setWorkerDraftGeometry(preview);
+        }
+        return;
+      }
+
+      if (workerDrawMode === 'rectangle' && startPoint) {
+        const geometry = rectangleToPolygon(startPoint, [event.lngLat.lng, event.lngLat.lat]);
+        setWorkerDraftGeometry(geometry);
+      }
+
+      if (workerDrawMode === 'circle' && startPoint) {
+        const current: [number, number] = [event.lngLat.lng, event.lngLat.lat];
+        const radiusMeters = maplibregl.LngLat.convert(startPoint).distanceTo(maplibregl.LngLat.convert(current));
+        const geometry = circleToPolygon(startPoint, Math.max(4, radiusMeters));
+        setWorkerDraftGeometry(geometry);
+      }
+
+      if (workerDrawMode === 'freehand') {
+        const point: [number, number] = [event.lngLat.lng, event.lngLat.lat];
+        const last = freehandPoints[freehandPoints.length - 1];
+        if (!last || maplibregl.LngLat.convert(last).distanceTo(maplibregl.LngLat.convert(point)) > 4) {
+          freehandPoints.push(point);
+          const geometry = freehandToPolygon(freehandPoints);
+          if (geometry) setWorkerDraftGeometry(geometry);
+        }
+      }
+    };
+
+    const onMouseUp = (event: maplibregl.MapMouseEvent) => {
+      if (!isMouseDown) return;
+      isMouseDown = false;
+
+      if (workerDrawMode === 'rectangle' && startPoint) {
+        const geometry = rectangleToPolygon(startPoint, [event.lngLat.lng, event.lngLat.lat]);
+        finishDrawing(geometry);
+        startPoint = null;
+        return;
+      }
+
+      if (workerDrawMode === 'circle' && startPoint) {
+        const current: [number, number] = [event.lngLat.lng, event.lngLat.lat];
+        const radiusMeters = maplibregl.LngLat.convert(startPoint).distanceTo(maplibregl.LngLat.convert(current));
+        const geometry = circleToPolygon(startPoint, Math.max(4, radiusMeters));
+        finishDrawing(geometry);
+        startPoint = null;
+        return;
+      }
+
+      if (workerDrawMode === 'freehand') {
+        const geometry = freehandToPolygon(freehandPoints);
+        finishDrawing(geometry);
+        freehandPoints = [];
+      }
+    };
+
+    const onClick = (event: maplibregl.MapMouseEvent) => {
+      if (workerDrawMode !== 'polygon') return;
+      if (polygonPoints.length === 0) {
+        beginDrawing();
+      }
+      polygonPoints = [...polygonPoints, [event.lngLat.lng, event.lngLat.lat]];
+      const geometry = polygonFromVertices(polygonPoints);
+      if (geometry) setWorkerDraftGeometry(geometry);
+    };
+
+    const onDoubleClick = (event: maplibregl.MapMouseEvent & { originalEvent?: Event }) => {
+      if (workerDrawMode !== 'polygon') return;
+      event.originalEvent?.preventDefault();
+      const geometry = polygonFromVertices(polygonPoints);
+      finishDrawing(geometry);
+      polygonPoints = [];
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      event.preventDefault();
+      isMouseDown = false;
+      polygonPoints = [];
+      freehandPoints = [];
+      startPoint = null;
+      finishDrawing(null, true);
+    };
+
+    map.on('mousedown', onMouseDown);
+    map.on('mousemove', onMouseMove);
+    map.on('mouseup', onMouseUp);
+    map.on('click', onClick);
+    map.on('dblclick', onDoubleClick);
+    window.addEventListener('keydown', onKeyDown);
+
+    return () => {
+      map.off('mousedown', onMouseDown);
+      map.off('mousemove', onMouseMove);
+      map.off('mouseup', onMouseUp);
+      map.off('click', onClick);
+      map.off('dblclick', onDoubleClick);
+      window.removeEventListener('keydown', onKeyDown);
+      map.dragPan.enable();
+      map.doubleClickZoom.enable();
+      map.getCanvas().style.cursor = '';
+      setWorkerDraftGeometry(null);
+    };
+  }, [engine, isWorkerMode, rawMapRef, workerDrawMode]);
+
+  useEffect(() => {
     if (engine !== 'maplibre') return;
 
     const map = rawMapRef.current as maplibregl.Map | null;
@@ -676,6 +1170,226 @@ export default function MapPage() {
       map.getCanvas().style.cursor = '';
     };
   }, [engine, isTreeMode, rawMapRef, selectedTreeCandidate?.id, treeCandidates, treeDrawArmed, treeDrawing]);
+
+  useEffect(() => {
+    if (engine !== 'maplibre') return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    const sourceId = 'worker-crew-source';
+    const layerId = 'worker-crew-layer';
+    const upsertWorkers = () => {
+      if (!map.getSource(sourceId)) {
+        map.addSource(sourceId, {
+          type: 'geojson',
+          data: EMPTY_FEATURE_COLLECTION,
+        });
+      }
+      if (!map.getLayer(layerId)) {
+        map.addLayer({
+          id: layerId,
+          type: 'symbol',
+          source: sourceId,
+          layout: {
+            'text-field': ['get', 'emoji'],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 12, 14, 17, 20],
+            'text-allow-overlap': true,
+          },
+          paint: {
+            'text-color': '#111827',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1.2,
+          },
+        });
+      }
+
+      const source = map.getSource(sourceId) as maplibregl.GeoJSONSource | undefined;
+      if (!source) return;
+
+      if (!isWorkerMode) {
+        source.setData(EMPTY_FEATURE_COLLECTION);
+        return;
+      }
+
+      source.setData(
+        buildWorkerFeatureCollection(
+          workerAreaGeometry,
+          workerTaskType,
+          buildingsRef.current,
+          workerSimTick,
+        ),
+      );
+    };
+
+    if (map.isStyleLoaded()) {
+      upsertWorkers();
+      return;
+    }
+    map.once('load', upsertWorkers);
+  }, [engine, isWorkerMode, rawMapRef, workerAreaGeometry, workerTaskType, workerSimTick, zoom]);
+
+  useEffect(() => {
+    if (engine !== 'maplibre') return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+    const layerId = 'worker-crew-layer';
+
+    const onClickWorker = (event: maplibregl.MapLayerMouseEvent) => {
+      if (!isWorkerMode) return;
+      const feature = event.features?.[0];
+      if (!feature) return;
+      const props = (feature.properties ?? {}) as Partial<WorkerFeatureProps>;
+      const id = Number(props.worker_id ?? 0);
+      if (!id) return;
+      setSelectedWorker({
+        emoji: String(props.emoji ?? '👷'),
+        worker_id: id,
+        worker_name: String(props.worker_name ?? `Worker #${id}`),
+        activity: String(props.activity ?? getWorkerActivity(workerTaskType)),
+      });
+    };
+
+    const onMouseEnter = () => {
+      if (!isWorkerMode) return;
+      map.getCanvas().style.cursor = 'pointer';
+    };
+    const onMouseLeave = () => {
+      map.getCanvas().style.cursor = '';
+    };
+
+    map.on('click', layerId, onClickWorker);
+    map.on('mouseenter', layerId, onMouseEnter);
+    map.on('mouseleave', layerId, onMouseLeave);
+    return () => {
+      map.off('click', layerId, onClickWorker);
+      map.off('mouseenter', layerId, onMouseEnter);
+      map.off('mouseleave', layerId, onMouseLeave);
+      map.getCanvas().style.cursor = '';
+    };
+  }, [engine, rawMapRef, isWorkerMode, workerTaskType]);
+
+  useEffect(() => {
+    if (!workerSimRunning || !isWorkerMode || !workerAreaGeometry) return;
+    const stepMinutes = 60;
+    const startMinute = 9 * 60;
+    const endMinute = 17 * 60;
+    const shadowWarmupMs = Math.min(1200, Math.max(450, Math.floor(workerSimSpeedMs * 0.6)));
+    let minute = startMinute;
+    let tick = 0;
+
+    const runSamplingStep = async () => {
+      if (workerSimBusyRef.current) return;
+      const activeShadow = shadowRef.current;
+      if (!activeShadow) return;
+      workerSimBusyRef.current = true;
+      try {
+        setSliderRef.current(minute);
+        setWorkerSimMinute(minute);
+        tick += 1;
+        setWorkerSimTick(tick);
+        await new Promise((resolve) => window.setTimeout(resolve, shadowWarmupMs));
+
+        const featureCollection = buildWorkerFeatureCollection(
+          workerAreaGeometry,
+          workerTaskType,
+          buildingsRef.current,
+          tick,
+        );
+        const workerPoints = featureCollection.features
+          .filter((f) => f.geometry?.type === 'Point')
+          .map((f) => {
+            const [lng, lat] = (f.geometry as GeoJSON.Point).coordinates;
+            const props = (f.properties ?? {}) as Partial<WorkerFeatureProps>;
+            return {
+              lat,
+              lng,
+              id: Number(props.worker_id ?? 0),
+            };
+          });
+        const exposureResults = await Promise.all(workerPoints.map(async (point) => {
+          try {
+            const screenPoint = controllerRef.current.getContainerPoint({ lat: point.lat, lng: point.lng });
+            if (!screenPoint) return false;
+            return await activeShadow.isPositionInSun(screenPoint);
+          } catch {
+            return false;
+          }
+        }));
+        setWorkerStats((prev) => {
+          const next = { ...prev };
+          for (let i = 0; i < exposureResults.length; i += 1) {
+            const worker = workerPoints[i];
+            const inSun = exposureResults[i];
+            const noonPenalty = minute >= 12 * 60 && minute < 15 * 60 ? 0.2 : 0;
+            const focusGain = inSun ? Math.max(0.35, 0.75 - noonPenalty) : 1.0;
+            const curr = next[worker.id] ?? { sunMinutes: 0, shadeMinutes: 0, focusScore: 0 };
+            next[worker.id] = {
+              sunMinutes: curr.sunMinutes + (inSun ? stepMinutes : 0),
+              shadeMinutes: curr.shadeMinutes + (!inSun ? stepMinutes : 0),
+              focusScore: curr.focusScore + focusGain * stepMinutes,
+            };
+          }
+          return next;
+        });
+        if (minute >= endMinute) {
+          setWorkerSimRunning(false);
+          return;
+        }
+        minute = Math.min(endMinute, minute + stepMinutes);
+      } finally {
+        workerSimBusyRef.current = false;
+      }
+    };
+
+    setSliderRef.current(startMinute);
+    setWorkerSimMinute(startMinute);
+    workerSimStartTimeoutRef.current = window.setTimeout(() => {
+      void runSamplingStep();
+      workerSimTimerRef.current = window.setInterval(() => {
+        void runSamplingStep();
+      }, workerSimSpeedMs);
+    }, shadowWarmupMs);
+
+    return () => {
+      if (workerSimStartTimeoutRef.current != null) {
+        window.clearTimeout(workerSimStartTimeoutRef.current);
+        workerSimStartTimeoutRef.current = null;
+      }
+      if (workerSimTimerRef.current != null) {
+        window.clearInterval(workerSimTimerRef.current);
+        workerSimTimerRef.current = null;
+      }
+      workerSimBusyRef.current = false;
+    };
+  }, [
+    workerSimRunning,
+    isWorkerMode,
+    workerAreaGeometry,
+    workerTaskType,
+    workerSimSpeedMs,
+    buildingsRef,
+  ]);
+
+  useEffect(() => {
+    if (engine !== 'maplibre') return;
+    const map = rawMapRef.current as maplibregl.Map | null;
+    if (!map) return;
+
+    const applySunWallsVisibility = () => {
+      if (!map.getLayer(SUN_WALLS_LAYER_ID)) return;
+      map.setLayoutProperty(
+        SUN_WALLS_LAYER_ID,
+        'visibility',
+        isWorkerMode ? 'none' : 'visible',
+      );
+    };
+
+    if (map.isStyleLoaded()) {
+      applySunWallsVisibility();
+      return;
+    }
+    map.once('load', applySunWallsVisibility);
+  }, [engine, rawMapRef, isWorkerMode]);
 
   useEffect(() => {
     if (!isTreeMode || !selectedTreeCandidate) {
@@ -892,7 +1606,7 @@ export default function MapPage() {
     return () => {
       unsubscribeClick();
     };
-  }, [shadow, controller, buildingsRef, dt.dateStr, isTreeMode]);
+  }, [shadow, controller, buildingsRef, dt.dateStr, isTreeMode, isWorkerMode]);
 
   // Selected building highlight with prediction-driven yellow edges.
   useEffect(() => {
@@ -1008,6 +1722,22 @@ export default function MapPage() {
     dt.setSlider(value);
   }
 
+  function startWorkerSimulation() {
+    if (!workerAreaGeometry) return;
+    if (workerSimTimerRef.current != null) {
+      window.clearInterval(workerSimTimerRef.current);
+      workerSimTimerRef.current = null;
+    }
+    workerSimBusyRef.current = false;
+    setWorkerStats({});
+    setSelectedWorker(null);
+    setWorkerSimTick(0);
+    setWorkerSimMinute(9 * 60);
+    setWorkerSimRunning(true);
+    setSunExposure(false);
+    dt.setSlider(9 * 60);
+  }
+
   // Load precomputed static dataset (best building side to receive sunlight)
   useEffect(() => {
     if (engine !== 'leaflet') return;
@@ -1027,7 +1757,7 @@ export default function MapPage() {
 
       <SearchBar onSelect={handleSearchSelect} />
 
-      {!isTreeMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
+      {!isTreeMode && !isWorkerMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
         <div
           className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:var(--line)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--blue-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
           style={{
@@ -1049,7 +1779,7 @@ export default function MapPage() {
         </div>
       )}
 
-      {!isTreeMode && (
+      {!isTreeMode && !isWorkerMode && (
         <ControlPanel
           dateStr={dt.dateStr}
           onDateChange={dt.setDateStr}
@@ -1121,6 +1851,204 @@ export default function MapPage() {
         />
       )}
 
+      {isWorkerMode && (
+        <div className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4">
+          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">Worker rotation monitor</div>
+          <h3 className="mt-1 text-lg font-semibold tracking-[-0.03em] text-[var(--blue-strong)]">Plan safer field shifts</h3>
+
+          <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Analysis mode</div>
+            <div className="mt-2 grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setSunExposure(false)}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium ${!sunExposure
+                  ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                  : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+              >
+                Shadows
+              </button>
+              <button
+                onClick={() => setSunExposure(true)}
+                className={`rounded-lg border px-3 py-2 text-sm font-medium ${sunExposure
+                  ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                  : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+              >
+                Exposure
+              </button>
+            </div>
+
+            {engine === 'maplibre' && (
+              <>
+                <div className="mt-3 ui-mono text-[10px] text-[var(--ink-soft)]">View</div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setIs3D(false)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${!is3D
+                      ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                      : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+                  >
+                    2D
+                  </button>
+                  <button
+                    onClick={() => setIs3D(true)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${is3D
+                      ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                      : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+                  >
+                    3D
+                  </button>
+                </div>
+
+                <div className="mt-3 ui-mono text-[10px] text-[var(--ink-soft)]">Base map</div>
+                <div className="mt-2 grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setIsSatellite(false)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${!isSatellite
+                      ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                      : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+                  >
+                    Standard
+                  </button>
+                  <button
+                    onClick={() => setIsSatellite(true)}
+                    className={`rounded-lg border px-3 py-2 text-sm font-medium ${isSatellite
+                      ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                      : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink-soft)]'}`}
+                  >
+                    Satellite
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
+
+          <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 1</div>
+            <div className="mt-1 text-sm text-[var(--ink)]">Task type</div>
+            <div className="mt-2 flex gap-2">
+              <button
+                onClick={() => setWorkerTaskType('facade_maintenance')}
+                className={`rounded-full border px-2.5 py-1 text-[11px] ${workerTaskType === 'facade_maintenance'
+                  ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                  : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink)]'}`}
+              >
+                Facade maintenance
+              </button>
+              <button
+                onClick={() => setWorkerTaskType('road_repair')}
+                className={`rounded-full border px-2.5 py-1 text-[11px] ${workerTaskType === 'road_repair'
+                  ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                  : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink)]'}`}
+              >
+                Road repair
+              </button>
+            </div>
+            <div className="mt-2 ui-mono text-[10px] text-[var(--ink-soft)]">
+              Workday exposure window: 09:00 - 17:00
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 2</div>
+            <div className="mt-1 text-sm text-[var(--ink)]">Select work zone on map</div>
+            <div className="mt-2 flex flex-wrap gap-1">
+              {(['rectangle', 'circle', 'polygon', 'freehand'] as const).map((mode) => (
+                <button
+                  key={mode}
+                  onClick={() => {
+                    setWorkerDrawMode((prev) => (prev === mode ? null : mode));
+                    setWorkerDraftGeometry(null);
+                  }}
+                  className={`rounded-md border px-2 py-1 text-[11px] capitalize ${workerDrawMode === mode
+                    ? 'border-[color:var(--blue-strong)] bg-[var(--blue-strong)] text-white'
+                    : 'border-[color:var(--line)] bg-[var(--surface)] text-[var(--ink)]'}`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                {workerDrawMode ? `Draw mode: ${workerDrawMode}` : 'Choose draw mode to start'}
+              </span>
+              {workerAreaKm2 != null && (
+                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                  {workerAreaKm2.toFixed(2)} km2
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3">
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 3</div>
+            <div className="mt-1 text-sm text-[var(--ink)]">Run simulation (09:00 - 17:00)</div>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                onClick={startWorkerSimulation}
+                disabled={!workerAreaGeometry || workerSimRunning}
+                className="rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-1.5 text-xs font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                Start
+              </button>
+              <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                {minuteToClockLabel(workerSimMinute)}
+              </span>
+            </div>
+
+            <div className="mt-2">
+              <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Speed</div>
+              <input
+                type="range"
+                min={600}
+                max={2600}
+                step={100}
+                value={workerSimSpeedMs}
+                className="time-slider mt-1"
+                style={{ '--pct': `${((workerSimSpeedMs - 600) / 2000) * 100}%` } as React.CSSProperties}
+                onChange={(event) => setWorkerSimSpeedMs(Number(event.target.value))}
+                disabled={workerSimRunning}
+              />
+              <div className="mt-1 ui-mono text-[10px] text-[var(--ink-soft)]">
+                {workerSimSpeedMs} ms per step ({workerSimRunning ? 'running' : 'ready'})
+              </div>
+            </div>
+          </div>
+
+          {selectedWorker && (
+            <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3">
+              <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Worker details</div>
+              <div className="mt-1 text-sm font-medium text-[var(--ink)]">
+                {selectedWorker.emoji} {selectedWorker.worker_name}
+              </div>
+              <div className="mt-1 text-[11px] text-[var(--ink-soft)]">
+                ID: {selectedWorker.worker_id} · {selectedWorker.activity}
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-2 text-[11px]">
+                <div className="rounded-lg border border-[color:var(--line)] bg-white px-2 py-1.5">
+                  <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Sun</div>
+                  <div className="font-medium text-[var(--ink)]">{workerStats[selectedWorker.worker_id]?.sunMinutes ?? 0} min</div>
+                </div>
+                <div className="rounded-lg border border-[color:var(--line)] bg-white px-2 py-1.5">
+                  <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Shade</div>
+                  <div className="font-medium text-[var(--ink)]">{workerStats[selectedWorker.worker_id]?.shadeMinutes ?? 0} min</div>
+                </div>
+                <div className="rounded-lg border border-[color:var(--line)] bg-white px-2 py-1.5">
+                  <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Focus</div>
+                  <div className="font-medium text-[var(--ink)]">{(workerStats[selectedWorker.worker_id]?.focusScore ?? 0).toFixed(1)}</div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {!selectedWorker && (
+            <div className="mt-3 rounded-xl border border-[color:var(--line)] bg-white/80 p-3 text-[11px] text-[var(--ink-soft)]">
+              Click any worker on map to see personal stats and activity.
+            </div>
+          )}
+
+        </div>
+      )}
+
       {!isTreeMode && (
         <TimeSliderBar
           sliderValue={dt.sliderValue}
@@ -1130,7 +2058,7 @@ export default function MapPage() {
         />
       )}
 
-      {!isTreeMode && clickInfo && (
+      {!isTreeMode && !isWorkerMode && clickInfo && (
         <SunInfoPopup info={clickInfo} onClose={() => {
           setClickInfo(null);
           setSelectedBuilding(null);
