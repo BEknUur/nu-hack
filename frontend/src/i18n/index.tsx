@@ -486,10 +486,10 @@ interface I18nContextValue {
 const I18nContext = createContext<I18nContextValue | null>(null);
 
 function getStoredLanguage(): Language {
-  if (typeof window === 'undefined') return 'ru';
+  if (typeof window === 'undefined') return 'en';
   const stored = window.localStorage.getItem(STORAGE_KEY);
   if (stored === 'ru' || stored === 'kk' || stored === 'en') return stored;
-  return 'ru';
+  return 'en';
 }
 
 function interpolate(value: string, vars?: Record<string, string | number>) {
