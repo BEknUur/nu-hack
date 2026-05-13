@@ -40,9 +40,10 @@ const HERO_FEATURES: HeroFeature[] = [
     path: '/app/workers',
     reverse: true,
     icon: Clock3,
-    mediaType: 'mock',
-    mediaLabel: 'Coming soon',
+    mediaType: 'video',
+    mediaLabel: 'Live preview',
     accent: 'from-violet-300 via-indigo-200 to-indigo-500',
+    videoSrc: '/vids/workers.mp4',
   },
   {
     title: 'Solar and flowers',
