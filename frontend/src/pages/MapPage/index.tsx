@@ -1898,7 +1898,6 @@ export default function MapPage() {
           onViewModeChange={setIs3D}
           isSatellite={isSatellite}
           onBasemapChange={engine === 'maplibre' ? setIsSatellite : undefined}
-          zoom={zoom}
           loadingBuildings={loadingBuildings}
         />
       )}
