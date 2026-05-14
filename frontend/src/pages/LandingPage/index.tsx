@@ -1,226 +1,324 @@
-import { useNavigate } from 'react-router-dom';
-import {
-  ArrowRight,
-  Clock3,
-  Flower2,
-  Sprout,
-  type LucideIcon,
-} from 'lucide-react';
+import { ArrowRight, Clock3, Flower2, Home, Sprout, Globe, Sun, type LucideIcon } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
+import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 
-type HeroFeature = {
-  title: string;
-  description: string;
-  path: string;
-  reverse?: boolean;
-  icon: LucideIcon;
-  mediaType: 'video' | 'mock';
-  mediaLabel: string;
-  accent: string;
-  videoSrc?: string;
-};
+import WhisperText from '@/components/ui/whisper-text';
+import { StaggerText } from '@/components/ui/stagger-text';
+import { Footer } from '@/components/ui/footer';
+import { useTranslation } from '@/i18n';
 
-const HERO_FEATURES: HeroFeature[] = [
-  {
-    title: 'Tree planting',
-    description:
-      'Find cooler zones that still keep enough winter light. Move through time and choose where trees improve comfort without blocking too much sun.',
-    path: '/app/trees',
-    reverse: false,
-    icon: Sprout,
-    mediaType: 'video',
-    mediaLabel: 'Live preview',
-    accent: 'from-emerald-300 via-lime-200 to-emerald-500',
-    videoSrc: '/vids/plant_tree.mp4',
-  },
-  {
-    title: 'Worker rotation',
-    description:
-      'Pick a work zone like in Tree planting, choose task type, set crew size, and preview how teams rotate through sun and shade.',
-    path: '/app/workers',
-    reverse: true,
-    icon: Clock3,
-    mediaType: 'video',
-    mediaLabel: 'Live preview',
-    accent: 'from-violet-300 via-indigo-200 to-indigo-500',
-    videoSrc: '/vids/workers.mp4',
-  },
-  {
-    title: 'Solar and flowers',
-    description:
-      'Match crops, flowers, or solar spots to the daily light path. Use one map to compare potential zones quickly.',
-    path: '/app/solar-flowers',
-    reverse: false,
-    icon: Flower2,
-    mediaType: 'mock',
-    mediaLabel: 'Coming soon',
-    accent: 'from-amber-300 via-yellow-200 to-orange-400',
-  },
-];
+// ─── DeCentra logo ───────────────────────────────────────────────────────────
 
-function FeatureMedia({ feature }: { feature: HeroFeature }) {
-  const Icon = feature.icon;
-
-  if (feature.mediaType === 'video') {
-    return (
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-white/15 bg-[#0a0f26] shadow-[0_20px_60px_rgba(0,0,0,0.45)]">
-        <video
-          src={feature.videoSrc ?? '/vids/plant_tree.mp4'}
-          autoPlay
-          muted
-          loop
-          playsInline
-          className="h-full w-full object-cover"
-        />
-        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(10,14,34,0.08)_0%,rgba(10,14,34,0.62)_100%)]" />
-      </div>
-    );
-  }
-
-  if (feature.path === '/app/workers') {
-    return (
-      <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(236,242,249,0.98))] shadow-[0_24px_48px_rgba(15,23,42,0.12)]">
-        <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,79,156,0.07)_1px,transparent_1px),linear-gradient(rgba(31,79,156,0.07)_1px,transparent_1px)] bg-[size:24px_24px]" />
-        <span className="absolute left-3 top-3 rounded-full border border-[color:var(--line)] bg-white/90 px-3 py-1 text-[11px] text-[var(--ink-soft)] backdrop-blur-sm">
-          Coming soon
-        </span>
-
-        <div className="absolute left-4 right-4 top-12 rounded-xl border border-[color:var(--line)] bg-white/92 p-3">
-          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Task type</div>
-          <div className="mt-2 flex gap-2">
-            <span className="rounded-full border border-[color:var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[10px] text-[var(--ink)]">
-              Facade maintenance
-            </span>
-            <span className="rounded-full border border-[color:var(--line)] bg-[var(--surface)] px-2.5 py-1 text-[10px] text-[var(--ink)]">
-              Road repair
-            </span>
-          </div>
-          <div className="mt-3 ui-mono text-[10px] text-[var(--ink-soft)]">Crew size</div>
-          <div className="mt-1 text-base leading-none">👷 👷 👷 👷 👷</div>
-        </div>
-
-        <div className="absolute bottom-5 left-5 right-5 h-[42%] rounded-xl border border-dashed border-[color:var(--line-strong)] bg-white/65">
-          <div className="absolute left-[14%] top-[20%] text-lg animate-bounce [animation-delay:0ms]">👷</div>
-          <div className="absolute left-[36%] top-[56%] text-lg animate-bounce [animation-delay:220ms]">👷</div>
-          <div className="absolute left-[58%] top-[22%] text-lg animate-bounce [animation-delay:420ms]">👷</div>
-          <div className="absolute left-[78%] top-[58%] text-lg animate-bounce [animation-delay:620ms]">👷</div>
-          <div className="absolute bottom-2 left-3 right-3 ui-mono text-[10px] text-[var(--ink-soft)]">
-            Rotation simulation: workers move between shaded and sunny points
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+function DeCentraLogo({ tagline }: { tagline: string }) {
   return (
-    <div className="relative aspect-[16/10] overflow-hidden rounded-2xl border border-[color:var(--line)] bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(236,242,249,0.98))] shadow-[0_24px_48px_rgba(15,23,42,0.12)]">
-      <div className={`absolute inset-0 bg-gradient-to-br ${feature.accent} opacity-20`} />
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,rgba(255,255,255,0.82),transparent_26%),linear-gradient(135deg,rgba(255,255,255,0.25),rgba(255,255,255,0))]" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(31,79,156,0.08)_1px,transparent_1px),linear-gradient(rgba(31,79,156,0.08)_1px,transparent_1px)] bg-[size:28px_28px] opacity-40" />
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex h-20 w-20 items-center justify-center rounded-full border border-white/30 bg-white/40 backdrop-blur-sm">
-          <Icon className="h-9 w-9 text-[var(--blue-strong)]" />
-        </div>
-      </div>
-      <span className="absolute left-3 top-3 rounded-full border border-[color:var(--line)] bg-white/85 px-3 py-1 text-[11px] text-[var(--ink-soft)] backdrop-blur-sm">
-        {feature.mediaLabel}
-      </span>
-    </div>
+    <a href="/" className="flex flex-col leading-none">
+      <span className="font-display text-[15px] font-bold text-white tracking-[-0.04em]">DeCentra</span>
+      <span className="ui-mono text-[10px] text-white/35 mt-0.5">{tagline}</span>
+    </a>
   );
 }
 
-export default function LandingPage() {
-  const navigate = useNavigate();
+
+
+// ─── Feature config (visual only, text comes from i18n) ──────────────────────
+
+type FeatureConfig = {
+  num: string;
+  path: string;
+  icon: LucideIcon;
+  videoSrc?: string;
+  accent: string;
+  glow: string;
+  border: string;
+  tagColor: string;
+  reverse?: boolean;
+  comingSoon?: boolean;
+};
+
+const FEATURE_CONFIG: FeatureConfig[] = [
+  {
+    num: '01',
+    path: '/app/apartments',
+    icon: Home,
+    videoSrc: '/vids/apartment.mp4',
+    accent: 'rgba(240,194,76,0.07)',
+    glow: 'rgba(240,194,76,0.22)',
+    border: 'rgba(240,194,76,0.14)',
+    tagColor: '#f0c24c',
+    reverse: false,
+  },
+  {
+    num: '02',
+    path: '/app/trees',
+    icon: Sprout,
+    videoSrc: '/vids/plant_tree.mp4',
+    accent: 'rgba(74,222,128,0.06)',
+    glow: 'rgba(74,222,128,0.18)',
+    border: 'rgba(74,222,128,0.12)',
+    tagColor: '#4ade80',
+    reverse: true,
+  },
+  {
+    num: '03',
+    path: '/app/workers',
+    icon: Clock3,
+    videoSrc: '/vids/workers.mp4',
+    accent: 'rgba(96,165,250,0.06)',
+    glow: 'rgba(96,165,250,0.18)',
+    border: 'rgba(96,165,250,0.12)',
+    tagColor: '#60a5fa',
+    reverse: false,
+  },
+  {
+    num: '04',
+    path: '/app/solar-flowers',
+    icon: Flower2,
+    accent: 'rgba(251,146,60,0.06)',
+    glow: 'rgba(251,146,60,0.16)',
+    border: 'rgba(251,146,60,0.12)',
+    tagColor: '#fb923c',
+    reverse: true,
+    comingSoon: true,
+  },
+];
+
+// ─── Feature section ─────────────────────────────────────────────────────────
+
+type FeatureText = { title: string; description: string; tag: string };
+
+function FeatureSection({
+  cfg,
+  text,
+  openSceneLabel,
+  inDevLabel,
+}: {
+  cfg: FeatureConfig;
+  text: FeatureText;
+  openSceneLabel: string;
+  inDevLabel: string;
+}) {
+  const Icon = cfg.icon;
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-[var(--bg)] text-[var(--ink)]">
-      <header className="sticky top-0 z-20 border-b border-[color:var(--line)] bg-[rgba(251,248,241,0.88)] backdrop-blur-md">
-        <div className="mx-auto flex w-full max-w-[1240px] items-center justify-between px-5 py-4 md:px-8">
-          <div className="flex items-center gap-3">
-            <div>
-              <div className="text-base font-semibold tracking-[-0.03em]">DeCentra</div>
-              <div className="ui-mono text-[11px] text-[var(--ink-soft)]">sunlight and shadow map</div>
+    <section className="relative px-4 md:px-6 pb-16 md:pb-24 overflow-hidden">
+      {/* Ambient glow */}
+      <div
+        className="pointer-events-none absolute rounded-full blur-[180px]"
+        style={{
+          background: cfg.glow,
+          width: '500px',
+          height: '500px',
+          top: '50%',
+          transform: 'translateY(-50%)',
+          right: cfg.reverse ? 'auto' : '-100px',
+          left: cfg.reverse ? '-100px' : 'auto',
+          opacity: 0.18,
+        }}
+      />
+      <div className="mx-auto max-w-7xl">
+        <div className="relative z-10 grid gap-10 lg:grid-cols-2 lg:gap-20 items-center px-2 md:px-4">
+
+          {/* Text */}
+          <div className={cfg.reverse ? 'lg:order-2' : 'lg:order-1'}>
+            <div className="flex items-center gap-3 mb-5">
+              <span className="ui-mono text-[11px] text-white/20 tabular-nums">{cfg.num}</span>
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1"
+                style={{ color: cfg.tagColor, borderColor: cfg.border, background: cfg.accent }}
+              >
+                <Icon className="h-3 w-3" />
+                {text.tag}
+              </span>
             </div>
+
+            <StaggerText
+              text={text.title}
+              direction="bottom"
+              stagger={0.06}
+              className="font-display text-3xl md:text-[2.6rem] lg:text-5xl font-bold tracking-[-0.04em] text-white leading-[1.02]"
+            />
+
+            <p className="mt-5 text-base md:text-[1.06rem] leading-[1.75] text-white/45 max-w-md">
+              {text.description}
+            </p>
+
+            {cfg.comingSoon ? (
+              <div className="mt-8 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm text-white/25 ring-1 ring-white/8">
+                {inDevLabel}
+              </div>
+            ) : (
+              <a
+                href={cfg.path}
+                className="mt-8 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white ring-1 transition-all duration-200 hover:bg-white/5"
+                style={{ borderColor: cfg.border }}
+              >
+                {openSceneLabel}
+                <ArrowRight className="h-4 w-4" />
+              </a>
+            )}
           </div>
 
-          <div className="flex items-center gap-3">
-            <LanguageSwitcher />
+          {/* Media */}
+          <div className={cfg.reverse ? 'lg:order-1' : 'lg:order-2'}>
+            {cfg.videoSrc ? (
+              <div
+                className="relative aspect-[16/10] overflow-hidden rounded-2xl"
+                style={{
+                  border: `1px solid ${cfg.border}`,
+                  boxShadow: `0 40px 80px rgba(0,0,0,0.5), 0 0 80px ${cfg.glow}40`,
+                }}
+              >
+                <video
+                  src={cfg.videoSrc}
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                  className="h-full w-full object-cover"
+                />
+                <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_60%,rgba(0,0,0,0.35)_100%)]" />
+                <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/25 via-transparent to-transparent" />
+              </div>
+            ) : (
+              <div
+                className="relative aspect-[16/10] overflow-hidden rounded-2xl flex flex-col items-center justify-center gap-4"
+                style={{
+                  background: 'linear-gradient(135deg, #0d1117, #111820)',
+                  border: `1px solid ${cfg.border}`,
+                }}
+              >
+                <div
+                  className="flex h-20 w-20 items-center justify-center rounded-full ring-1"
+                  style={{ background: cfg.accent, borderColor: cfg.border }}
+                >
+                  <Icon className="h-9 w-9" style={{ color: cfg.tagColor, opacity: 0.7 }} />
+                </div>
+                <div className="text-center">
+                  <p className="text-sm font-medium text-white/30">{inDevLabel}</p>
+                  <p className="ui-mono text-[11px] text-white/15 mt-1">2025</p>
+                </div>
+              </div>
+            )}
           </div>
         </div>
-      </header>
+      </div>
+    </section>
+  );
+}
 
-      <main className="mx-auto w-full max-w-[1240px] px-5 pb-20 pt-10 md:px-8 md:pt-14">
-        <section className="mb-14 max-w-3xl">
-          <div className="ui-mono text-[12px] text-[var(--blue-strong)]">Urban daylight intelligence for Astana</div>
-          <h1 className="mt-4 text-[clamp(2.3rem,6vw,4.6rem)] font-semibold leading-[0.95] tracking-[-0.05em]">
-            Sunlight
-            <br />
-            in motion.
-          </h1>
-          <p className="mt-5 max-w-2xl text-base leading-7 text-[var(--ink-soft)] md:text-lg">
-            Four workflows, one clean landing page. Analyze shadows and sunlight in real city context.
-          </p>
-        </section>
+// ─── Page ────────────────────────────────────────────────────────────────────
 
-        <section className="mb-16">
-          <article className="grid gap-8 lg:grid-cols-2 lg:items-center">
-            <div className="space-y-4">
-              <h2 className="text-[clamp(2rem,4.2vw,3.6rem)] font-semibold tracking-[-0.05em] text-[var(--blue-strong)]">
-                Apartment analysis
-              </h2>
-              <p className="max-w-xl text-[1.06rem] leading-8 text-[var(--ink-soft)]">
-                Review sunlight, orientation, and blockage before you decide. Check facades and
-                courtyard shadows over the full day.
-              </p>
-              <button
-                onClick={() => navigate('/app/apartments')}
-                className="inline-flex items-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
-              >
-                Open scene
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+export default function LandingPage() {
+  const { messages } = useTranslation();
+  const l = messages.landingV2;
 
-            <div className="relative aspect-video overflow-hidden rounded-2xl border border-[color:var(--line)] bg-[#0a0f26] shadow-[0_24px_48px_rgba(15,23,42,0.18)]">
-              <video
-                src="/vids/apartment.mp4"
-                autoPlay
-                muted
-                loop
-                playsInline
-                className="h-full w-full object-cover"
-              />
-              <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(8,12,20,0)_0%,rgba(8,12,20,0.22)_100%)]" />
-            </div>
-          </article>
-        </section>
+  return (
+    <div className="min-h-screen bg-[#06080f] text-white overflow-x-hidden">
 
-        <section className="space-y-16">
-          {HERO_FEATURES.map((feature) => (
-            <article key={feature.title} className="grid gap-8 lg:grid-cols-2 lg:items-center">
-              <div className={feature.reverse ? 'lg:order-2' : 'lg:order-1'}>
-                <FeatureMedia feature={feature} />
-              </div>
+      {/* ── Hero ── */}
+      <ResponsiveHeroBanner
+        logoSlot={<DeCentraLogo tagline={l.footer.tagline} />}
+        backgroundSlides={[
+          '/imgs/astana-expo.jpg',
+          '/imgs/astana2.jpg',
+          '/imgs/astana3.jpg',
+        ]}
+        slideInterval={6000}
+        navLinks={[
+          { label: l.nav.apartments, href: '/app/apartments' },
+          { label: l.nav.trees,      href: '/app/trees'      },
+          { label: l.nav.workers,    href: '/app/workers'    },
+        ]}
+        ctaButtonText={l.hero.openMap}
+        ctaButtonHref="/app/apartments"
+        badgeLabel={l.hero.badgeLabel}
+        badgeText={l.hero.badgeText}
+        title={l.hero.title}
+        titleLine2={l.hero.titleAccent}
+        description={l.hero.description}
+        primaryButtonText={l.hero.primaryBtn}
+        primaryButtonHref="/app/apartments"
+        secondaryButtonText={l.hero.secondaryBtn}
+        secondaryButtonHref="#features"
+        rightSlot={<LanguageSwitcher />}
+        partners={[]}
+        heroTextSlot={
+          <div className="flex flex-col items-center gap-0">
+            <WhisperText
+              text={l.hero.title}
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-white"
+              delay={220}
+              duration={0.8}
+              y={35}
+              triggerStart="top bottom"
+            />
+            <WhisperText
+              text={l.hero.titleAccent}
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-[#f0c24c]"
+              delay={220}
+              duration={0.8}
+              y={35}
+              triggerStart="top bottom"
+            />
+          </div>
+        }
+        descriptionSlot={
+          <WhisperText
+            text={l.hero.description}
+            className="mx-auto max-w-xl text-base md:text-lg text-white/45 leading-relaxed"
+            delay={60}
+            duration={0.5}
+            y={15}
+            triggerStart="top bottom"
+          />
+        }
+      />
 
-              <div className={feature.reverse ? 'lg:order-1' : 'lg:order-2'}>
-                <h2 className="text-[clamp(1.7rem,3.1vw,2.7rem)] font-semibold tracking-[-0.04em] text-[var(--blue-strong)]">
-                  {feature.title}
-                </h2>
-                <p className="mt-4 max-w-xl text-[1.06rem] leading-8 text-[var(--ink-soft)]">
-                  {feature.description}
-                </p>
-                <button
-                  onClick={() => navigate(feature.path)}
-                  className="mt-6 inline-flex items-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
-                >
-                  Open scene
-                  <ArrowRight className="h-4 w-4" />
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
-      </main>
+   
+
+      {/* ── Feature sections ── */}
+      <div className="space-y-6 md:space-y-8">
+        {FEATURE_CONFIG.map((cfg, i) => (
+          <FeatureSection
+            key={cfg.num}
+            cfg={cfg}
+            text={l.features[i]}
+            openSceneLabel={l.openScene}
+            inDevLabel={l.inDevelopment}
+          />
+        ))}
+      </div>
+
+      {/* ── Footer ── */}
+      <Footer
+        logo={<Sun className="h-7 w-7 text-[#f0c24c]" />}
+        brandName="DeCentra"
+        socialLinks={[
+          {
+            icon: <Globe className="h-4 w-4" />,
+            href: '#',
+            label: 'GitHub',
+          },
+          {
+            icon: <Globe className="h-4 w-4" />,
+            href: '#',
+            label: 'Twitter',
+          },
+        ]}
+        mainLinks={[
+          { href: '/app/apartments', label: l.nav.apartments },
+          { href: '/app/trees',      label: l.nav.trees      },
+          { href: '/app/workers',    label: l.nav.workers    },
+        ]}
+        legalLinks={[
+          { href: '#', label: 'Privacy' },
+          { href: '#', label: 'Terms'   },
+        ]}
+        copyright={{
+          text: `© ${new Date().getFullYear()} DeCentra`,
+          license: l.footer.tagline,
+        }}
+      />
     </div>
   );
 }
