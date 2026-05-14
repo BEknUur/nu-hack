@@ -30,92 +30,126 @@ export function useMapViewEffects({
   isSatellite,
   isWorkerMode,
 }: UseMapViewEffectsArgs) {
+  const waitForMap = <T,>(
+    getMap: () => T | null,
+    isReady: (map: T) => boolean,
+    apply: (map: T) => void,
+  ) => {
+    let cancelled = false;
+    let rafId = 0;
+
+    const runWhenMapExists = () => {
+      if (cancelled) return;
+      const map = getMap();
+      if (!map || !isReady(map)) {
+        rafId = window.requestAnimationFrame(runWhenMapExists);
+        return;
+      }
+
+      apply(map);
+    };
+
+    runWhenMapExists();
+
+    return () => {
+      cancelled = true;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  };
+
+  const waitForShadeOpsReady = (
+    apply: () => void | Promise<void>,
+  ) => {
+    let cancelled = false;
+    let rafId = 0;
+
+    const runWhenReady = () => {
+      if (cancelled) return;
+      if (!shadow || !isMapReadyForShadeOps(controller)) {
+        rafId = window.requestAnimationFrame(runWhenReady);
+        return;
+      }
+
+      void apply();
+    };
+
+    runWhenReady();
+
+    return () => {
+      cancelled = true;
+      if (rafId) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
+  };
+
   useEffect(() => {
     if (engine !== 'maplibre') {
       return;
     }
 
-    const map = rawMapRef.current as {
-      loaded?: () => boolean;
-      once?: (event: string, listener: () => void) => void;
-      easeTo?: (options: { pitch: number; bearing: number; duration: number }) => void;
-    } | null;
-    if (!map) return;
-
-    const applyView = () => {
-      map.easeTo?.({
-        pitch: is3D ? 58 : 0,
-        bearing: is3D ? -18 : 0,
-        duration: 450,
-      });
-    };
-
-    if (map.loaded?.()) {
-      applyView();
-      return;
-    }
-
-    map.once?.('load', applyView);
+    return waitForMap(
+      () => rawMapRef.current as {
+        easeTo?: (options: { pitch: number; bearing: number; duration: number }) => void;
+      } | null,
+      (map) => typeof map.easeTo === 'function',
+      (map) => {
+        map.easeTo?.({
+          pitch: is3D ? 58 : 0,
+          bearing: is3D ? -18 : 0,
+          duration: 450,
+        });
+      },
+    );
   }, [engine, is3D, rawMapRef]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;
-    const map = rawMapRef.current as {
-      getSource?: (id: string) => unknown;
-      isStyleLoaded?: () => boolean;
-      once?: (event: 'load', listener: () => void) => void;
-    } | null;
-    if (!map) return;
 
-    const applyTiles = () => {
-      const source = map.getSource?.('osm') as { setTiles?: (tiles: string[]) => void } | undefined;
-      source?.setTiles?.(isSatellite ? SATELLITE_TILE_URLS : OSM_TILE_URLS);
-    };
-
-    if (map.isStyleLoaded?.()) {
-      applyTiles();
-      return;
-    }
-
-    map.once?.('load', applyTiles);
+    return waitForMap(
+      () => rawMapRef.current as {
+        getSource?: (id: string) => unknown;
+      } | null,
+      (map) => Boolean(map.getSource?.('osm')),
+      (map) => {
+        const source = map.getSource?.('osm') as { setTiles?: (tiles: string[]) => void } | undefined;
+        source?.setTiles?.(isSatellite ? SATELLITE_TILE_URLS : OSM_TILE_URLS);
+      },
+    );
   }, [engine, isSatellite, rawMapRef]);
 
   useEffect(() => {
     if (sunExposure) return;
-    if (!shadow || !isMapReadyForShadeOps(controller)) return;
-    try {
-      shadow.setDate(date);
-    } catch {
-      return;
-    }
+    return waitForShadeOpsReady(() => {
+      try {
+        shadow?.setDate(date);
+      } catch {
+        return;
+      }
+    });
   }, [controller, date, shadow, sunExposure]);
 
   useEffect(() => {
-    if (!shadow || !isMapReadyForShadeOps(controller)) return;
-    shadow.setSunExposure(sunExposure, getDefaultSunExposureRange(dateStr)).catch(() => {
+    return waitForShadeOpsReady(async () => {
+      await shadow?.setSunExposure(sunExposure, getDefaultSunExposureRange(dateStr)).catch(() => {
+      });
     });
   }, [controller, dateStr, shadow, sunExposure]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;
-    const map = rawMapRef.current as {
-      getLayer?: (id: string) => unknown;
-      setLayoutProperty?: (id: string, name: string, value: string) => void;
-      isStyleLoaded?: () => boolean;
-      once?: (event: 'load', listener: () => void) => void;
-    } | null;
-    if (!map) return;
 
-    const applySunWallsVisibility = () => {
-      if (!map.getLayer?.(SUN_WALLS_LAYER_ID)) return;
-      map.setLayoutProperty?.(SUN_WALLS_LAYER_ID, 'visibility', isWorkerMode ? 'none' : 'visible');
-    };
-
-    if (map.isStyleLoaded?.()) {
-      applySunWallsVisibility();
-      return;
-    }
-
-    map.once?.('load', applySunWallsVisibility);
+    return waitForMap(
+      () => rawMapRef.current as {
+        getLayer?: (id: string) => unknown;
+        setLayoutProperty?: (id: string, name: string, value: string) => void;
+      } | null,
+      (map) => Boolean(map.getLayer?.(SUN_WALLS_LAYER_ID)),
+      (map) => {
+        map.setLayoutProperty?.(SUN_WALLS_LAYER_ID, 'visibility', isWorkerMode ? 'none' : 'visible');
+      },
+    );
   }, [engine, isWorkerMode, rawMapRef]);
 }
