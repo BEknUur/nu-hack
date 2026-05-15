@@ -78,7 +78,6 @@ const FEATURE_CONFIG: FeatureConfig[] = [
     border: 'rgba(251,146,60,0.12)',
     tagColor: '#fb923c',
     reverse: true,
-    comingSoon: true,
   },
 ];
 

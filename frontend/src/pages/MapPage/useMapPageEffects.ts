@@ -9,12 +9,14 @@ import { useTreeCandidateLayer } from '@/pages/MapPage/hooks/useTreeCandidateLay
 import { useWorkerCrewLayer } from '@/pages/MapPage/hooks/useWorkerCrewLayer';
 import { useWorkerInteractions } from '@/pages/MapPage/hooks/useWorkerInteractions';
 import { useWorkerSimulation } from '@/pages/MapPage/hooks/useWorkerSimulation';
+import { useSolarCandidateLayer } from '@/pages/MapPage/hooks/useSolarCandidateLayer';
 import { useMapViewEffects } from '@/pages/MapPage/hooks/useMapViewEffects';
 import { useMapInfoClick } from '@/pages/MapPage/hooks/useMapInfoClick';
 import { useSelectedBuildingHighlight } from '@/pages/MapPage/hooks/useSelectedBuildingHighlight';
 import { useLeafletStaticDataset } from '@/pages/MapPage/hooks/useLeafletStaticDataset';
 import type { UseTreeStateResult } from '@/pages/MapPage/useTreeState';
 import type { UseWorkerStateResult } from '@/pages/MapPage/useWorkerState';
+import type { UseSolarFlowersStateResult } from '@/pages/MapPage/useSolarFlowersState';
 import type { ClickInfo } from '@/types/map';
 import type { SelectedBuilding } from '@/types/building';
 import type { MapEngineState } from '@/types/map-engine';
@@ -24,8 +26,10 @@ interface UseMapPageEffectsArgs {
   dt: UseDateTimeReturn & { language: Language };
   tree: UseTreeStateResult;
   worker: UseWorkerStateResult;
+  solar: UseSolarFlowersStateResult;
   isTreeMode: boolean;
   isWorkerMode: boolean;
+  isSolarMode: boolean;
   sunExposure: boolean;
   is3D: boolean;
   isSatellite: boolean;
@@ -44,8 +48,10 @@ export function useMapPageEffects({
   dt,
   tree,
   worker,
+  solar,
   isTreeMode,
   isWorkerMode,
+  isSolarMode,
   sunExposure,
   is3D,
   isSatellite,
@@ -91,8 +97,38 @@ export function useMapPageEffects({
     rawMapRef,
     geometry: isTreeMode
       ? (tree.treeDraftGeometry ?? tree.treeAreaGeometry)
-      : (isWorkerMode ? (worker.workerDraftGeometry ?? worker.workerAreaGeometry) : null),
-    mode: isTreeMode ? tree.treeDrawMode : (isWorkerMode ? 'worker-zone' : null),
+      : isWorkerMode
+      ? (worker.workerDraftGeometry ?? worker.workerAreaGeometry)
+      : isSolarMode
+      ? (solar.solarDraftGeometry ?? solar.solarAreaGeometry)
+      : null,
+    mode: isTreeMode ? tree.treeDrawMode : isWorkerMode ? 'worker-zone' : isSolarMode ? solar.solarDrawMode : null,
+  });
+
+  useMapLibreAreaDrawing({
+    enabled: engine === 'maplibre' && isSolarMode && solar.solarDrawArmed,
+    rawMapRef,
+    drawMode: solar.solarDrawMode,
+    onBegin: () => {
+      solar.setSolarDrawing(true);
+      solar.setSolarDraftGeometry(null);
+    },
+    onPreview: solar.setSolarDraftGeometry,
+    onFinish: (geometry, cancelled) => {
+      if (geometry) {
+        solar.applySolarAreaGeometry(geometry);
+        solar.setSolarWizardStep('settings');
+      } else if (!cancelled) {
+        solar.setSolarError('Could not capture the drawn area. Try again.');
+        solar.setSolarWizardStep('shape');
+      }
+      solar.setSolarDraftGeometry(null);
+      solar.setSolarDrawArmed(false);
+      solar.setSolarDrawing(false);
+      if (cancelled) {
+        solar.setSolarWizardStep('shape');
+      }
+    },
   });
 
   useMapLibreAreaDrawing({
@@ -188,6 +224,17 @@ export function useMapPageEffects({
     setWorkerStats: worker.setWorkerStats,
   });
 
+  useSolarCandidateLayer({
+    engine,
+    rawMapRef,
+    isSolarMode,
+    solarCandidates: solar.solarCandidates,
+    selectedSolarCandidateId: solar.selectedSolarCandidate?.id ?? null,
+    solarDrawArmed: solar.solarDrawArmed,
+    solarDrawing: solar.solarDrawing,
+    onSelectCandidate: solar.setSelectedSolarCandidate,
+  });
+
   useMapViewEffects({
     engine,
     rawMapRef,
@@ -202,7 +249,7 @@ export function useMapPageEffects({
   });
 
   useMapInfoClick({
-    enabled: !isTreeMode,
+    enabled: !isTreeMode && !isSolarMode,
     buildingsRef,
     controller,
     shadow,
