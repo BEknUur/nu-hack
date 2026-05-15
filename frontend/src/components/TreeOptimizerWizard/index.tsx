@@ -1,8 +1,8 @@
-import type { CSSProperties } from 'react';
-import { LoaderCircle, Sprout } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { Sprout } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { TreeDrawMode } from '@/types/tree-optimizer';
+import { TreeAreaDrawControls } from '@/components/treeShared/TreeAreaDrawControls';
+import { TreeRankingControls } from '@/components/treeShared/TreeRankingControls';
 
 export type TreeWizardStep = 'shape' | 'drawing' | 'settings' | 'results';
 
@@ -249,8 +249,8 @@ export default function TreeOptimizerWizard({
 
   const summerPct = Math.round(summerWeight * 100);
   const winterPct = 100 - summerPct;
-  const segmentClass = 'map-segment rounded-lg px-3 py-2 text-sm font-medium';
   const stepCardClass = 'rounded-xl border border-[color:var(--line)] bg-white/80 p-3';
+  const controlsDisabled = loading || !hasArea || step === 'drawing';
 
   const shapeButtons: Array<{ mode: TreeDrawMode; label: string }> = [
     { mode: 'rectangle', label: copy.drawRectangle },
@@ -278,74 +278,52 @@ export default function TreeOptimizerWizard({
         <div className={stepCardClass}>
           <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 1</div>
           <div className="mt-1 text-sm text-[var(--ink)]">Select area on map</div>
-          <div className="mt-2 text-sm text-[var(--ink-soft)]">{copy.drawModeLabel}</div>
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            {shapeButtons.map((option) => (
-              <button
-                key={option.mode}
-                type="button"
-                onClick={() => onDrawModeChange(option.mode)}
-                className={cn(segmentClass, drawMode === option.mode && 'is-active')}
-              >
-                {option.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="mt-2 flex flex-wrap items-center gap-2">
-            <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-              {step === 'drawing' ? copy.stepDrawing : copy.stepShape}
-            </span>
-            <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-              {drawMode}
-            </span>
-            {areaKm2 != null && (
-              <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
-                {areaKm2.toFixed(2)} km2
-              </span>
-            )}
-          </div>
-
-          {(step === 'drawing' || drawingInProgress) && (
-            <div className="mt-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
-              <div className="text-sm font-medium text-[var(--ink)]">{copy.drawingTitle}</div>
-              <p className="mt-1 text-sm text-[var(--ink-soft)]">{drawModeHint(copy, drawMode)}</p>
-              <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{copy.drawingSubHint}</p>
-              <div className="mt-2 inline-flex items-center gap-2 text-xs text-[var(--blue-strong)]">
-                <span className="h-1.5 w-1.5 rounded-full bg-[var(--blue-strong)] animate-pulse-dot" />
-                {copy.drawingActive}
+          <TreeAreaDrawControls
+            variant="wizard"
+            shapeLabel={copy.drawModeLabel}
+            drawMode={drawMode}
+            drawModeOptions={shapeButtons}
+            onDrawModeChange={onDrawModeChange}
+            hasArea={hasArea}
+            isDrawing={step === 'drawing'}
+            onStartDrawing={onStartDrawing}
+            onClearArea={onClearArea}
+            onCancelDrawing={onCancelDrawing}
+            drawActionLabel={copy.drawAction}
+            redrawActionLabel={copy.redrawAction}
+            clearActionLabel={copy.clearAction}
+            cancelActionLabel={copy.cancelDrawing}
+            clearDisabled={!hasArea && step !== 'drawing'}
+            continueActionLabel={copy.continueAction}
+            continueDisabled={!hasArea}
+            onContinue={step !== 'drawing' ? onContinueToSettings : undefined}
+            statusContent={(
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                  {step === 'drawing' ? copy.stepDrawing : copy.stepShape}
+                </span>
+                <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                  {drawMode}
+                </span>
+                {areaKm2 != null && (
+                  <span className="ui-mono text-[11px] text-[var(--ink-soft)]">
+                    {areaKm2.toFixed(2)} km2
+                  </span>
+                )}
               </div>
-            </div>
-          )}
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={onStartDrawing}
-              className="inline-flex items-center justify-center rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)]"
-            >
-              {hasArea ? copy.redrawAction : copy.drawAction}
-            </button>
-            <button
-              type="button"
-              onClick={step === 'drawing' ? onCancelDrawing : onClearArea}
-              className={segmentClass}
-              disabled={!hasArea && step !== 'drawing'}
-            >
-              {step === 'drawing' ? copy.cancelDrawing : copy.clearAction}
-            </button>
-          </div>
-
-          {step !== 'drawing' && (
-            <button
-              type="button"
-              onClick={onContinueToSettings}
-              className="mt-2 inline-flex w-full items-center justify-center rounded-lg border border-[color:var(--line)] bg-white px-3 py-2 text-sm font-medium text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
-              disabled={!hasArea}
-            >
-              {copy.continueAction}
-            </button>
-          )}
+            )}
+            drawingContent={(step === 'drawing' || drawingInProgress) ? (
+              <div className="mt-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
+                <div className="text-sm font-medium text-[var(--ink)]">{copy.drawingTitle}</div>
+                <p className="mt-1 text-sm text-[var(--ink-soft)]">{drawModeHint(copy, drawMode)}</p>
+                <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{copy.drawingSubHint}</p>
+                <div className="mt-2 inline-flex items-center gap-2 text-xs text-[var(--blue-strong)]">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[var(--blue-strong)] animate-pulse-dot" />
+                  {copy.drawingActive}
+                </div>
+              </div>
+            ) : undefined}
+          />
         </div>
 
         <div className={stepCardClass}>
@@ -353,77 +331,29 @@ export default function TreeOptimizerWizard({
           <div className="mt-1 text-sm text-[var(--ink)]">Configure ranking</div>
           <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.settingsTitle}</p>
 
-          <div className="mt-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-medium text-[var(--ink)]">{copy.balanceLabel}</span>
-              <span className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.seasonShare(summerPct, winterPct)}</span>
-            </div>
-            <input
-              type="range"
-              className="time-slider mt-2"
-              min={0}
-              max={100}
-              step={1}
-              value={summerPct}
-              style={{ '--pct': `${summerPct}%` } as CSSProperties}
-              onChange={(event) => onSummerWeightChange(Number(event.target.value) / 100)}
-              disabled={loading || !hasArea || step === 'drawing'}
-            />
-            <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--ink-soft)]">
-              <span>{copy.summerHint}</span>
-              <span>{copy.winterHint}</span>
-            </div>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <label className="text-sm text-[var(--ink-soft)]">
-              {copy.topN}
-              <select
-                className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
-                value={topK}
-                onChange={(event) => onTopKChange(Number(event.target.value))}
-                disabled={loading || !hasArea || step === 'drawing'}
-              >
-                <option value={10}>10</option>
-                <option value={25}>25</option>
-                <option value={50}>50</option>
-              </select>
-            </label>
-
-            <label className="text-sm text-[var(--ink-soft)]">
-              {copy.minWinterLight}
-              <select
-                className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
-                value={minWinterLight}
-                onChange={(event) => onMinWinterLightChange(Number(event.target.value))}
-                disabled={loading || !hasArea || step === 'drawing'}
-              >
-                <option value={0.2}>20%</option>
-                <option value={0.3}>30%</option>
-                <option value={0.4}>40%</option>
-                <option value={0.5}>50%</option>
-              </select>
-            </label>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={onRunRanking}
-              className="inline-flex items-center justify-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-70"
-              disabled={loading || !hasArea || step === 'drawing'}
-            >
-              {loading && <LoaderCircle className="h-4 w-4 animate-spin" />}
-              {loading ? copy.running : copy.run}
-            </button>
-            <button
-              type="button"
-              onClick={step === 'results' ? onBackToSettings : onBackToShape}
-              className={segmentClass}
-            >
-              {step === 'results' ? copy.adjustSettings : copy.backToShape}
-            </button>
-          </div>
+          <TreeRankingControls
+            variant="wizard"
+            balanceLabel={copy.balanceLabel}
+            seasonShareLabel={copy.seasonShare(summerPct, winterPct)}
+            summerHint={copy.summerHint}
+            winterHint={copy.winterHint}
+            topNLabel={copy.topN}
+            minWinterLightLabel={copy.minWinterLight}
+            summerPct={summerPct}
+            topK={topK}
+            minWinterLight={minWinterLight}
+            onSummerWeightChange={onSummerWeightChange}
+            onTopKChange={onTopKChange}
+            onMinWinterLightChange={onMinWinterLightChange}
+            controlsDisabled={controlsDisabled}
+            loading={loading}
+            runLabel={copy.run}
+            runningLabel={copy.running}
+            onRun={onRunRanking}
+            runDisabled={controlsDisabled}
+            secondaryActionLabel={step === 'results' ? copy.adjustSettings : copy.backToShape}
+            onSecondaryAction={step === 'results' ? onBackToSettings : onBackToShape}
+          />
 
           {error && (
             <p className="mt-3 rounded-lg border border-[#e2b2a7] bg-[#fff7f4] px-3 py-2 text-sm text-[#9c3b2a]">
