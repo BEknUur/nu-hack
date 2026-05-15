@@ -1,9 +1,8 @@
 import { ArrowRight, Clock3, Flower2, Home, Sprout, Globe, Sun, type LucideIcon } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
-
+import { AnimatedText } from '@/components/ui/animated-underline-text-one';
 import WhisperText from '@/components/ui/whisper-text';
-import { StaggerText } from '@/components/ui/stagger-text';
 import { Footer } from '@/components/ui/footer';
 import { useTranslation } from '@/i18n';
 
@@ -12,7 +11,7 @@ import { useTranslation } from '@/i18n';
 function DeCentraLogo({ tagline }: { tagline: string }) {
   return (
     <a href="/" className="flex flex-col leading-none">
-      <span className="font-display text-[15px] font-bold text-white tracking-[-0.04em]">DeCentra</span>
+      <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">DeCentra</span>
       <span className="ui-mono text-[10px] text-white/35 mt-0.5">{tagline}</span>
     </a>
   );
@@ -130,11 +129,11 @@ function FeatureSection({
               </span>
             </div>
 
-            <StaggerText
+            <AnimatedText
               text={text.title}
-              direction="bottom"
-              stagger={0.06}
-              className="font-display text-3xl md:text-[2.6rem] lg:text-5xl font-bold tracking-[-0.04em] text-white leading-[1.02]"
+              textClassName="font-display text-3xl md:text-[2.6rem] lg:text-5xl font-light tracking-[-0.04em] text-white leading-[1.02]"
+              underlineClassName="text-white/20"
+              underlineDuration={1.2}
             />
 
             <p className="mt-5 text-base md:text-[1.06rem] leading-[1.75] text-white/45 max-w-md">
@@ -245,7 +244,7 @@ export default function LandingPage() {
           <div className="flex flex-col items-center gap-0">
             <WhisperText
               text={l.hero.title}
-              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-white"
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-extralight leading-[0.88] tracking-[-0.04em] text-white"
               delay={220}
               duration={0.8}
               y={35}
@@ -253,7 +252,7 @@ export default function LandingPage() {
             />
             <WhisperText
               text={l.hero.titleAccent}
-              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-black leading-[0.88] tracking-[-0.04em] text-[#f0c24c]"
+              className="font-display text-[clamp(3.4rem,9.5vw,7.5rem)] font-extralight leading-[0.88] tracking-[-0.04em] text-[#f0c24c]"
               delay={220}
               duration={0.8}
               y={35}
