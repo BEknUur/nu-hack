@@ -43,6 +43,7 @@ export interface SolarFlowersWizardProps {
   panelType: SolarPanelType;
   target: SolarOptimizationTarget;
   topK: number;
+  showPoints: boolean;
   loading: boolean;
   error: string | null;
   candidates: SolarCandidate[];
@@ -57,6 +58,7 @@ export interface SolarFlowersWizardProps {
   onPanelTypeChange: (type: SolarPanelType) => void;
   onTargetChange: (target: SolarOptimizationTarget) => void;
   onTopKChange: (topK: number) => void;
+  onTogglePoints: () => void;
   onRunRanking: () => void;
   onBackToShape: () => void;
   onCloseCandidate: () => void;
@@ -71,6 +73,7 @@ export default function SolarFlowersWizard({
   panelType,
   target,
   topK,
+  showPoints,
   loading,
   error,
   candidates,
@@ -84,6 +87,7 @@ export default function SolarFlowersWizard({
   onPanelTypeChange,
   onTargetChange,
   onTopKChange,
+  onTogglePoints,
   onRunRanking,
   onBackToShape,
   onCloseCandidate,
@@ -160,6 +164,8 @@ export default function SolarFlowersWizard({
             candidates={candidates}
             selectedCandidate={selectedCandidate}
             copy={copy}
+            showPoints={showPoints}
+            onTogglePoints={onTogglePoints}
             onRunRanking={onRunRanking}
             onBackToShape={onBackToShape}
             onCloseCandidate={onCloseCandidate}

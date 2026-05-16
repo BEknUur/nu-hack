@@ -10,6 +10,8 @@ import { useWorkerCrewLayer } from '@/pages/MapPage/hooks/useWorkerCrewLayer';
 import { useWorkerInteractions } from '@/pages/MapPage/hooks/useWorkerInteractions';
 import { useWorkerSimulation } from '@/pages/MapPage/hooks/useWorkerSimulation';
 import { useSolarCandidateLayer } from '@/pages/MapPage/hooks/useSolarCandidateLayer';
+import { useSolar3DLayer } from '@/pages/MapPage/hooks/useSolar3DLayer';
+import { useSolarCandidateAnchor } from '@/pages/MapPage/hooks/useSolarCandidateAnchor';
 import { useMapViewEffects } from '@/pages/MapPage/hooks/useMapViewEffects';
 import { useMapInfoClick } from '@/pages/MapPage/hooks/useMapInfoClick';
 import { useSelectedBuildingHighlight } from '@/pages/MapPage/hooks/useSelectedBuildingHighlight';
@@ -224,15 +226,32 @@ export function useMapPageEffects({
     setWorkerStats: worker.setWorkerStats,
   });
 
+  useSolarCandidateAnchor({
+    enabled: isSolarMode,
+    engine,
+    rawMapRef,
+    controller,
+    selectedSolarCandidate: solar.selectedSolarCandidate,
+    setSolarCardAnchorPoint: solar.setSolarCardAnchorPoint,
+  });
+
   useSolarCandidateLayer({
+    engine,
+    rawMapRef,
+    isSolarMode,
+    solarCandidates: solar.solarShowPoints ? solar.solarCandidates : [],
+    selectedSolarCandidateId: solar.selectedSolarCandidate?.id ?? null,
+    solarDrawArmed: solar.solarDrawArmed,
+    solarDrawing: solar.solarDrawing,
+    onSelectCandidate: solar.setSelectedSolarCandidate,
+  });
+
+  useSolar3DLayer({
     engine,
     rawMapRef,
     isSolarMode,
     solarCandidates: solar.solarCandidates,
     selectedSolarCandidateId: solar.selectedSolarCandidate?.id ?? null,
-    solarDrawArmed: solar.solarDrawArmed,
-    solarDrawing: solar.solarDrawing,
-    onSelectCandidate: solar.setSelectedSolarCandidate,
   });
 
   useMapViewEffects({

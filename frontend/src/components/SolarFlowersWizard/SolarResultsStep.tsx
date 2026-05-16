@@ -7,6 +7,8 @@ interface SolarResultsStepProps {
   candidates: SolarCandidate[];
   selectedCandidate: SolarCandidate | null;
   copy: SolarWizardCopy;
+  showPoints: boolean;
+  onTogglePoints: () => void;
   onRunRanking: () => void;
   onBackToShape: () => void;
   onCloseCandidate: () => void;
@@ -16,6 +18,8 @@ export function SolarResultsStep({
   candidates,
   selectedCandidate,
   copy,
+  showPoints,
+  onTogglePoints,
   onRunRanking,
   onBackToShape,
   onCloseCandidate,
@@ -25,6 +29,8 @@ export function SolarResultsStep({
       <SolarResultsSummary
         candidates={candidates}
         copy={copy}
+        showPoints={showPoints}
+        onTogglePoints={onTogglePoints}
         onRunRanking={onRunRanking}
         onBackToShape={onBackToShape}
       />

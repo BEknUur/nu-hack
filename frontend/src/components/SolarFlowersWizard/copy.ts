@@ -39,6 +39,8 @@ export interface SolarWizardCopy {
   noResults: string;
   rerunBtn: string;
   newAreaBtn: string;
+  showPointsBtn: string;
+  hidePointsBtn: string;
   scoreLabel: string;
   kwhLabel: string;
   annualFactor: string;
@@ -90,6 +92,8 @@ export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
     noResults: 'No candidates found. Try a larger area or different settings.',
     rerunBtn: 'Re-run',
     newAreaBtn: 'New area',
+    showPointsBtn: 'Show points on map',
+    hidePointsBtn: 'Hide points on map',
     scoreLabel: 'Score',
     kwhLabel: 'Est. kWh/yr',
     annualFactor: 'Annual irradiance',
@@ -139,6 +143,8 @@ export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
     noResults: 'Точки не найдены. Увеличьте область или измените настройки.',
     rerunBtn: 'Пересчитать',
     newAreaBtn: 'Новая область',
+    showPointsBtn: 'Показать точки на карте',
+    hidePointsBtn: 'Скрыть точки на карте',
     scoreLabel: 'Балл',
     kwhLabel: 'кВт·ч/год (ест.)',
     annualFactor: 'Год. инсоляция',
@@ -188,6 +194,8 @@ export const SOLAR_WIZARD_COPY: Record<'ru' | 'kk' | 'en', SolarWizardCopy> = {
     noResults: 'Нүктелер табылмады. Аймақты үлкейтіп немесе параметрлерді өзгертіп көріңіз.',
     rerunBtn: 'Қайта есептеу',
     newAreaBtn: 'Жаңа аймақ',
+    showPointsBtn: 'Картада нүктелерді көрсету',
+    hidePointsBtn: 'Картадағы нүктелерді жасыру',
     scoreLabel: 'Балл',
     kwhLabel: 'кВт·сағ/жыл (бол.)',
     annualFactor: 'Жылд. инсоляция',
