@@ -1,5 +1,6 @@
 import ControlPanel from '@/components/ControlPanel';
 import SunInfoPopup from '@/components/SunInfoPopup';
+import TimeSliderBar from '@/components/TimeSliderBar';
 import { sideToLabel } from '@/pages/MapPage/helpers';
 import type { ClickInfo } from '@/types/map';
 
@@ -23,6 +24,10 @@ interface MapPageStandardInfoProps {
   isSatellite: boolean;
   onBasemapChange?: (value: boolean) => void;
   loadingBuildings: boolean;
+  sliderValue: number;
+  sliderPct: number;
+  timeLabel: string;
+  onSliderChange: (value: number) => void;
   onCloseInfo: () => void;
 }
 
@@ -39,6 +44,10 @@ export function MapPageStandardInfo({
   isSatellite,
   onBasemapChange,
   loadingBuildings,
+  sliderValue,
+  sliderPct,
+  timeLabel,
+  onSliderChange,
   onCloseInfo,
 }: MapPageStandardInfoProps) {
   if (!visible) return null;
@@ -77,6 +86,13 @@ export function MapPageStandardInfo({
         isSatellite={isSatellite}
         onBasemapChange={onBasemapChange}
         loadingBuildings={loadingBuildings}
+      />
+
+      <TimeSliderBar
+        sliderValue={sliderValue}
+        sliderPct={sliderPct}
+        timeLabel={timeLabel}
+        onSliderChange={onSliderChange}
       />
 
       {clickInfo && <SunInfoPopup info={clickInfo} onClose={onCloseInfo} />}

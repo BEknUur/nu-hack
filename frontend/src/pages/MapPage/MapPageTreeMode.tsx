@@ -7,10 +7,7 @@ interface MapPageTreeModeProps {
   tree: UseTreeStateResult;
 }
 
-export function MapPageTreeMode({
-  visible,
-  tree,
-}: MapPageTreeModeProps) {
+export function MapPageTreeMode({ visible, tree }: MapPageTreeModeProps) {
   if (!visible) return null;
 
   return (
@@ -26,6 +23,9 @@ export function MapPageTreeMode({
         minWinterLight={tree.treeMinWinterLight}
         loading={tree.treeLoading}
         error={tree.treeError}
+        resultCount={tree.treeCandidates.length}
+        topCandidates={tree.treeCandidates}
+        onLocateCandidate={tree.locateTreeCandidate}
         onDrawModeChange={tree.handleTreeDrawModeChange}
         onStartDrawing={tree.startTreeDrawing}
         onCancelDrawing={tree.cancelTreeDrawing}
