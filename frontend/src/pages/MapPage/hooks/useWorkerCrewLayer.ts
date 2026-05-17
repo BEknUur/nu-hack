@@ -12,7 +12,7 @@ interface UseWorkerCrewLayerArgs {
   isWorkerMode: boolean;
   workerAreaGeometry: RankAreaGeometry | null;
   workerTaskType: 'facade_maintenance' | 'road_repair';
-  workerSimMinute: number;
+  workerSimTick: number;
 }
 
 export function useWorkerCrewLayer({
@@ -22,7 +22,7 @@ export function useWorkerCrewLayer({
   isWorkerMode,
   workerAreaGeometry,
   workerTaskType,
-  workerSimMinute,
+  workerSimTick,
 }: UseWorkerCrewLayerArgs) {
   useEffect(() => {
     if (engine !== 'maplibre') return;
@@ -67,7 +67,7 @@ export function useWorkerCrewLayer({
           workerAreaGeometry,
           workerTaskType,
           buildingsRef.current,
-          workerSimMinute,
+          workerSimTick,
         ),
       );
     };
@@ -77,5 +77,5 @@ export function useWorkerCrewLayer({
       return;
     }
     map.once('load', upsertWorkers);
-  }, [buildingsRef, engine, isWorkerMode, rawMapRef, workerAreaGeometry, workerSimMinute, workerTaskType]);
+  }, [buildingsRef, engine, isWorkerMode, rawMapRef, workerAreaGeometry, workerSimTick, workerTaskType]);
 }

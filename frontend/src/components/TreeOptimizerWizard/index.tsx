@@ -1,6 +1,6 @@
 import { Sprout } from 'lucide-react';
 import { useTranslation } from '@/i18n';
-import type { TreeDrawMode } from '@/types/tree-optimizer';
+import type { TreeDrawMode, TreeRankCandidate } from '@/types/tree-optimizer';
 import { TreeAreaDrawControls } from '@/components/treeShared/TreeAreaDrawControls';
 import { TreeRankingControls } from '@/components/treeShared/TreeRankingControls';
 
@@ -17,6 +17,9 @@ interface TreeOptimizerWizardProps {
   minWinterLight: number;
   loading: boolean;
   error: string | null;
+  resultCount: number;
+  topCandidates: TreeRankCandidate[];
+  onLocateCandidate: (candidate: TreeRankCandidate) => void;
   onDrawModeChange: (mode: TreeDrawMode) => void;
   onStartDrawing: () => void;
   onCancelDrawing: () => void;
@@ -74,6 +77,7 @@ interface WizardCopy {
   rerun: string;
   score: string;
   topCandidates: string;
+  viewOnMap: string;
 }
 
 const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
@@ -121,6 +125,7 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     rerun: 'Пересчитать',
     score: 'Балл',
     topCandidates: 'Топ кандидатов',
+    viewOnMap: 'На карте',
   },
   kk: {
     panelTag: 'Сценарий',
@@ -166,6 +171,7 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     rerun: 'Қайта есептеу',
     score: 'Балл',
     topCandidates: 'Үздік кандидаттар',
+    viewOnMap: 'Картада көрсету',
   },
   en: {
     panelTag: 'Scenario',
@@ -211,6 +217,7 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
     rerun: 'Re-run ranking',
     score: 'Score',
     topCandidates: 'Top candidates',
+    viewOnMap: 'Show on map',
   },
 };
 
@@ -232,6 +239,9 @@ export default function TreeOptimizerWizard({
   minWinterLight,
   loading,
   error,
+  resultCount,
+  topCandidates,
+  onLocateCandidate,
   onDrawModeChange,
   onStartDrawing,
   onCancelDrawing,
@@ -361,6 +371,46 @@ export default function TreeOptimizerWizard({
             </p>
           )}
         </div>
+
+        {step === 'results' && (
+          <div className={stepCardClass}>
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Step 3</div>
+            <div className="mt-1 text-sm font-medium text-[var(--ink)]">{copy.resultsTitle}</div>
+            <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.resultCount(resultCount)}</p>
+            {resultCount === 0 ? (
+              <p className="mt-2 text-sm text-[var(--ink-soft)]">{copy.noResults}</p>
+            ) : (
+              <>
+                <p className="mt-2 text-[11px] text-[var(--ink-soft)]">{copy.resultsHint}</p>
+                <div className="ui-mono mt-2 text-[10px] text-[var(--ink-soft)]">{copy.topCandidates}</div>
+                <ul className="mt-2 max-h-52 space-y-2 overflow-y-auto">
+                  {topCandidates.map((candidate) => (
+                    <li
+                      key={candidate.id}
+                      className="flex items-center justify-between gap-2 rounded-lg border border-[color:var(--line)] bg-white/70 px-2 py-1.5"
+                    >
+                      <div className="min-w-0">
+                        <span className="ui-mono text-[10px] text-[var(--ink-soft)]">#{candidate.rank}</span>
+                        <span className="ml-2 text-sm font-medium text-[var(--ink)]">
+                          {copy.score}: {candidate.score.toFixed(1)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        className="shrink-0 rounded-md border border-[color:var(--line)] bg-white px-2 py-1 text-xs font-medium text-[var(--blue-strong)] transition-colors hover:bg-[var(--surface)]"
+                        onClick={() => {
+                          onLocateCandidate(candidate);
+                        }}
+                      >
+                        {copy.viewOnMap}
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </div>
+        )}
       </div>
     </aside>
   );
