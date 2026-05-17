@@ -1,9 +1,14 @@
-import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import type { Language } from '@/i18n';
-import { astanaLocalToDate } from '@/utils/astanaTime';
-import type { ScenarioMode, TreeUiMessages } from '@/pages/MapPage/types';
 
-const TREE_UI_BY_LANGUAGE: Record<string, TreeUiMessages> = {
+export interface TreeUiMessages {
+  mapNotReady: string;
+  areaMissing: string;
+  noCandidates: string;
+  rankFailed: string;
+  explainFailed: string;
+}
+
+const TREE_UI_BY_LANG: Record<Language, TreeUiMessages> = {
   ru: {
     mapNotReady: 'Карта еще загружается. Попробуйте через секунду.',
     areaMissing: 'Сначала выделите область на карте, затем запускайте подбор.',
@@ -27,28 +32,6 @@ const TREE_UI_BY_LANGUAGE: Record<string, TreeUiMessages> = {
   },
 };
 
-export const SELECTED_BUILDING_SOURCE_ID = 'selected-building-highlight';
-export const SELECTED_BUILDING_GLOW_LAYER_ID = 'selected-building-highlight-glow';
-export const SELECTED_BUILDING_LINE_LAYER_ID = 'selected-building-highlight-line';
-export const WORKER_SOURCE_ID = 'worker-crew-source';
-export const WORKER_LAYER_ID = 'worker-crew-layer';
-
-export function getScenarioMode(caseId: string | undefined): ScenarioMode {
-  if (caseId === 'apartments') return 'apartments';
-  if (caseId === 'trees') return 'trees';
-  if (caseId === 'workers') return 'workers';
-  if (caseId === 'solar-flowers') return 'solarFlowers';
-  return 'default';
-}
-
-export function getTreeUiMessages(language: Language) {
-  return TREE_UI_BY_LANGUAGE[language] ?? TREE_UI_BY_LANGUAGE.en;
-}
-
-export function getDefaultSunExposureRange(dateStr: string) {
-  return {
-    startDate: astanaLocalToDate(dateStr, SUN_EXPOSURE_CONFIG.startHour, 0),
-    endDate: astanaLocalToDate(dateStr, SUN_EXPOSURE_CONFIG.endHour, 0),
-    iterations: SUN_EXPOSURE_CONFIG.iterations,
-  };
+export function getTreeUiMessages(language: Language): TreeUiMessages {
+  return TREE_UI_BY_LANG[language];
 }

@@ -33,7 +33,7 @@ interface TreeOptimizerWizardProps {
   onBackToSettings: () => void;
 }
 
-interface WizardCopy {
+export interface WizardCopy {
   panelTag: string;
   title: string;
   stepShape: string;
@@ -221,12 +221,14 @@ const WIZARD_COPY: Record<'ru' | 'kk' | 'en', WizardCopy> = {
   },
 };
 
-function drawModeHint(copy: WizardCopy, mode: TreeDrawMode): string {
+export function drawModeHint(copy: WizardCopy, mode: TreeDrawMode): string {
   if (mode === 'rectangle') return copy.drawingHintRectangle;
   if (mode === 'circle') return copy.drawingHintCircle;
   if (mode === 'polygon') return copy.drawingHintPolygon;
   return copy.drawingHintFreehand;
 }
+
+export { WIZARD_COPY };
 
 export default function TreeOptimizerWizard({
   step,
