@@ -1,10 +1,5 @@
-import { Flower2 } from 'lucide-react';
 import type { SolarWizardCopy } from '@/components/SolarFlowersWizard/copy';
-import {
-  ACCENT_BG,
-  ACCENT_BORDER,
-  ORANGE,
-} from '@/components/SolarFlowersWizard/styles';
+import { ORANGE } from '@/components/SolarFlowersWizard/styles';
 
 interface SolarWizardHeaderProps {
   copy: SolarWizardCopy;
@@ -25,22 +20,14 @@ export function SolarWizardHeader({
         style={{ background: 'radial-gradient(circle, rgba(251,146,60,0.18), transparent 70%)' }}
       />
 
-      <div className="relative flex items-start justify-between gap-3">
-        <div>
-          <span className="font-mono text-[10px] text-white/25 uppercase tracking-[0.12em]">
-            {copy.tag}
-          </span>
-          <h2 className="font-display text-[1.25rem] font-bold text-white tracking-[-0.04em] mt-0.5 leading-none">
-            {copy.title}
-          </h2>
-          <p className="text-[11px] text-white/35 mt-1.5 leading-snug">{copy.subtitle}</p>
-        </div>
-        <div
-          className="flex-shrink-0 flex h-10 w-10 items-center justify-center rounded-xl"
-          style={{ background: ACCENT_BG, border: `1px solid ${ACCENT_BORDER}` }}
-        >
-          <Flower2 className="h-5 w-5" style={{ color: ORANGE }} />
-        </div>
+      <div className="relative">
+        <span className="font-mono text-[10px] text-white/25 uppercase tracking-[0.12em]">
+          {copy.tag}
+        </span>
+        <h2 className="font-display text-[1.25rem] font-bold text-white tracking-[-0.04em] mt-0.5 leading-none">
+          {copy.title}
+        </h2>
+        <p className="text-[11px] text-white/35 mt-1.5 leading-snug">{copy.subtitle}</p>
       </div>
 
       <div className="mt-4 flex gap-1.5 items-center">

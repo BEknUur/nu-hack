@@ -1,4 +1,3 @@
-import { Sprout } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { TreeDrawMode, TreeRankCandidate } from '@/types/tree-optimizer';
 import { TreeAreaDrawControls } from '@/components/treeShared/TreeAreaDrawControls';
@@ -276,14 +275,9 @@ export default function TreeOptimizerWizard({
       data-tree-wizard-panel="true"
       className="map-panel absolute right-4 top-[8.5rem] z-[1100] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4"
     >
-      <div className="flex items-start justify-between gap-3">
-        <div>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.panelTag}</div>
-          <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">{copy.title}</div>
-        </div>
-        <div className="map-chip flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3">
-          <Sprout className="h-4 w-4 text-[var(--yellow-strong)]" />
-        </div>
+      <div>
+        <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.panelTag}</div>
+        <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">{copy.title}</div>
       </div>
 
       <div className="mt-4 space-y-4">

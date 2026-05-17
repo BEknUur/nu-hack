@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Sun, X } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { SolarCandidate } from '@/types/solar-flowers';
 
@@ -199,7 +198,6 @@ export default function SolarCandidateCard({
             <div>
               <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.tag}</div>
               <div className="mt-1 flex items-center gap-2 text-lg font-semibold tracking-[-0.04em]">
-                <Sun className="h-4 w-4 text-orange-500" />
                 <span>{copy.rank(candidate.rank)}</span>
                 <span className="ui-mono text-[13px] text-orange-600">
                   {copy.score}: {candidate.score.toFixed(1)}
@@ -211,7 +209,7 @@ export default function SolarCandidateCard({
               aria-label={copy.close}
               className="flex h-9 w-9 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--ink-soft)] transition-colors hover:text-[var(--ink)]"
             >
-              <X className="h-4 w-4" />
+              ×
             </button>
           </div>
 

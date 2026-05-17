@@ -1,5 +1,4 @@
 import type { CSSProperties } from 'react';
-import { LoaderCircle, SlidersHorizontal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type {
   SolarOptimizationTarget,
@@ -59,10 +58,7 @@ export function SolarSettingsStep({
       className="rounded-xl p-4 space-y-4"
       style={{ background: DARK_CARD, border: `1px solid ${DARK_CARD_BORDER}` }}
     >
-      <div className="flex items-center gap-2">
-        <SlidersHorizontal className="h-3.5 w-3.5 flex-shrink-0" style={{ color: ORANGE }} />
-        <span className="text-sm font-semibold text-white">{copy.settingsTitle}</span>
-      </div>
+      <div className="text-sm font-semibold text-white">{copy.settingsTitle}</div>
 
       {areaKm2 != null && (
         <div
@@ -79,14 +75,13 @@ export function SolarSettingsStep({
       <div>
         <span className="text-[11px] text-white/40 uppercase tracking-wide">{copy.panelTypeLabel}</span>
         <div className="mt-2 flex flex-col gap-1.5">
-          {panelTypes.map(({ value, label, Icon }) => (
+          {panelTypes.map(({ value, label }) => (
             <button
               key={value}
               type="button"
               onClick={() => onPanelTypeChange(value)}
               className={cn(SOLAR_CHIP_BASE, 'w-full justify-start', panelType === value ? SOLAR_CHIP_ACTIVE : SOLAR_CHIP_IDLE)}
             >
-              <Icon className="h-3 w-3 flex-shrink-0" />
               {label}
             </button>
           ))}
@@ -96,14 +91,13 @@ export function SolarSettingsStep({
       <div>
         <span className="text-[11px] text-white/40 uppercase tracking-wide">{copy.targetLabel}</span>
         <div className="mt-2 flex flex-col gap-1.5">
-          {targets.map(({ value, label, Icon }) => (
+          {targets.map(({ value, label }) => (
             <button
               key={value}
               type="button"
               onClick={() => onTargetChange(value)}
               className={cn(SOLAR_CHIP_BASE, 'w-full justify-start', target === value ? SOLAR_CHIP_ACTIVE : SOLAR_CHIP_IDLE)}
             >
-              <Icon className="h-3 w-3 flex-shrink-0" />
               {label}
             </button>
           ))}
@@ -144,7 +138,6 @@ export function SolarSettingsStep({
           className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-bold text-white transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
           style={{ background: loading ? 'rgba(251,146,60,0.5)' : ORANGE }}
         >
-          {loading && <LoaderCircle className="h-3.5 w-3.5 animate-spin" />}
           {loading ? copy.runningBtn : copy.runBtn}
         </button>
         <button

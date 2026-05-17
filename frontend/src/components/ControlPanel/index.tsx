@@ -1,4 +1,3 @@
-import { CalendarDays, Cuboid, Layers3, LoaderCircle, Sprout, SunMedium } from 'lucide-react';
 import { useTranslation } from '@/i18n';
 import type { TreeDrawMode } from '@/types/tree-optimizer';
 import { PanelSection, SegmentedOptionGroup } from '@/components/mapControls/primitives';
@@ -36,7 +35,6 @@ interface ControlPanelProps {
   onViewModeChange?: (enabled: boolean) => void;
   isSatellite?: boolean;
   onBasemapChange?: (satellite: boolean) => void;
-  loadingBuildings: boolean;
   treeOptimizer?: TreeOptimizerControls;
 }
 
@@ -173,7 +171,6 @@ export default function ControlPanel({
   onViewModeChange,
   isSatellite,
   onBasemapChange,
-  loadingBuildings,
   treeOptimizer,
 }: ControlPanelProps) {
   const { messages, language } = useTranslation();
@@ -200,19 +197,11 @@ export default function ControlPanel({
             {isTreeMode ? treeCopy.panelTitle : messages.map.shadowMapTitle}
           </div>
         </div>
-
-        <div className="map-chip flex min-h-10 min-w-10 items-center justify-center rounded-lg px-3">
-          {loadingBuildings ? (
-            <LoaderCircle className="h-4 w-4 animate-spin text-[var(--blue-strong)]" />
-          ) : (
-            <SunMedium className="h-4 w-4 text-[var(--yellow-strong)]" />
-          )}
-        </div>
       </div>
 
       <div className="space-y-4">
         {!isTreeMode && (
-          <PanelSection icon={<CalendarDays className="h-4 w-4" />} title={messages.map.date}>
+          <PanelSection title={messages.map.date}>
             <input
               type="date"
               className="map-input date-picker w-full rounded-lg px-3 py-2.5 text-sm text-[var(--ink)]"
@@ -223,7 +212,7 @@ export default function ControlPanel({
         )}
 
         {!isTreeMode && (
-          <PanelSection icon={<SunMedium className="h-4 w-4" />} title={messages.map.analysisMode}>
+          <PanelSection title={messages.map.analysisMode}>
             <SegmentedOptionGroup
               value={sunExposure}
               onChange={(value) => onModeChange(value as boolean)}
@@ -236,7 +225,7 @@ export default function ControlPanel({
         )}
 
         {onViewModeChange && !isTreeMode && (
-          <PanelSection icon={<Cuboid className="h-4 w-4" />} title={messages.map.view}>
+          <PanelSection title={messages.map.view}>
             <SegmentedOptionGroup
               value={Boolean(is3D)}
               onChange={(value) => onViewModeChange(value as boolean)}
@@ -249,7 +238,7 @@ export default function ControlPanel({
         )}
 
         {onBasemapChange && !isTreeMode && (
-          <PanelSection icon={<Layers3 className="h-4 w-4" />} title={messages.map.baseMap}>
+          <PanelSection title={messages.map.baseMap}>
             <SegmentedOptionGroup
               value={Boolean(isSatellite)}
               onChange={(value) => onBasemapChange(value as boolean)}
@@ -262,7 +251,7 @@ export default function ControlPanel({
         )}
 
         {treeOptimizer?.enabled && (
-          <PanelSection icon={<Sprout className="h-4 w-4" />} title={treeCopy.sectionTitle}>
+          <PanelSection title={treeCopy.sectionTitle}>
             <div className="space-y-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
               <p className="text-sm leading-6 text-[var(--ink-soft)]">{treeCopy.intro}</p>
 

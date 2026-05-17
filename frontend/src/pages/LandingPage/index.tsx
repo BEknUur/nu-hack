@@ -1,4 +1,3 @@
-import { ArrowRight, Clock3, Flower2, Home, Sprout, Globe, Sun, type LucideIcon } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 import { AnimatedText } from '@/components/ui/animated-underline-text-one';
@@ -24,7 +23,6 @@ function DeCentraLogo({ tagline }: { tagline: string }) {
 type FeatureConfig = {
   num: string;
   path: string;
-  icon: LucideIcon;
   videoSrc?: string;
   accent: string;
   glow: string;
@@ -38,7 +36,6 @@ const FEATURE_CONFIG: FeatureConfig[] = [
   {
     num: '01',
     path: '/app/apartments',
-    icon: Home,
     videoSrc: '/vids/apartment.mp4',
     accent: 'rgba(240,194,76,0.07)',
     glow: 'rgba(240,194,76,0.22)',
@@ -49,7 +46,6 @@ const FEATURE_CONFIG: FeatureConfig[] = [
   {
     num: '02',
     path: '/app/trees',
-    icon: Sprout,
     videoSrc: '/vids/plant_tree.mp4',
     accent: 'rgba(74,222,128,0.06)',
     glow: 'rgba(74,222,128,0.18)',
@@ -60,7 +56,6 @@ const FEATURE_CONFIG: FeatureConfig[] = [
   {
     num: '03',
     path: '/app/workers',
-    icon: Clock3,
     videoSrc: '/vids/workers.mp4',
     accent: 'rgba(96,165,250,0.06)',
     glow: 'rgba(96,165,250,0.18)',
@@ -71,7 +66,6 @@ const FEATURE_CONFIG: FeatureConfig[] = [
   {
     num: '04',
     path: '/app/solar-flowers',
-    icon: Flower2,
     accent: 'rgba(251,146,60,0.06)',
     glow: 'rgba(251,146,60,0.16)',
     border: 'rgba(251,146,60,0.12)',
@@ -95,8 +89,6 @@ function FeatureSection({
   openSceneLabel: string;
   inDevLabel: string;
 }) {
-  const Icon = cfg.icon;
-
   return (
     <section className="relative px-4 md:px-6 pb-16 md:pb-24 overflow-hidden">
       {/* Ambient glow */}
@@ -121,10 +113,9 @@ function FeatureSection({
             <div className="flex items-center gap-3 mb-5">
               <span className="ui-mono text-[11px] text-white/20 tabular-nums">{cfg.num}</span>
               <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium ring-1"
+                className="inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-medium ring-1"
                 style={{ color: cfg.tagColor, borderColor: cfg.border, background: cfg.accent }}
               >
-                <Icon className="h-3 w-3" />
                 {text.tag}
               </span>
             </div>
@@ -151,7 +142,6 @@ function FeatureSection({
                 style={{ borderColor: cfg.border }}
               >
                 {openSceneLabel}
-                <ArrowRight className="h-4 w-4" />
               </a>
             )}
           </div>
@@ -186,10 +176,10 @@ function FeatureSection({
                 }}
               >
                 <div
-                  className="flex h-20 w-20 items-center justify-center rounded-full ring-1"
-                  style={{ background: cfg.accent, borderColor: cfg.border }}
+                  className="flex h-20 w-20 items-center justify-center rounded-full ring-1 font-display text-xl font-semibold tabular-nums"
+                  style={{ background: cfg.accent, borderColor: cfg.border, color: cfg.tagColor }}
                 >
-                  <Icon className="h-9 w-9" style={{ color: cfg.tagColor, opacity: 0.7 }} />
+                  {cfg.num}
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-medium text-white/30">{inDevLabel}</p>
@@ -289,20 +279,6 @@ export default function LandingPage() {
 
       {/* ── Footer ── */}
       <Footer
-        logo={<Sun className="h-7 w-7 text-[#f0c24c]" />}
-        brandName="DeCentra"
-        socialLinks={[
-          {
-            icon: <Globe className="h-4 w-4" />,
-            href: '#',
-            label: 'GitHub',
-          },
-          {
-            icon: <Globe className="h-4 w-4" />,
-            href: '#',
-            label: 'Twitter',
-          },
-        ]}
         mainLinks={[
           { href: '/app/apartments', label: l.nav.apartments },
           { href: '/app/trees',      label: l.nav.trees      },
