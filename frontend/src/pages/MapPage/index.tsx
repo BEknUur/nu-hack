@@ -921,6 +921,7 @@ export default function MapPage() {
 
     const sourceId = 'worker-crew-source';
     const layerId = 'worker-crew-layer';
+
     const upsertWorkers = () => {
       if (!map.getSource(sourceId)) {
         map.addSource(sourceId, {
@@ -935,8 +936,9 @@ export default function MapPage() {
           source: sourceId,
           layout: {
             'text-field': ['get', 'emoji'],
-            'text-size': ['interpolate', ['linear'], ['zoom'], 12, 14, 17, 20],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 14, 16, 18, 22],
             'text-allow-overlap': true,
+            'text-ignore-placement': true,
           },
           paint: {
             'text-color': '#111827',
@@ -962,14 +964,53 @@ export default function MapPage() {
           workerSimTick,
         ),
       );
+
+      if (map.getLayer(layerId)) {
+        try {
+          map.moveLayer(layerId);
+        } catch {
+          // style not fully ready
+        }
+      }
     };
+
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onIdle = () => {
+      if (!isWorkerMode || !workerAreaGeometry) return;
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        idleTimer = null;
+        upsertWorkers();
+      }, 150);
+    };
+
+    const onStyleLoad = () => {
+      upsertWorkers();
+    };
+
+    map.on('idle', onIdle);
 
     if (map.isStyleLoaded()) {
       upsertWorkers();
-      return;
+    } else {
+      map.once('load', onStyleLoad);
     }
-    map.once('load', upsertWorkers);
-  }, [engine, isWorkerMode, rawMapRef, workerAreaGeometry, workerTaskType, workerSimTick, zoom]);
+
+    return () => {
+      map.off('idle', onIdle);
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      map.off('load', onStyleLoad);
+    };
+  }, [
+    engine,
+    isWorkerMode,
+    loadingBuildings,
+    rawMapRef,
+    workerAreaGeometry,
+    workerTaskType,
+    workerSimTick,
+    zoom,
+  ]);
 
   useEffect(() => {
     if (engine !== 'maplibre') return;

@@ -13,6 +13,8 @@ interface UseWorkerCrewLayerArgs {
   workerAreaGeometry: RankAreaGeometry | null;
   workerTaskType: 'facade_maintenance' | 'road_repair';
   workerSimTick: number;
+  /** When buildings finish loading, refresh markers (buildingsRef is not React state). */
+  loadingBuildings: boolean;
 }
 
 export function useWorkerCrewLayer({
@@ -23,6 +25,7 @@ export function useWorkerCrewLayer({
   workerAreaGeometry,
   workerTaskType,
   workerSimTick,
+  loadingBuildings,
 }: UseWorkerCrewLayerArgs) {
   useEffect(() => {
     if (engine !== 'maplibre') return;
@@ -43,8 +46,9 @@ export function useWorkerCrewLayer({
           source: WORKER_SOURCE_ID,
           layout: {
             'text-field': ['get', 'emoji'],
-            'text-size': ['interpolate', ['linear'], ['zoom'], 12, 14, 17, 20],
+            'text-size': ['interpolate', ['linear'], ['zoom'], 10, 12, 14, 16, 18, 22],
             'text-allow-overlap': true,
+            'text-ignore-placement': true,
           },
           paint: {
             'text-color': '#111827',
@@ -70,12 +74,50 @@ export function useWorkerCrewLayer({
           workerSimTick,
         ),
       );
+
+      if (map.getLayer(WORKER_LAYER_ID)) {
+        try {
+          map.moveLayer(WORKER_LAYER_ID);
+        } catch {
+          // ignore
+        }
+      }
     };
+
+    let idleTimer: ReturnType<typeof setTimeout> | null = null;
+    const onIdle = () => {
+      if (!isWorkerMode || !workerAreaGeometry) return;
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      idleTimer = window.setTimeout(() => {
+        idleTimer = null;
+        upsertWorkers();
+      }, 150);
+    };
+
+    const onStyleLoad = () => {
+      upsertWorkers();
+    };
+
+    map.on('idle', onIdle);
 
     if (map.isStyleLoaded()) {
       upsertWorkers();
-      return;
+    } else {
+      map.once('load', onStyleLoad);
     }
-    map.once('load', upsertWorkers);
-  }, [buildingsRef, engine, isWorkerMode, rawMapRef, workerAreaGeometry, workerSimTick, workerTaskType]);
+
+    return () => {
+      map.off('idle', onIdle);
+      if (idleTimer != null) window.clearTimeout(idleTimer);
+      map.off('load', onStyleLoad);
+    };
+  }, [
+    engine,
+    isWorkerMode,
+    loadingBuildings,
+    rawMapRef,
+    workerAreaGeometry,
+    workerSimTick,
+    workerTaskType,
+  ]);
 }
