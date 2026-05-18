@@ -207,11 +207,11 @@ export default function LandingPage() {
       <ResponsiveHeroBanner
         logoSlot={<DeCentraLogo tagline={l.footer.tagline} />}
         backgroundSlides={[
-          '/imgs/astana-expo.jpg',
-          '/imgs/astana2.jpg',
-          '/imgs/astana3.jpg',
+          '/imgs/image2.png',
+          '/imgs/astana2.png',
+          '/imgs/image.png',
         ]}
-        slideInterval={6000}
+        slideInterval={4000}
         navLinks={[
           { label: l.nav.apartments, href: '/app/apartments' },
           { label: l.nav.trees,      href: '/app/trees'      },
@@ -219,8 +219,7 @@ export default function LandingPage() {
         ]}
         ctaButtonText={l.hero.openMap}
         ctaButtonHref="/app/apartments"
-        badgeLabel={l.hero.badgeLabel}
-        badgeText={l.hero.badgeText}
+        badgeLine={l.hero.heroBadge}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}

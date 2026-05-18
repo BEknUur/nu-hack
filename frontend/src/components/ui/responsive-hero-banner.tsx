@@ -20,8 +20,8 @@ interface ResponsiveHeroBannerProps {
   navLinks?: NavLink[];
   ctaButtonText?: string;
   ctaButtonHref?: string;
-  badgeText?: string;
-  badgeLabel?: string;
+  /** Single eyebrow line (no nested label pill). */
+  badgeLine?: string;
   title?: string;
   titleLine2?: string;
   description?: string;
@@ -45,11 +45,10 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   ],
   ctaButtonText = 'Open Map',
   ctaButtonHref = '/app/apartments',
-  badgeLabel = 'Urban AI',
-  badgeText = 'Shadow simulation for Astana, Kazakhstan',
+  badgeLine = 'Urban AI — shadow simulation for Astana, Kazakhstan',
   title = 'Sunlight',
   titleLine2 = 'in Motion.',
-  description = 'Four urban intelligence workflows. Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
+  description = 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
   partnersTitle = '',
   partners = [],
   rightSlot,
@@ -255,12 +254,9 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
       <div className="relative" style={{ zIndex: 10 }}>
         <div className="mx-auto max-w-7xl px-6 pt-28 sm:pt-32 md:pt-40 lg:pt-48 pb-20">
           <div className="mx-auto max-w-3xl text-center">
-            {/* Badge */}
-            <div className="animate-fade-slide-in-1 mb-8 inline-flex items-center gap-3 rounded-full bg-white/8 px-3 py-2 ring-1 ring-white/12 backdrop-blur-md">
-              <span className="inline-flex items-center rounded-full bg-[#f0c24c] px-2.5 py-0.5 text-[11px] font-semibold text-[#06080f]">
-                {badgeLabel}
-              </span>
-              <span className="text-sm text-white/70">{badgeText}</span>
+            {/* Eyebrow */}
+            <div className="animate-fade-slide-in-1 mb-8 inline-flex max-w-full items-center justify-center rounded-full bg-white/8 px-4 py-2 ring-1 ring-white/12 backdrop-blur-md">
+              <span className="text-center text-sm text-white/70">{badgeLine}</span>
             </div>
 
             {/* Headline */}

@@ -52,8 +52,7 @@ interface TranslationSet {
   };
   landingV2: {
     hero: {
-      badgeLabel: string;
-      badgeText: string;
+      heroBadge: string;
       title: string;
       titleAccent: string;
       description: string;
@@ -217,11 +216,10 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        badgeLabel: 'Городской ИИ',
-        badgeText: 'Симуляция теней для Астаны, Казахстан',
+        heroBadge: 'Городской ИИ — симуляция теней для Астаны, Казахстан',
         title: 'Солнце',
         titleAccent: 'в движении.',
-        description: 'Четыре рабочих инструмента. Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
+        description: 'Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
         openMap: 'Открыть карту',
       },
       nav: {
@@ -389,11 +387,10 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        badgeLabel: 'Қалалық ИИ',
-        badgeText: 'Астана, Қазақстан үшін көлеңке симуляциясы',
+        heroBadge: 'Қалалық ИИ — Астана, Қазақстан үшін көлеңке симуляциясы',
         title: 'Күн жарығы',
         titleAccent: 'қозғалыста.',
-        description: 'Төрт қалалық интеллект жұмыс ағыны. Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
+        description: 'Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
         openMap: 'Картаны ашу',
       },
       nav: {
@@ -561,11 +558,10 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        badgeLabel: 'Urban AI',
-        badgeText: 'Shadow simulation for Astana, Kazakhstan',
+        heroBadge: 'Urban AI — shadow simulation for Astana, Kazakhstan',
         title: 'Sunlight',
         titleAccent: 'in Motion.',
-        description: 'Four urban intelligence workflows. Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
+        description: 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
         openMap: 'Open Map',
       },
       nav: {
