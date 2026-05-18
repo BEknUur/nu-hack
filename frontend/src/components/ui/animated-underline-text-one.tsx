@@ -9,6 +9,8 @@ interface AnimatedTextProps extends React.HTMLAttributes<HTMLDivElement> {
   underlinePath?: string;
   underlineHoverPath?: string;
   underlineDuration?: number;
+  /** Default left — matches surrounding body copy in feature sections. */
+  align?: "left" | "center";
 }
 
 const AnimatedText = React.forwardRef<HTMLDivElement, AnimatedTextProps>(
@@ -20,6 +22,7 @@ const AnimatedText = React.forwardRef<HTMLDivElement, AnimatedTextProps>(
       underlinePath = "M 0,10 Q 75,0 150,10 Q 225,20 300,10",
       underlineHoverPath = "M 0,10 Q 75,20 150,10 Q 225,0 300,10",
       underlineDuration = 1.5,
+      align = "left",
       ...props
     },
     ref
@@ -39,14 +42,24 @@ const AnimatedText = React.forwardRef<HTMLDivElement, AnimatedTextProps>(
       },
     };
 
+    const isLeft = align === "left";
+
     return (
       <div
         ref={ref}
-        className={cn("flex flex-col items-center justify-center gap-2", props.className)}
+        className={cn(
+          "flex w-full flex-col gap-2",
+          isLeft ? "items-start" : "items-center justify-center",
+          props.className,
+        )}
       >
-        <div className="relative">
+        <div className={cn("relative", isLeft && "w-full")}>
           <motion.h1
-            className={cn("text-4xl font-normal text-center", textClassName)}
+            className={cn(
+              "text-4xl font-normal",
+              isLeft ? "text-left" : "text-center",
+              textClassName,
+            )}
             initial={{ y: -20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ duration: 0.6 }}

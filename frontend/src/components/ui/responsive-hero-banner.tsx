@@ -25,10 +25,6 @@ interface ResponsiveHeroBannerProps {
   title?: string;
   titleLine2?: string;
   description?: string;
-  primaryButtonText?: string;
-  primaryButtonHref?: string;
-  secondaryButtonText?: string;
-  secondaryButtonHref?: string;
   partnersTitle?: string;
   partners?: Partner[];
   rightSlot?: React.ReactNode;
@@ -54,10 +50,6 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   title = 'Sunlight',
   titleLine2 = 'in Motion.',
   description = 'Four urban intelligence workflows. Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
-  primaryButtonText = 'Explore the Map',
-  primaryButtonHref = '/app/apartments',
-  secondaryButtonText = 'How it works',
-  secondaryButtonHref = '#features',
   partnersTitle = '',
   partners = [],
   rightSlot,
@@ -290,49 +282,6 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
                 {description}
               </p>
             )}
-
-            {/* CTAs */}
-            <div className="animate-fade-slide-in-4 mt-10 flex flex-col sm:flex-row items-center justify-center gap-3">
-              <a
-                href={primaryButtonHref}
-                className="inline-flex items-center gap-2 rounded-full bg-white/10 px-6 py-3.5 text-sm font-medium text-white ring-1 ring-white/15 backdrop-blur-md transition-all hover:bg-white/15"
-              >
-                {primaryButtonText}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="M5 12h14" />
-                  <path d="m12 5 7 7-7 7" />
-                </svg>
-              </a>
-              <a
-                href={secondaryButtonHref}
-                className="inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-medium text-white/50 transition-colors hover:text-white/80"
-              >
-                {secondaryButtonText}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
-                  <path d="m6 9 6 6 6-6" />
-                </svg>
-              </a>
-            </div>
           </div>
 
           {/* Partners */}
