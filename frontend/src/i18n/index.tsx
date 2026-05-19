@@ -52,7 +52,6 @@ interface TranslationSet {
   };
   landingV2: {
     hero: {
-      heroBadge: string;
       title: string;
       titleAccent: string;
       description: string;
@@ -216,7 +215,6 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        heroBadge: 'Городской ИИ — симуляция теней для Астаны, Казахстан',
         title: 'Солнце',
         // NBSP so WhisperText keeps «в движении.» on one line (no orphan «в»).
         titleAccent: 'в\u00A0движении.',
@@ -388,7 +386,6 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        heroBadge: 'Қалалық ИИ — Астана, Қазақстан үшін көлеңке симуляциясы',
         title: 'Күн жарығы',
         titleAccent: 'қозғалыста.',
         description: 'Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
@@ -559,7 +556,6 @@ const translations: Record<Language, TranslationSet> = {
     },
     landingV2: {
       hero: {
-        heroBadge: 'Urban AI — shadow simulation for Astana, Kazakhstan',
         title: 'Sunlight',
         titleAccent: 'in\u00A0Motion.',
         description: 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
