@@ -187,24 +187,24 @@ export default function ControlPanel({
   ];
 
   return (
-    <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[320px] max-w-[calc(100vw-2rem)] rounded-xl p-4 text-[var(--ink)] md:top-4">
-      <div className="mb-4 flex items-start justify-between gap-3">
+    <aside className="map-panel absolute right-4 top-[8.5rem] z-[1000] w-[288px] max-w-[calc(100vw-2rem)] rounded-lg p-3 text-[var(--ink)] md:top-4">
+      <div className="mb-3 flex items-start justify-between gap-2.5">
         <div>
-          <div className="ui-mono text-[11px] text-[var(--ink-soft)]">
+          <div className="ui-mono text-[10px] text-[var(--ink-soft)]">
             {isTreeMode ? treeCopy.panelTag : messages.map.mapControlsTag}
           </div>
-          <div className="mt-1 text-xl font-semibold tracking-[-0.04em]">
+          <div className="mt-1 text-lg font-semibold tracking-[-0.04em]">
             {isTreeMode ? treeCopy.panelTitle : messages.map.shadowMapTitle}
           </div>
         </div>
       </div>
 
-      <div className="space-y-4">
+      <div className="space-y-3">
         {!isTreeMode && (
           <PanelSection title={messages.map.date}>
             <input
               type="date"
-              className="map-input date-picker w-full rounded-lg px-3 py-2.5 text-sm text-[var(--ink)]"
+              className="map-input date-picker w-full rounded-md px-2.5 py-2 text-[13px] text-[var(--ink)]"
               value={dateStr}
               onChange={(e) => onDateChange(e.target.value)}
             />
@@ -252,11 +252,11 @@ export default function ControlPanel({
 
         {treeOptimizer?.enabled && (
           <PanelSection title={treeCopy.sectionTitle}>
-            <div className="space-y-3 rounded-lg border border-[color:var(--line)] bg-white/70 p-3">
-              <p className="text-sm leading-6 text-[var(--ink-soft)]">{treeCopy.intro}</p>
+            <div className="space-y-2.5 rounded-lg border border-[color:var(--line)] bg-white/70 p-2.5">
+              <p className="text-[13px] leading-5 text-[var(--ink-soft)]">{treeCopy.intro}</p>
 
-              <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-                <div className="text-sm font-medium text-[var(--ink)]">{treeCopy.areaStepTitle}</div>
+              <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-2.5">
+                <div className="text-[13px] font-medium text-[var(--ink)]">{treeCopy.areaStepTitle}</div>
                 <TreeAreaDrawControls
                   variant="panel"
                   shapeLabel={treeCopy.shapeLabel}
@@ -274,7 +274,7 @@ export default function ControlPanel({
                   postActionsContent={(
                     <>
                       {(treeOptimizer.drawingArmed || treeOptimizer.drawingInProgress) && (
-                        <p className="mt-2 text-sm text-[var(--blue-strong)]">{treeCopy.drawingHint}</p>
+                        <p className="mt-2 text-sm text-[var(--yellow-strong)]">{treeCopy.drawingHint}</p>
                       )}
 
                       {treeOptimizer.hasArea && treeOptimizer.areaKm2 !== null ? (
@@ -289,8 +289,8 @@ export default function ControlPanel({
                 />
               </div>
 
-              <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3">
-                <div className="text-sm font-medium text-[var(--ink)]">{treeCopy.rankStepTitle}</div>
+              <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-2.5">
+                <div className="text-[13px] font-medium text-[var(--ink)]">{treeCopy.rankStepTitle}</div>
 
                 <TreeRankingControls
                   variant="panel"
@@ -321,22 +321,22 @@ export default function ControlPanel({
               </div>
 
               {treeOptimizer.error && (
-                <p className="text-sm text-[#9c3b2a]">{treeOptimizer.error}</p>
+                <p className="text-[13px] text-[#9c3b2a]">{treeOptimizer.error}</p>
               )}
 
               {!treeOptimizer.error && treeOptimizer.resultsCount > 0 && (
                 <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-2.5">
-                  <p className="text-sm font-medium text-[var(--ink)]">
+                  <p className="text-[13px] font-medium text-[var(--ink)]">
                     {treeCopy.resultCount(treeOptimizer.resultsCount)}
                   </p>
-                  <p className="mt-1 text-sm text-[var(--ink-soft)]">
+                  <p className="mt-1 text-[13px] text-[var(--ink-soft)]">
                     {treeCopy.resultHint}
                   </p>
                 </div>
               )}
 
               {!treeOptimizer.error && treeOptimizer.resultsCount === 0 && !treeOptimizer.loading && (
-                <p className="text-sm text-[var(--ink-soft)]">{treeCopy.emptyHint}</p>
+                <p className="text-[13px] text-[var(--ink-soft)]">{treeCopy.emptyHint}</p>
               )}
             </div>
           </PanelSection>

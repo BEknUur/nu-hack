@@ -79,20 +79,20 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
   return (
     <div
       ref={wrapperRef}
-      className="absolute left-4 top-4 z-[1000] w-[min(380px,calc(100vw-2rem))]"
+      className="absolute left-4 top-4 z-[1000] w-[min(340px,calc(100vw-2rem))]"
     >
-      <div className="map-panel rounded-xl p-3">
-        <div className="mb-3 flex items-start justify-between gap-3">
+      <div className="map-panel rounded-lg p-2.5">
+        <div className="mb-2.5 flex items-start justify-between gap-2.5">
           <div>
-            <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{messages.map.searchTag}</div>
-            <div className="mt-1 text-lg font-semibold tracking-[-0.04em]">{messages.map.searchTitle}</div>
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">{messages.map.searchTag}</div>
+            <div className="mt-1 text-[15px] font-semibold tracking-[-0.04em]">{messages.map.searchTitle}</div>
           </div>
           <div className="flex items-center gap-2">
             <LanguageSwitcher />
           </div>
         </div>
 
-        <div className="map-input flex items-center gap-2 rounded-lg px-3 py-2.5">
+        <div className="map-input flex items-center gap-2 rounded-md px-2.5 py-2">
           <input
             ref={inputRef}
             type="text"
@@ -101,11 +101,11 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
             onKeyDown={handleKeyDown}
             onFocus={() => results.length > 0 && setOpen(true)}
             placeholder={messages.map.searchPlaceholder}
-            className="w-full bg-transparent text-sm text-[var(--ink)] outline-none placeholder:text-[var(--ink-soft)]"
+            className="w-full bg-transparent text-[13px] text-[var(--ink)] outline-none placeholder:text-[var(--ink-soft)]"
           />
 
           {loading && (
-            <div className="ui-mono text-[11px] text-[var(--blue-strong)]">
+            <div className="ui-mono text-[10px] text-[var(--yellow-strong)]">
               {messages.map.searching}
             </div>
           )}
@@ -116,7 +116,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                 clear();
                 inputRef.current?.focus();
               }}
-              className="flex h-7 min-w-7 items-center justify-center rounded-md text-[var(--ink-soft)] transition-colors hover:bg-[rgba(31,79,156,0.08)] hover:text-[var(--ink)] px-1"
+              className="flex h-6 min-w-6 items-center justify-center rounded-md px-1 text-[var(--ink-soft)] transition-colors hover:bg-[rgba(240,194,76,0.16)] hover:text-[var(--ink)]"
               aria-label={messages.map.clearSearchAria}
             >
               ×
@@ -126,7 +126,7 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
       </div>
 
       {open && (
-        <ul className="map-panel mt-2 overflow-hidden rounded-xl p-1.5">
+        <ul className="map-panel mt-1.5 overflow-hidden rounded-lg p-1">
           {results.map((result, index) => {
             const { main, sub } = formatName(result.displayName);
             const isActive = index === activeIndex;
@@ -137,13 +137,13 @@ export default function SearchBar({ onSelect }: SearchBarProps) {
                   onClick={() => handleSelect(result)}
                   onMouseEnter={() => setActiveIndex(index)}
                   className={cn(
-                    'w-full rounded-lg px-3 py-3 text-left transition-colors',
-                    isActive ? 'bg-[rgba(31,79,156,0.1)]' : 'hover:bg-[rgba(31,79,156,0.06)]',
+                    'w-full rounded-md px-2.5 py-2.5 text-left transition-colors',
+                    isActive ? 'bg-[rgba(240,194,76,0.18)]' : 'hover:bg-[rgba(240,194,76,0.1)]',
                   )}
                 >
-                  <div className="text-sm font-medium text-[var(--ink)]">{main}</div>
+                  <div className="text-[13px] font-medium text-[var(--ink)]">{main}</div>
                   {sub && (
-                    <div className="mt-1 text-sm text-[var(--ink-soft)]">{sub}</div>
+                    <div className="mt-0.5 text-[12px] text-[var(--ink-soft)]">{sub}</div>
                   )}
                 </button>
               </li>

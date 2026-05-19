@@ -54,7 +54,7 @@ export function TreeRankingControls({
     <>
       <div className="mt-3">
         <div className="flex items-center justify-between gap-2">
-          <span className="text-sm font-medium text-[var(--ink)]">{balanceLabel}</span>
+          <span className="text-[13px] font-medium text-[var(--ink)]">{balanceLabel}</span>
           <span className="ui-mono text-[11px] text-[var(--ink-soft)]">{seasonShareLabel}</span>
         </div>
         <input
@@ -68,17 +68,17 @@ export function TreeRankingControls({
           onChange={(event) => onSummerWeightChange(Number(event.target.value) / 100)}
           disabled={controlsDisabled}
         />
-        <div className="mt-2 flex items-center justify-between text-[11px] text-[var(--ink-soft)]">
+        <div className="mt-2 flex items-center justify-between text-[10px] text-[var(--ink-soft)]">
           <span>{summerHint}</span>
           <span>{winterHint}</span>
         </div>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <label className="text-sm text-[var(--ink-soft)]">
+        <label className="text-[13px] text-[var(--ink-soft)]">
           {topNLabel}
           <select
-            className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
+            className="map-input mt-1 w-full rounded-md px-2 py-1.5 text-[13px] text-[var(--ink)]"
             value={topK}
             onChange={(event) => onTopKChange(Number(event.target.value))}
             disabled={controlsDisabled}
@@ -89,10 +89,10 @@ export function TreeRankingControls({
           </select>
         </label>
 
-        <label className="text-sm text-[var(--ink-soft)]">
+        <label className="text-[13px] text-[var(--ink-soft)]">
           {minWinterLightLabel}
           <select
-            className="map-input mt-1 w-full rounded-lg px-2 py-1.5 text-sm text-[var(--ink)]"
+            className="map-input mt-1 w-full rounded-md px-2 py-1.5 text-[13px] text-[var(--ink)]"
             value={minWinterLight}
             onChange={(event) => onMinWinterLightChange(Number(event.target.value))}
             disabled={controlsDisabled}
@@ -109,7 +109,7 @@ export function TreeRankingControls({
         <button
           type="button"
           onClick={onRun}
-          className="inline-flex w-full items-center justify-center gap-2 rounded-lg border border-[color:var(--blue-strong)] bg-[var(--blue-strong)] px-3 py-2 text-sm font-medium text-white transition-colors hover:bg-[var(--blue)] disabled:cursor-not-allowed disabled:opacity-70"
+          className="inline-flex w-full items-center justify-center gap-2 rounded-md border border-[color:var(--yellow-strong)] bg-[var(--yellow)] px-2.5 py-2 text-[13px] font-medium text-[#06080f] transition-colors hover:bg-[var(--yellow-strong)] hover:text-white disabled:cursor-not-allowed disabled:opacity-70"
           disabled={runDisabled}
         >
           {loading ? runningLabel : runLabel}
@@ -120,8 +120,8 @@ export function TreeRankingControls({
             type="button"
             onClick={onSecondaryAction}
             className={variant === 'wizard'
-              ? 'map-segment rounded-lg px-3 py-2 text-sm font-medium'
-              : 'map-segment rounded-lg px-3 py-2 text-sm font-medium'}
+              ? 'map-segment rounded-md px-2.5 py-2 text-[13px] font-medium'
+              : 'map-segment rounded-md px-2.5 py-2 text-[13px] font-medium'}
           >
             {secondaryActionLabel}
           </button>

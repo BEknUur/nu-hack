@@ -34,7 +34,7 @@ export function SegmentedOptionGroup<T extends string | number | boolean>({
           onClick={() => onChange(option.value)}
           disabled={disabled}
           className={cn(
-            'map-segment rounded-lg px-3 py-2 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-60',
+            'map-segment rounded-md px-2.5 py-1.5 text-[13px] font-medium disabled:cursor-not-allowed disabled:opacity-60',
             value === option.value && activeClassName,
             buttonClassName,
           )}
@@ -58,10 +58,10 @@ export function PanelSection({
   children,
 }: PanelSectionProps) {
   return (
-    <section className="space-y-2.5 border-t border-[color:var(--line)] pt-4 first:border-t-0 first:pt-0">
-      <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
+    <section className="space-y-2 border-t border-[color:var(--line)] pt-3 first:border-t-0 first:pt-0">
+      <div className="flex items-center gap-2 text-[13px] font-medium text-[var(--ink)]">
         {icon != null && (
-          <span className="flex h-8 w-8 items-center justify-center rounded-lg border border-[color:var(--line)] bg-white/80 text-[var(--blue-strong)]">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md border border-[color:rgba(198,138,17,0.24)] bg-white/80 text-[var(--yellow-strong)]">
             {icon}
           </span>
         )}

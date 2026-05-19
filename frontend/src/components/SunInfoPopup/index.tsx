@@ -29,7 +29,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
               ) : info.inSun ? (
                 <span className="text-[var(--yellow-strong)]">{messages.map.inSunlight}</span>
               ) : (
-                <span className="text-[var(--blue-strong)]">{messages.map.inShadow}</span>
+                <span className="text-[var(--yellow-strong)]">{messages.map.inShadow}</span>
               )}
             </div>
           </div>
