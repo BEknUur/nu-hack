@@ -3,13 +3,13 @@ import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 import { AnimatedText } from '@/components/ui/animated-underline-text-one';
 import WhisperText from '@/components/ui/whisper-text';
 import { Footer } from '@/components/ui/footer';
-import { useTranslation } from '@/i18n';
+import { useLangPath, useTranslation } from '@/i18n';
 
 // ─── DeCentra logo ───────────────────────────────────────────────────────────
 
-function DeCentraLogo({ tagline }: { tagline: string }) {
+function DeCentraLogo({ tagline, homeHref }: { tagline: string; homeHref: string }) {
   return (
-    <a href="/" className="flex flex-col leading-none">
+    <a href={homeHref} className="flex flex-col leading-none">
       <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">DeCentra</span>
       <span className="ui-mono text-[10px] text-white/35 mt-0.5">{tagline}</span>
     </a>
@@ -83,11 +83,13 @@ function FeatureSection({
   text,
   openSceneLabel,
   inDevLabel,
+  hrefFor,
 }: {
   cfg: FeatureConfig;
   text: FeatureText;
   openSceneLabel: string;
   inDevLabel: string;
+  hrefFor: (path: string) => string;
 }) {
   return (
     <section className="relative px-4 md:px-6 pb-16 md:pb-24 overflow-hidden">
@@ -137,7 +139,7 @@ function FeatureSection({
               </div>
             ) : (
               <a
-                href={cfg.path}
+                href={hrefFor(cfg.path)}
                 className="mt-8 inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-medium text-white ring-1 transition-all duration-200 hover:bg-white/5"
                 style={{ borderColor: cfg.border }}
               >
@@ -198,6 +200,7 @@ function FeatureSection({
 
 export default function LandingPage() {
   const { messages } = useTranslation();
+  const langPath = useLangPath();
   const l = messages.landingV2;
 
   return (
@@ -205,7 +208,7 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <ResponsiveHeroBanner
-        logoSlot={<DeCentraLogo tagline={l.footer.tagline} />}
+        logoSlot={<DeCentraLogo tagline={l.footer.tagline} homeHref={langPath('/')} />}
         backgroundSlides={[
           '/imgs/image2.png',
           '/imgs/astana2.png',
@@ -213,12 +216,12 @@ export default function LandingPage() {
         ]}
         slideInterval={4000}
         navLinks={[
-          { label: l.nav.apartments, href: '/app/apartments' },
-          { label: l.nav.trees,      href: '/app/trees'      },
-          { label: l.nav.workers,    href: '/app/workers'    },
+          { label: l.nav.apartments, href: langPath('/app/apartments') },
+          { label: l.nav.trees,      href: langPath('/app/trees')      },
+          { label: l.nav.workers,    href: langPath('/app/workers')    },
         ]}
         ctaButtonText={l.hero.openMap}
-        ctaButtonHref="/app/apartments"
+        ctaButtonHref={langPath('/app/apartments')}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}
@@ -267,6 +270,7 @@ export default function LandingPage() {
             text={l.features[i]}
             openSceneLabel={l.openScene}
             inDevLabel={l.inDevelopment}
+            hrefFor={langPath}
           />
         ))}
       </div>
@@ -274,9 +278,9 @@ export default function LandingPage() {
       {/* ── Footer ── */}
       <Footer
         mainLinks={[
-          { href: '/app/apartments', label: l.nav.apartments },
-          { href: '/app/trees',      label: l.nav.trees      },
-          { href: '/app/workers',    label: l.nav.workers    },
+          { href: langPath('/app/apartments'), label: l.nav.apartments },
+          { href: langPath('/app/trees'),      label: l.nav.trees      },
+          { href: langPath('/app/workers'),    label: l.nav.workers    },
         ]}
         legalLinks={[
           { href: '#', label: 'Privacy' },
