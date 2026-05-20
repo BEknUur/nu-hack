@@ -10,6 +10,8 @@ import TimeSliderBar from '@/components/TimeSliderBar';
 import SunInfoPopup from '@/components/SunInfoPopup';
 import SearchBar from '@/components/SearchBar';
 import TreeCandidateCard from '@/components/TreeCandidateCard';
+import ChatSidebar from '@/components/ChatSidebar';
+import { useChat } from '@/hooks/useChat';
 import {
   useLeafletStaticSunLayer,
   useMapClickSunInfo,
@@ -101,6 +103,9 @@ export default function MapPage() {
   const [workerStats, setWorkerStats] = useState<Record<number, WorkerExposureStat>>({});
   const [workerSimSpeedMs, setWorkerSimSpeedMs] = useState<number>(1400);
   const [selectedWorker, setSelectedWorker] = useState<SelectedWorkerInfo | null>(null);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const chat = useChat({ language });
 
   const {
     engine,
@@ -624,6 +629,21 @@ export default function MapPage() {
           }}
         />
       )}
+
+      <ChatSidebar
+        isOpen={chatOpen}
+        onToggle={() => setChatOpen((v) => !v)}
+        messages={chat.messages}
+        suggestions={chat.suggestions}
+        isLoading={chat.isLoading}
+        isRecording={chat.isRecording}
+        isTranscribing={chat.isTranscribing}
+        onSendMessage={(text) => void chat.sendMessage(text)}
+        onStartRecording={chat.startRecording}
+        onStopRecording={() => void chat.stopRecording()}
+        onSuggestionClick={(text) => void chat.sendMessage(text)}
+        language={language}
+      />
     </div>
   );
 }
