@@ -10,7 +10,7 @@ import type {
   MapEngineState,
   MapInteractionHandler,
 } from '@/types/map-engine';
-import type { ShadowEngineController } from '@/types/shadow-engine';
+import type { ShadowEngineController, SunExposureOptions } from '@/types/shadow-engine';
 import {
   BUILDING_SOURCE_ID,
   DEFAULT_STATIC_REGION,
@@ -60,9 +60,12 @@ export function useMapLibreMapEngine({
 
   const isDisposedRef = useRef(false);
   const currentDateRef = useRef(new Date());
-  const currentSunExposureRef = useRef<{ enabled: boolean; options?: { startDate: Date; endDate: Date; iterations: number } }>({
+  const currentSunExposureRef = useRef<{ enabled: boolean; options: SunExposureOptions | null }>({
     enabled: false,
+    options: null,
   });
+  const sunExposureRevisionRef = useRef(0);
+  const sunExposureDrainRef = useRef<Promise<void> | null>(null);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -324,6 +327,67 @@ export function useMapLibreMapEngine({
     window.setTimeout(resolve, ms);
   });
 
+  const applySunExposureTransition = async (
+    enabled: boolean,
+    options: SunExposureOptions,
+  ) => {
+    const sunWallsSource = mapRef.current?.getSource(SUN_WALLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
+    if (enabled) {
+      // Entering exposure mode: clear helper walls and refresh features first.
+      sunWallsSource?.setData(EMPTY_FEATURE_COLLECTION);
+      await syncBuildingsRef.current?.();
+      try {
+        await shadeMapRef.current?.setSunExposure(true, options);
+      } catch (err) {
+        await sleep(180);
+        await syncBuildingsRef.current?.();
+        await shadeMapRef.current?.setSunExposure(true, options);
+        if (err) {
+          console.warn('Sun exposure transient error recovered by retry:', err);
+        }
+      }
+      return;
+    }
+
+    // Exiting exposure mode: disable simulator mode first, then redraw shadows/walls.
+    try {
+      await shadeMapRef.current?.setSunExposure(false, options);
+    } catch (err) {
+      await sleep(180);
+      await shadeMapRef.current?.setSunExposure(false, options);
+      if (err) {
+        console.warn('Disable sun exposure transient error recovered by retry:', err);
+      }
+    }
+    await syncBuildingsRef.current?.();
+  };
+
+  const drainSunExposureTransitions = () => {
+    if (sunExposureDrainRef.current) {
+      return sunExposureDrainRef.current;
+    }
+
+    // Serialize mode changes and always converge to the latest requested state.
+    sunExposureDrainRef.current = (async () => {
+      while (true) {
+        const revisionAtStart = sunExposureRevisionRef.current;
+        const { enabled, options } = currentSunExposureRef.current;
+        if (!options) {
+          break;
+        }
+        await applySunExposureTransition(enabled, options);
+
+        if (revisionAtStart === sunExposureRevisionRef.current) {
+          break;
+        }
+      }
+    })().finally(() => {
+      sunExposureDrainRef.current = null;
+    });
+
+    return sunExposureDrainRef.current;
+  };
+
   const shadow: ShadowEngineController = {
     setDate: (date: Date) => {
       currentDateRef.current = date;
@@ -344,35 +408,8 @@ export function useMapLibreMapEngine({
     },
     setSunExposure: async (enabled, options) => {
       currentSunExposureRef.current = { enabled, options };
-      const sunWallsSource = mapRef.current?.getSource(SUN_WALLS_SOURCE_ID) as maplibregl.GeoJSONSource | undefined;
-      if (enabled) {
-        // Entering exposure mode: clear helper walls and refresh features first.
-        sunWallsSource?.setData(EMPTY_FEATURE_COLLECTION);
-        await syncBuildingsRef.current?.();
-        try {
-          await shadeMapRef.current?.setSunExposure(true, options);
-        } catch (err) {
-          await sleep(180);
-          await syncBuildingsRef.current?.();
-          await shadeMapRef.current?.setSunExposure(true, options);
-          if (err) {
-            console.warn('Sun exposure transient error recovered by retry:', err);
-          }
-        }
-        return;
-      }
-
-      // Exiting exposure mode: disable simulator mode first, then redraw shadows/walls.
-      try {
-        await shadeMapRef.current?.setSunExposure(false, options);
-      } catch (err) {
-        await sleep(180);
-        await shadeMapRef.current?.setSunExposure(false, options);
-        if (err) {
-          console.warn('Disable sun exposure transient error recovered by retry:', err);
-        }
-      }
-      await syncBuildingsRef.current?.();
+      sunExposureRevisionRef.current += 1;
+      await drainSunExposureTransitions();
     },
     isPositionInSun: (point) => (
       shadeMapRef.current?.isPositionInSun(point.x, point.y) ?? Promise.resolve(false)
