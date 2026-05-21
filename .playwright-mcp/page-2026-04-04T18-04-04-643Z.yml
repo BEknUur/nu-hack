@@ -1,0 +1,95 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - region "Map" [ref=e5]
+    - generic [ref=e6]:
+      - button "Zoom in" [ref=e7] [cursor=pointer]
+      - button "Zoom out" [ref=e9] [cursor=pointer]
+      - button "Drag to rotate map, click to reset north" [ref=e11]
+  - generic [ref=e14]:
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: Search
+        - generic [ref=e18]: Find a location
+      - generic [ref=e19]:
+        - generic "Language" [ref=e20]:
+          - button "RU" [ref=e21] [cursor=pointer]
+          - button "KK" [ref=e22] [cursor=pointer]
+          - button "EN" [ref=e23] [cursor=pointer]
+        - img [ref=e25]
+    - generic [ref=e29]:
+      - img [ref=e30]
+      - textbox "Search address, ЖК, or district" [ref=e33]
+  - complementary [ref=e34]:
+    - generic [ref=e35]:
+      - generic [ref=e36]:
+        - generic [ref=e37]: Map controls
+        - generic [ref=e38]: Shadow map
+      - img [ref=e40]
+    - generic [ref=e46]:
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - img [ref=e50]
+          - generic [ref=e52]: Date
+        - textbox [ref=e53]: 2026-04-04
+      - generic [ref=e54]:
+        - generic [ref=e55]:
+          - img [ref=e57]
+          - generic [ref=e63]: Analysis mode
+        - generic [ref=e64]:
+          - button "Shadows" [ref=e65] [cursor=pointer]
+          - button "Exposure" [ref=e66] [cursor=pointer]
+      - generic [ref=e67]:
+        - generic [ref=e68]:
+          - img [ref=e70]
+          - generic [ref=e73]: View
+        - generic [ref=e74]:
+          - button "2D" [ref=e75] [cursor=pointer]
+          - button "3D" [ref=e76] [cursor=pointer]
+      - generic [ref=e77]:
+        - generic [ref=e78]:
+          - img [ref=e80]
+          - generic [ref=e84]: Base map
+        - generic [ref=e85]:
+          - button "Standard" [ref=e86] [cursor=pointer]
+          - button "Satellite" [ref=e87] [cursor=pointer]
+  - generic [ref=e89]:
+    - generic [ref=e90]:
+      - img [ref=e92]
+      - generic [ref=e95]:
+        - generic [ref=e96]: Time of day
+        - generic [ref=e97]: 23:04
+    - generic [ref=e98]:
+      - slider [ref=e99] [cursor=pointer]: "1384"
+      - generic [ref=e100]:
+        - generic [ref=e101]: 00:00
+        - generic [ref=e102]: 06:00
+        - generic [ref=e103]: 12:00
+        - generic [ref=e104]: 18:00
+        - generic [ref=e105]: 23:59
+  - button "Open Sun Advisor" [ref=e106] [cursor=pointer]:
+    - img [ref=e107]
+  - generic:
+    - banner:
+      - generic:
+        - img
+      - generic:
+        - generic: AI assistant
+        - heading "Sun Advisor" [level=2]
+    - generic:
+      - generic:
+        - generic:
+          - img
+        - generic:
+          - paragraph: Hello!
+          - paragraph: Ask me about sunlight, shadows, buildings, or urban planning.
+        - generic:
+          - button "Sun hours for this area?"
+          - button "Best side for panels?"
+          - button "Safe to work outside?"
+    - generic:
+      - generic:
+        - button "Record":
+          - img
+        - textbox "Ask about sun, shadows…"
+        - button "Send" [disabled]:
+          - img

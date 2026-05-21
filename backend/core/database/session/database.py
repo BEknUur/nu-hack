@@ -23,6 +23,7 @@ def create_db_schema() -> None:
     Ensure database tables exist for all registered ORM models.
     """
     import services.ml_data.models  # noqa: F401
+    import services.auth.models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
 
