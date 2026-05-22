@@ -1,9 +1,11 @@
+import { LogIn, User, LogOut } from 'lucide-react';
 import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 import { AnimatedText } from '@/components/ui/animated-underline-text-one';
 import WhisperText from '@/components/ui/whisper-text';
 import { Footer } from '@/components/ui/footer';
 import { useLangPath, useTranslation } from '@/i18n';
+import { useAuth } from '@/hooks/useAuth';
 
 // ─── DeCentra logo ───────────────────────────────────────────────────────────
 
@@ -202,6 +204,7 @@ export default function LandingPage() {
   const { messages } = useTranslation();
   const langPath = useLangPath();
   const l = messages.landingV2;
+  const { user, signOut } = useAuth();
 
   return (
     <div className="min-h-screen bg-[#06080f] text-white overflow-x-hidden">
@@ -225,7 +228,34 @@ export default function LandingPage() {
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}
-        rightSlot={<LanguageSwitcher />}
+        rightSlot={
+          <div className="flex items-center gap-2">
+            <LanguageSwitcher />
+            {user ? (
+              <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 rounded-full bg-white/8 ring-1 ring-white/15 px-3 py-1.5">
+                  <User className="h-3.5 w-3.5 text-white/60" />
+                  <span className="text-xs text-white/70 max-w-[120px] truncate">{user.email}</span>
+                </div>
+                <button
+                  onClick={() => void signOut()}
+                  className="flex h-8 w-8 items-center justify-center rounded-full bg-white/8 ring-1 ring-white/15 text-white/50 hover:text-white hover:bg-white/12 transition-colors"
+                  aria-label="Sign out"
+                >
+                  <LogOut className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            ) : (
+              <a
+                href="/auth"
+                className="flex items-center gap-1.5 rounded-full bg-white/8 ring-1 ring-white/15 px-3.5 py-2 text-sm font-medium text-white/80 hover:text-white hover:bg-white/12 transition-colors"
+              >
+                <LogIn className="h-3.5 w-3.5" />
+                Sign in
+              </a>
+            )}
+          </div>
+        }
         partners={[]}
         heroTextSlot={
           <div className="flex flex-col items-center gap-0">
