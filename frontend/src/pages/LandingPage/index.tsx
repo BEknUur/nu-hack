@@ -224,7 +224,7 @@ export default function LandingPage() {
           { label: l.nav.workers,    href: langPath('/app/workers')    },
         ]}
         ctaButtonText={l.hero.openMap}
-        ctaButtonHref={langPath('/app/apartments')}
+        ctaButtonHref={langPath('/app')}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}

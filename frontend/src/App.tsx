@@ -12,6 +12,7 @@ import { AuthProvider } from '@/hooks/useAuth';
 import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
+import DashboardPage from '@/pages/DashboardPage';
 import AuthPage from '@/pages/AuthPage';
 import { I18nProvider, useTranslation, type Language } from '@/i18n';
 import { isLangSlug } from '@/i18n/langRoutes';
@@ -53,7 +54,7 @@ export default function App() {
 
             <Route path="/:lang" element={<LanguageLayout />}>
               <Route index element={<LandingPage />} />
-              <Route path="app" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
+              <Route path="app" element={<ProtectedRoute><DashboardPage /></ProtectedRoute>} />
               <Route path="app/:caseId" element={<ProtectedRoute><MapPage /></ProtectedRoute>} />
             </Route>
 
