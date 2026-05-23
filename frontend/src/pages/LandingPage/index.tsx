@@ -1,5 +1,4 @@
 import { LogIn, User, LogOut } from 'lucide-react';
-import LanguageSwitcher from '@/components/LanguageSwitcher';
 import ResponsiveHeroBanner from '@/components/ui/responsive-hero-banner';
 import { AnimatedText } from '@/components/ui/animated-underline-text-one';
 import WhisperText from '@/components/ui/whisper-text';
@@ -219,18 +218,16 @@ export default function LandingPage() {
         ]}
         slideInterval={4000}
         navLinks={[
+          { label: l.nav.home,       href: langPath('/')               },
           { label: l.nav.apartments, href: langPath('/app/apartments') },
           { label: l.nav.trees,      href: langPath('/app/trees')      },
           { label: l.nav.workers,    href: langPath('/app/workers')    },
         ]}
-        ctaButtonText={l.hero.openMap}
-        ctaButtonHref={langPath('/app')}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}
         description={l.hero.description}
         rightSlot={
           <div className="flex items-center gap-2">
-            <LanguageSwitcher />
             {user ? (
               <div className="flex items-center gap-1.5">
                 <div className="flex items-center gap-1.5 rounded-full bg-white/8 ring-1 ring-white/15 px-3 py-1.5">

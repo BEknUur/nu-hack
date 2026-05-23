@@ -104,7 +104,7 @@ export default function SolarFlowersWizard({
 
   return (
     <aside
-      className="absolute right-4 top-[4.5rem] z-[1100] w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden md:top-4"
+      className="absolute right-4 top-[4.5rem] z-[1100] hidden w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden md:top-4 md:block"
       style={{ background: PANEL_BG, backdropFilter: 'blur(22px)', border: `1px solid ${ACCENT_BORDER}` }}
     >
       <SolarWizardHeader copy={copy} stepIndex={stepIndex} />

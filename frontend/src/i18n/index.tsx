@@ -20,6 +20,7 @@ interface TranslationSet {
     reviewUseCases: string;
     close: string;
     language: string;
+    signOut: string;
   };
   landing: {
     heroTag: string;
@@ -57,9 +58,9 @@ interface TranslationSet {
       title: string;
       titleAccent: string;
       description: string;
-      openMap: string;
     };
     nav: {
+      home: string;
       apartments: string;
       trees: string;
       workers: string;
@@ -142,6 +143,7 @@ const translations: Record<Language, TranslationSet> = {
       reviewUseCases: 'Смотреть сценарии',
       close: 'Закрыть',
       language: 'Язык',
+      signOut: 'Выйти',
     },
     landing: {
       heroTag: 'Интеллект инсоляции для Астаны',
@@ -221,9 +223,9 @@ const translations: Record<Language, TranslationSet> = {
         // NBSP so WhisperText keeps «в движении.» on one line (no orphan «в»).
         titleAccent: 'в\u00A0движении.',
         description: 'Анализ теней зданий, оптимизация посадки деревьев, планирование смен на открытом воздухе и карта инсоляции — всё на одной городской карте.',
-        openMap: 'Открыть карту',
       },
       nav: {
+        home: 'Главная',
         apartments: 'Квартиры',
         trees: 'Деревья',
         workers: 'Рабочие',
@@ -313,6 +315,7 @@ const translations: Record<Language, TranslationSet> = {
       reviewUseCases: 'Сценарийлерді көру',
       close: 'Жабу',
       language: 'Тіл',
+      signOut: 'Шығу',
     },
     landing: {
       heroTag: 'Астанаға арналған күн жарығы интеллекті',
@@ -391,9 +394,9 @@ const translations: Record<Language, TranslationSet> = {
         title: 'Күн жарығы',
         titleAccent: 'қозғалыста.',
         description: 'Ғимарат көлеңкелерін талдаңыз, ағаш отырғызуды оңтайландырыңыз, сыртқы жұмыс ауысымдарын жоспарлаңыз — бәрі бір қала картасында.',
-        openMap: 'Картаны ашу',
       },
       nav: {
+        home: 'Басты',
         apartments: 'Пәтерлер',
         trees: 'Ағаштар',
         workers: 'Жұмысшылар',
@@ -483,6 +486,7 @@ const translations: Record<Language, TranslationSet> = {
       reviewUseCases: 'Review use cases',
       close: 'Close',
       language: 'Language',
+      signOut: 'Sign out',
     },
     landing: {
       heroTag: 'Urban daylight intelligence for Astana',
@@ -561,9 +565,9 @@ const translations: Record<Language, TranslationSet> = {
         title: 'Sunlight',
         titleAccent: 'in\u00A0Motion.',
         description: 'Analyze building shadows, optimize tree placement, plan outdoor shifts, and map sunlight — all on one city map.',
-        openMap: 'Open Map',
       },
       nav: {
+        home: 'Home',
         apartments: 'Apartments',
         trees: 'Trees',
         workers: 'Workers',

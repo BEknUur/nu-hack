@@ -250,8 +250,8 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
     }
   };
 
-  const signInQuote = "Добро пожаловать обратно. Астана ждёт тебя.";
-  const signUpQuote = "Новый аккаунт. Новые возможности.";
+  const signInQuote = "Welcome back. Astana is waiting for you.";
+  const signUpQuote = "New account. New opportunities.";
 
   return (
     <div className="w-full min-h-screen bg-[#06080f] md:grid md:grid-cols-2">
