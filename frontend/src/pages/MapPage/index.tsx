@@ -489,7 +489,7 @@ export default function MapPage() {
       <MapView containerRef={containerRef} />
 
       {showScenarioNav && (
-        <div className="pointer-events-none absolute inset-x-0 top-4 z-[1000] flex justify-center px-4">
+        <div className="pointer-events-none absolute inset-x-0 top-4 z-[1000] flex justify-end px-4 md:justify-center">
           <ScenarioModeNavBar active={scenarioNavActive} className="pointer-events-auto" />
         </div>
       )}
