@@ -220,8 +220,8 @@ export default function LandingPage() {
         navLinks={[
           { label: l.nav.home,       href: langPath('/')               },
           { label: l.nav.apartments, href: langPath('/app/apartments') },
-          { label: l.nav.trees,      href: langPath('/app/trees')      },
-          { label: l.nav.workers,    href: langPath('/app/workers')    },
+          { label: l.nav.trees,      href: langPath('/app/trees'),      hideOnMobile: true },
+          { label: l.nav.workers,    href: langPath('/app/workers'),    hideOnMobile: true },
         ]}
         title={l.hero.title}
         titleLine2={l.hero.titleAccent}

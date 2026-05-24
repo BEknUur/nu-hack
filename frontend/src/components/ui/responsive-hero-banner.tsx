@@ -5,6 +5,8 @@ interface NavLink {
   label: string;
   href: string;
   isActive?: boolean;
+  /** Omit from the hamburger list below `md` (desktop pill still shows all links). */
+  hideOnMobile?: boolean;
 }
 
 interface Partner {
@@ -38,8 +40,8 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
   navLinks = [
     { label: 'Home', href: '/' },
     { label: 'Apartments', href: '/app/apartments' },
-    { label: 'Trees', href: '/app/trees' },
-    { label: 'Workers', href: '/app/workers' },
+    { label: 'Trees', href: '/app/trees', hideOnMobile: true },
+    { label: 'Workers', href: '/app/workers', hideOnMobile: true },
   ],
   title = 'Sunlight',
   titleLine2 = 'in Motion.',
@@ -209,7 +211,7 @@ const ResponsiveHeroBanner: React.FC<ResponsiveHeroBannerProps> = ({
           {/* Mobile menu */}
           {mobileMenuOpen && (
             <div className="md:hidden mt-3 rounded-2xl bg-[#0d1117]/90 ring-1 ring-white/10 backdrop-blur-xl p-2">
-              {navLinks.map((link, i) => (
+              {navLinks.filter((link) => !link.hideOnMobile).map((link, i) => (
                 <a
                   key={i}
                   href={link.href}

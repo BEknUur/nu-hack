@@ -96,19 +96,21 @@ export function ScenarioModeNavBar({ active, className }: ScenarioModeNavBarProp
             >
               {nav.home}
             </Link>
-            {links.map(({ caseId, label }) => (
-              <Link
-                key={caseId}
-                to={langPath(`/app/${caseId}`)}
-                className={cn(
-                  mobileLinkBase,
-                  active === caseId ? 'text-white bg-white/10' : 'text-white/70 hover:bg-white/5 hover:text-white',
-                )}
-                onClick={() => setMobileOpen(false)}
-              >
-                {label}
-              </Link>
-            ))}
+            {links
+              .filter(({ caseId }) => caseId !== 'trees' && caseId !== 'workers')
+              .map(({ caseId, label }) => (
+                <Link
+                  key={caseId}
+                  to={langPath(`/app/${caseId}`)}
+                  className={cn(
+                    mobileLinkBase,
+                    active === caseId ? 'text-white bg-white/10' : 'text-white/70 hover:bg-white/5 hover:text-white',
+                  )}
+                  onClick={() => setMobileOpen(false)}
+                >
+                  {label}
+                </Link>
+              ))}
             <div className="flex justify-center border-t border-white/5 px-2 py-3">
               <NavbarFlagLanguages className="pl-0 ml-0" />
             </div>
