@@ -1,10 +1,11 @@
 """
 Telegram bot that wraps the existing DeCentra chat service.
-Starts polling on FastAPI startup — sends user messages to Qwen3
-and voice messages through Alem STT → Qwen3.
+Starts polling on FastAPI startup — sends user messages to RAGFlow
+and voice messages through Alem STT → RAGFlow.
 """
 from __future__ import annotations
 
+import json
 import logging
 from typing import Any
 
@@ -19,11 +20,9 @@ from telegram.ext import (
 )
 
 from services.telegram_bot.config import telegram_settings
-from services.alemllm.config import alemllm_settings
+from services.ragflow.config import ragflow_settings
 from services.chat.prompts import build_system_prompt
 from services.voice.config import voice_stt_settings
-
-ALEMLLM_API_URL = "https://llm.alem.ai/v1/chat/completions"
 
 logger = logging.getLogger(__name__)
 
@@ -61,40 +60,52 @@ def _parse_suggestions(text: str) -> tuple[str, list[str]]:
 
 
 async def _call_llm(messages: list[dict[str, str]], language: str = "en") -> str:
-    """Call AlemLLM API (~1s latency vs 25s for Qwen3)."""
+    """Call RAGFlow chat API — RAG-grounded answers (~3s)."""
     system_prompt = build_system_prompt(context=None, language=language)
     api_messages = [{"role": "system", "content": system_prompt}] + messages
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             resp = await client.post(
-                ALEMLLM_API_URL,
+                ragflow_settings.chat_completions_url,
                 headers={
-                    "Authorization": f"Bearer {alemllm_settings.api_key}",
+                    "Authorization": f"Bearer {ragflow_settings.api_key}",
                     "Content-Type": "application/json",
                 },
                 json={
-                    "model": alemllm_settings.model_name,
+                    "model": "ragflow",
                     "messages": api_messages,
-                    "temperature": TEMPERATURE,
                 },
             )
         if resp.status_code != 200:
-            logger.error("Qwen API error %s: %s", resp.status_code, resp.text[:200])
+            logger.error("RAGFlow API error %s: %s", resp.status_code, resp.text[:200])
             return "Sorry, the AI service is temporarily unavailable. Please try again."
 
-        data = resp.json()
-        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        # RAGFlow always returns SSE — collect delta content from chunks
+        full_content = []
+        for line in resp.text.splitlines():
+            if not line.startswith("data:"):
+                continue
+            payload = line[len("data:"):].strip()
+            if payload == "[DONE]":
+                break
+            try:
+                chunk = json.loads(payload)
+                delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+                if delta:
+                    full_content.append(delta)
+            except json.JSONDecodeError:
+                continue
+        content = "".join(full_content)
         clean_text, suggestions = _parse_suggestions(content)
 
-        # Append suggestions as inline text for Telegram
         if suggestions:
             clean_text += "\n\n💡 " + " | ".join(suggestions)
 
         return clean_text or "I couldn't generate a response. Please try again."
 
     except Exception as e:
-        logger.exception("Qwen call failed: %s", e)
+        logger.exception("RAGFlow call failed: %s", e)
         return "Sorry, something went wrong. Please try again."
 
 

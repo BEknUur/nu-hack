@@ -1,3 +1,5 @@
+import json
+
 from fastapi.routing import APIRouter
 from fastapi import HTTPException
 from fastapi.responses import StreamingResponse
@@ -6,13 +8,10 @@ import httpx
 from starlette.status import HTTP_200_OK, HTTP_500_INTERNAL_SERVER_ERROR
 
 from .schemas import ChatMessageRequest, ChatMessageResponse
-from services.alemllm.config import alemllm_settings
+from services.ragflow.config import ragflow_settings
 from services.chat.prompts import build_system_prompt
 
-ALEMLLM_API_URL = "https://llm.alem.ai/v1/chat/completions"
-
 TIMEOUT = 60.0
-TEMPERATURE = 0.4
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -47,6 +46,32 @@ def _parse_suggestions(text: str) -> tuple[str, list[str]]:
     return clean_text, suggestions
 
 
+def _ragflow_headers() -> dict:
+    return {
+        "Authorization": f"Bearer {ragflow_settings.api_key}",
+        "Content-Type": "application/json",
+    }
+
+
+async def _collect_sse_content(response: httpx.Response) -> str:
+    """RAGFlow always returns SSE even for non-stream requests. Collect all delta content."""
+    full_content = []
+    for line in response.text.splitlines():
+        if not line.startswith("data:"):
+            continue
+        payload = line[len("data:"):].strip()
+        if payload == "[DONE]":
+            break
+        try:
+            chunk = json.loads(payload)
+            delta = chunk.get("choices", [{}])[0].get("delta", {}).get("content")
+            if delta:
+                full_content.append(delta)
+        except json.JSONDecodeError:
+            continue
+    return "".join(full_content)
+
+
 @router.post(
     "/message",
     response_model=ChatMessageResponse,
@@ -58,31 +83,23 @@ async def chat_message(request: ChatMessageRequest) -> ChatMessageResponse:
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
             response = await client.post(
-                ALEMLLM_API_URL,
-                headers={
-                    "Authorization": f"Bearer {alemllm_settings.api_key}",
-                    "Content-Type": "application/json",
-                },
-                json={
-                    "model": alemllm_settings.model_name,
-                    "messages": messages,
-                    "temperature": TEMPERATURE,
-                },
+                ragflow_settings.chat_completions_url,
+                headers=_ragflow_headers(),
+                json={"model": "ragflow", "messages": messages},
             )
 
         if response.status_code != HTTP_200_OK:
             raise HTTPException(
                 status_code=response.status_code,
-                detail=response.text,
+                detail=response.text[:500],
             )
 
-        data = response.json()
-        content = data.get("choices", [{}])[0].get("message", {}).get("content")
+        content = await _collect_sse_content(response)
 
         if not content:
             raise HTTPException(
                 status_code=HTTP_500_INTERNAL_SERVER_ERROR,
-                detail="Invalid response from LLM",
+                detail="Empty response from RAGFlow",
             )
 
         clean_text, suggestions = _parse_suggestions(content)
@@ -104,17 +121,9 @@ async def chat_stream(request: ChatMessageRequest) -> StreamingResponse:
             async with httpx.AsyncClient(timeout=TIMEOUT) as client:
                 async with client.stream(
                     "POST",
-                    ALEMLLM_API_URL,
-                    headers={
-                        "Authorization": f"Bearer {alemllm_settings.api_key}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": alemllm_settings.model_name,
-                        "messages": messages,
-                        "temperature": TEMPERATURE,
-                        "stream": True,
-                    },
+                    ragflow_settings.chat_completions_url,
+                    headers=_ragflow_headers(),
+                    json={"model": "ragflow", "messages": messages, "stream": True},
                 ) as response:
                     if response.status_code != HTTP_200_OK:
                         error_body = await response.aread()
@@ -122,7 +131,7 @@ async def chat_stream(request: ChatMessageRequest) -> StreamingResponse:
                         return
 
                     async for line in response.aiter_lines():
-                        if line.startswith("data: "):
+                        if line.startswith("data:"):
                             yield f"{line}\n\n"
 
         except httpx.RequestError as e:
