@@ -1,15 +1,8 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, type ComponentPropsWithoutRef } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { cn } from '@/lib/utils';
-import {
-  Sun,
-  Send,
-  X,
-  Mic,
-  MicOff,
-  Loader2,
-  MessageCircle,
-  GripVertical,
-} from 'lucide-react';
+import { X, MessageCircle } from 'lucide-react';
 
 /* ─────────────────────────────── types ─────────────────────────────── */
 
@@ -134,15 +127,84 @@ function TypingDots() {
 
 /* ──────────────────── message bubble ──────────────────────────────── */
 
+const assistantMarkdownComponents = {
+  p: (props: ComponentPropsWithoutRef<'p'>) => (
+    <p className="mb-2 last:mb-0 [&:first-child]:mt-0" {...props} />
+  ),
+  strong: (props: ComponentPropsWithoutRef<'strong'>) => (
+    <strong className="font-semibold text-[var(--ink)]" {...props} />
+  ),
+  em: (props: ComponentPropsWithoutRef<'em'>) => <em className="italic" {...props} />,
+  ul: (props: ComponentPropsWithoutRef<'ul'>) => (
+    <ul className="mb-2 list-disc pl-4 marker:text-[var(--ink-soft)] last:mb-0" {...props} />
+  ),
+  ol: (props: ComponentPropsWithoutRef<'ol'>) => (
+    <ol className="mb-2 list-decimal pl-4 last:mb-0" {...props} />
+  ),
+  li: (props: ComponentPropsWithoutRef<'li'>) => (
+    <li className="[&>p]:mb-1 [&>p:last-child]:mb-0" {...props} />
+  ),
+  a: ({ href, children, ...rest }: ComponentPropsWithoutRef<'a'>) => (
+    <a
+      href={href}
+      className="font-medium text-[var(--blue-strong)] underline decoration-[var(--blue-strong)]/35 underline-offset-2 hover:decoration-[var(--blue-strong)]"
+      target="_blank"
+      rel="noopener noreferrer"
+      {...rest}
+    >
+      {children}
+    </a>
+  ),
+  code: ({
+    className,
+    children,
+    ...props
+  }: ComponentPropsWithoutRef<'code'> & { className?: string }) => {
+    const isBlock = Boolean(className?.includes('language-'));
+    if (!isBlock) {
+      return (
+        <code
+          className="rounded bg-[var(--ink)]/8 px-1 py-0.5 font-mono text-[11px] text-[var(--ink)]"
+          {...props}
+        >
+          {children}
+        </code>
+      );
+    }
+    return (
+      <code className={cn('block whitespace-pre font-mono text-[11px]', className)} {...props}>
+        {children}
+      </code>
+    );
+  },
+  pre: (props: ComponentPropsWithoutRef<'pre'>) => (
+    <pre
+      className="mb-2 max-w-full overflow-x-auto rounded-lg bg-[var(--ink)]/6 p-2 text-[var(--ink)] last:mb-0"
+      {...props}
+    />
+  ),
+  blockquote: (props: ComponentPropsWithoutRef<'blockquote'>) => (
+    <blockquote
+      className="mb-2 border-l-2 border-[var(--blue-strong)]/35 pl-2 text-[var(--ink-soft)] last:mb-0"
+      {...props}
+    />
+  ),
+  h1: (props: ComponentPropsWithoutRef<'h1'>) => (
+    <h1 className="mb-1 text-[13px] font-semibold text-[var(--ink)]" {...props} />
+  ),
+  h2: (props: ComponentPropsWithoutRef<'h2'>) => (
+    <h2 className="mb-1 text-[12px] font-semibold text-[var(--ink)]" {...props} />
+  ),
+  h3: (props: ComponentPropsWithoutRef<'h3'>) => (
+    <h3 className="mb-1 text-[12px] font-semibold text-[var(--ink)]" {...props} />
+  ),
+  hr: () => <hr className="my-2 border-[color:var(--line)]" />,
+} as const;
+
 function MessageRow({ role, content }: { role: 'user' | 'assistant'; content: string }) {
   const isUser = role === 'user';
   return (
     <div className={cn('flex gap-2', isUser ? 'justify-end' : 'justify-start')}>
-      {!isUser && (
-        <div className="mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--yellow)] shadow-[0_1px_4px_rgba(198,138,17,0.25)]">
-          <Sun className="h-3 w-3 text-[var(--ink)]" />
-        </div>
-      )}
       <div
         className={cn(
           'max-w-[82%] rounded-2xl px-3 py-2 text-[12.5px] leading-[1.55]',
@@ -150,9 +212,15 @@ function MessageRow({ role, content }: { role: 'user' | 'assistant'; content: st
             ? 'rounded-br-md bg-[var(--blue-strong)] text-white'
             : 'rounded-bl-md border border-[color:var(--line)] bg-white/80 text-[var(--ink)]',
         )}
-        style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
+        style={isUser ? { whiteSpace: 'pre-wrap', wordBreak: 'break-word' } : { wordBreak: 'break-word' }}
       >
-        {content}
+        {isUser ? (
+          content
+        ) : (
+          <ReactMarkdown remarkPlugins={[remarkGfm]} components={assistantMarkdownComponents}>
+            {content}
+          </ReactMarkdown>
+        )}
       </div>
     </div>
   );
@@ -238,11 +306,6 @@ export default function ChatSidebar({
           )}
         </button>
         {/* drag grip indicator */}
-        {!isOpen && (
-          <div className="absolute -left-1 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-40 transition-opacity pointer-events-none">
-            <GripVertical className="h-3 w-3 text-[var(--ink-soft)]" />
-          </div>
-        )}
       </div>
 
       {/* ── floating card (map-panel style) ────────────────────────── */}
@@ -264,9 +327,6 @@ export default function ChatSidebar({
       >
         {/* ── header ──────────────────────────────────────────────── */}
         <header className="flex items-center gap-2.5 px-4 pt-3.5 pb-3">
-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-[var(--yellow)] shadow-[0_2px_8px_rgba(198,138,17,0.22)]">
-            <Sun className="h-3.5 w-3.5 text-[var(--ink)]" />
-          </div>
           <div className="flex-1 min-w-0">
             <div className="ui-mono text-[9px] uppercase tracking-[1.2px] text-[var(--ink-soft)]">
               {s.tag}
@@ -287,9 +347,6 @@ export default function ChatSidebar({
         >
           {messages.length === 0 && !isLoading && (
             <div className="flex flex-col items-center justify-center gap-3 py-5 px-2">
-              <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-[color:var(--line)] bg-white/80">
-                <Sun className="h-5 w-5 text-[var(--yellow-strong)]" />
-              </div>
               <div className="text-center">
                 <p className="text-[13px] font-semibold text-[var(--ink)]">{s.welcomeTitle}</p>
                 <p className="mt-1 max-w-[230px] text-[11px] leading-[1.55] text-[var(--ink-soft)]">
@@ -316,10 +373,7 @@ export default function ChatSidebar({
               <MessageRow key={i} role={msg.role} content={msg.content} />
             ))}
             {isLoading && (
-              <div className="flex items-start gap-2">
-                <div className="mt-0.5 flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[var(--yellow)]">
-                  <Sun className="h-3 w-3 text-[var(--ink)]" />
-                </div>
+              <div className="flex justify-start">
                 <div className="rounded-2xl rounded-bl-md border border-[color:var(--line)] bg-white/80 px-3.5 py-2.5">
                   <TypingDots />
                 </div>
@@ -360,34 +414,30 @@ export default function ChatSidebar({
                 </>
               ) : (
                 <>
-                  <Loader2 className="h-3 w-3 animate-spin text-[var(--blue-strong)]" />
+                  <span className="min-w-[1rem] animate-pulse font-medium text-[var(--blue-strong)]" aria-hidden>
+                    …
+                  </span>
                   <span className="text-[var(--ink-soft)]">{s.transcribing}</span>
                 </>
               )}
             </div>
           )}
 
-          <div className="map-input flex items-end gap-1 rounded-xl px-2 py-1">
+          <div className="map-input flex items-end gap-1.5 rounded-xl px-2 py-1">
             <button
               type="button"
               onClick={isRecording ? onStopRecording : onStartRecording}
               disabled={isTranscribing}
               className={cn(
-                'mb-px flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-150',
+                'mb-px shrink-0 rounded-md px-2 py-1 text-[11px] font-medium transition-all duration-150',
                 isRecording
-                  ? 'bg-red-50 text-red-500'
+                  ? 'bg-red-50 text-red-600'
                   : 'text-[var(--ink-soft)] hover:bg-[rgba(31,79,156,0.06)] hover:text-[var(--blue-strong)]',
                 isTranscribing && 'opacity-30',
               )}
               aria-label={isRecording ? 'Stop' : 'Record'}
             >
-              {isTranscribing ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : isRecording ? (
-                <MicOff className="h-3.5 w-3.5" />
-              ) : (
-                <Mic className="h-3.5 w-3.5" />
-              )}
+              {isTranscribing ? '…' : isRecording ? 'Stop' : 'Voice'}
             </button>
 
             <textarea
@@ -419,14 +469,13 @@ export default function ChatSidebar({
               onClick={submit}
               disabled={!inputValue.trim() || isRecording || isTranscribing}
               className={cn(
-                'mb-px flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-all duration-150',
+                'mb-px shrink-0 rounded-md px-2.5 py-1 text-[11px] font-semibold transition-all duration-150',
                 inputValue.trim()
                   ? 'bg-[var(--blue-strong)] text-white hover:bg-[var(--blue)]'
                   : 'text-[var(--ink-soft)]/30',
               )}
-              aria-label="Send"
             >
-              <Send className="h-3.5 w-3.5" />
+              Send
             </button>
           </div>
         </div>
