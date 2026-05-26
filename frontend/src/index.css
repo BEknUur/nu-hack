@@ -26,6 +26,10 @@
 
 :root {
   color-scheme: light;
+  --popover: 40 33% 99%;
+  --popover-foreground: 222 35% 14%;
+  --card: 40 33% 99%;
+  --card-foreground: 222 35% 14%;
   --bg: #f3efe4;
   --surface: #fbf8f1;
   --surface-strong: #ffffff;
