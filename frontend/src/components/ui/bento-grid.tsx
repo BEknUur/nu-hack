@@ -113,10 +113,12 @@ export function BentoGrid({ items, className }: BentoGridProps) {
           );
         }
 
+        const isExternal = item.href.startsWith('http');
         return (
           <a
             key={`${item.title}-${index}`}
             href={item.href}
+            {...(isExternal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
             className={cn(
               'block h-full',
               'focus:outline-none focus-visible:ring-2 focus-visible:ring-[#f0c24c]/60 focus-visible:ring-offset-2 focus-visible:ring-offset-[#06080f]',

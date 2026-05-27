@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, Send } from 'lucide-react';
 import { NavbarFlagLanguages } from '@/components/NavbarFlagLanguages';
 import { useLangPath, useTranslation } from '@/i18n';
 import { cn } from '@/lib/utils';
 
-export type ScenarioNavCase = 'apartments' | 'trees' | 'workers';
+export type ScenarioNavCase = 'apartments' | 'trees' | 'workers' | 'solar-flowers';
 
 interface ScenarioModeNavBarProps {
   active: ScenarioNavCase;
@@ -24,6 +24,7 @@ export function ScenarioModeNavBar({ active, className }: ScenarioModeNavBarProp
     { caseId: 'apartments', label: nav.apartments },
     { caseId: 'trees', label: nav.trees },
     { caseId: 'workers', label: nav.workers },
+    { caseId: 'solar-flowers', label: nav.solar ?? 'Solar' },
   ];
 
   useEffect(() => {
@@ -72,6 +73,15 @@ export function ScenarioModeNavBar({ active, className }: ScenarioModeNavBarProp
               {label}
             </Link>
           ))}
+          <a
+            href="https://t.me/alem_aiI_bot"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex h-8 w-8 items-center justify-center rounded-full text-white/45 hover:text-[#f0c24c] hover:bg-white/5 transition-colors"
+            title="Sun Advisor — Telegram Bot"
+          >
+            <Send className="h-3.5 w-3.5" />
+          </a>
           <NavbarFlagLanguages />
         </div>
       </nav>
