@@ -6,6 +6,7 @@ import {
 } from 'react';
 import { useTranslation } from '@/i18n';
 import type { TreeExplainResponse, TreeRankCandidate } from '@/types/tree-optimizer';
+import { ImageGenerator } from '@/components/ImageGenerator';
 
 type CardPlacement = 'top' | 'bottom' | 'left' | 'right';
 
@@ -293,7 +294,7 @@ export default function TreeCandidateCard({
           style={pointerStyle(activePosition)}
         />
 
-        <div className="map-panel relative rounded-xl p-4 text-[var(--ink)]">
+        <div className="map-panel relative max-h-[calc(100vh-1.5rem)] overflow-y-auto rounded-xl p-4 text-[var(--ink)]">
         <div className="flex items-start justify-between gap-3">
           <div>
             <div className="ui-mono text-[11px] text-[var(--ink-soft)]">{copy.tag}</div>
@@ -367,6 +368,8 @@ export default function TreeCandidateCard({
             </>
           )}
         </div>
+
+        <ImageGenerator defaultPrompt="Visualize a tree planted at this urban location in Astana" />
       </div>
       </div>
     </div>
