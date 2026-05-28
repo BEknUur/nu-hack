@@ -12,10 +12,7 @@ import { SolarWizardHeader } from '@/components/SolarFlowersWizard/SolarWizardHe
 import { SolarShapeStep } from '@/components/SolarFlowersWizard/SolarShapeStep';
 import { SolarSettingsStep } from '@/components/SolarFlowersWizard/SolarSettingsStep';
 import { SolarResultsStep } from '@/components/SolarFlowersWizard/SolarResultsStep';
-import {
-  ACCENT_BORDER,
-  PANEL_BG,
-} from '@/components/SolarFlowersWizard/styles';
+// styles imported by sub-components
 import type {
   SolarDrawShapeOption,
   SolarPanelTypeOption,
@@ -104,8 +101,7 @@ export default function SolarFlowersWizard({
 
   return (
     <aside
-      className="absolute right-4 top-[4.5rem] z-[1100] hidden w-[320px] max-w-[calc(100vw-2rem)] rounded-2xl overflow-hidden md:top-4 md:block"
-      style={{ background: PANEL_BG, backdropFilter: 'blur(22px)', border: `1px solid ${ACCENT_BORDER}` }}
+      className="map-panel absolute right-4 top-[4.5rem] z-[1100] hidden w-[288px] max-w-[calc(100vw-2rem)] rounded-lg overflow-hidden md:top-4 md:block text-[var(--ink)]"
     >
       <SolarWizardHeader copy={copy} stepIndex={stepIndex} />
 

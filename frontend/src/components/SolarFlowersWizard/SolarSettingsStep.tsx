@@ -10,9 +10,6 @@ import type {
   SolarTargetOption,
 } from '@/components/SolarFlowersWizard/types';
 import {
-  DARK_CARD,
-  DARK_CARD_BORDER,
-  ORANGE,
   SOLAR_CHIP_ACTIVE,
   SOLAR_CHIP_BASE,
   SOLAR_CHIP_IDLE,
@@ -42,8 +39,8 @@ export function SolarSettingsStep({
   target,
   topK,
   loading,
-  error,
   hasArea,
+  error,
   panelTypes,
   targets,
   copy,
@@ -54,26 +51,20 @@ export function SolarSettingsStep({
   onBackToShape,
 }: SolarSettingsStepProps) {
   return (
-    <div
-      className="rounded-xl p-4 space-y-4"
-      style={{ background: DARK_CARD, border: `1px solid ${DARK_CARD_BORDER}` }}
-    >
-      <div className="text-sm font-semibold text-white">{copy.settingsTitle}</div>
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 space-y-3">
+      <div className="text-sm font-medium text-[var(--ink)]">{copy.settingsTitle}</div>
 
       {areaKm2 != null && (
-        <div
-          className="flex items-center justify-between rounded-lg px-3 py-1.5"
-          style={{ background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.12)' }}
-        >
-          <span className="text-[11px] text-white/40">{copy.areaLabel}</span>
-          <span className="font-mono text-[11px]" style={{ color: ORANGE }}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-1.5 border border-[var(--line)] bg-[var(--surface)]">
+          <span className="text-[11px] text-[var(--ink-soft)]">{copy.areaLabel}</span>
+          <span className="font-mono text-[11px] text-[var(--yellow-strong)]">
             {areaKm2.toFixed(3)} km²
           </span>
         </div>
       )}
 
       <div>
-        <span className="text-[11px] text-white/40 uppercase tracking-wide">{copy.panelTypeLabel}</span>
+        <span className="text-[11px] text-[var(--ink-soft)] uppercase tracking-wide">{copy.panelTypeLabel}</span>
         <div className="mt-2 flex flex-col gap-1.5">
           {panelTypes.map(({ value, label }) => (
             <button
@@ -89,7 +80,7 @@ export function SolarSettingsStep({
       </div>
 
       <div>
-        <span className="text-[11px] text-white/40 uppercase tracking-wide">{copy.targetLabel}</span>
+        <span className="text-[11px] text-[var(--ink-soft)] uppercase tracking-wide">{copy.targetLabel}</span>
         <div className="mt-2 flex flex-col gap-1.5">
           {targets.map(({ value, label }) => (
             <button
@@ -105,7 +96,7 @@ export function SolarSettingsStep({
       </div>
 
       <div>
-        <span className="text-[11px] text-white/40 uppercase tracking-wide">{copy.countLabel}</span>
+        <span className="text-[11px] text-[var(--ink-soft)] uppercase tracking-wide">{copy.countLabel}</span>
         <div className="mt-2 flex gap-1.5 flex-wrap">
           {[10, 20, 35, 50].map((n) => (
             <button
@@ -122,10 +113,7 @@ export function SolarSettingsStep({
       </div>
 
       {error && (
-        <div
-          className="rounded-lg px-3 py-2 text-xs leading-snug"
-          style={{ background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.2)', color: '#fca5a5' }}
-        >
+        <div className="rounded-lg px-3 py-2 text-xs leading-snug border border-red-300 bg-red-50 text-red-700">
           {error}
         </div>
       )}
@@ -135,16 +123,14 @@ export function SolarSettingsStep({
           type="button"
           onClick={onRunRanking}
           disabled={loading || !hasArea}
-          className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-bold text-white transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed"
-          style={{ background: loading ? 'rgba(251,146,60,0.5)' : ORANGE }}
+          className="flex items-center justify-center gap-2 rounded-lg px-3 py-2.5 text-xs font-semibold text-[#06080f] bg-[var(--yellow)] transition-all disabled:opacity-50"
         >
           {loading ? copy.runningBtn : copy.runBtn}
         </button>
         <button
           type="button"
           onClick={onBackToShape}
-          className="flex items-center justify-center rounded-lg px-3 py-2.5 text-xs font-medium text-white/40 transition-all duration-150"
-          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center justify-center rounded-lg px-3 py-2.5 text-xs font-medium text-[var(--ink-soft)] border border-[var(--line)] transition-all hover:text-[var(--ink)]"
         >
           {copy.backBtn}
         </button>

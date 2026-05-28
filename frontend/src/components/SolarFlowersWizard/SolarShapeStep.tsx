@@ -3,11 +3,6 @@ import type { SolarDrawMode, SolarWizardStep } from '@/types/solar-flowers';
 import type { SolarWizardCopy } from '@/components/SolarFlowersWizard/copy';
 import type { SolarDrawShapeOption } from '@/components/SolarFlowersWizard/types';
 import {
-  ACCENT_BG,
-  ACCENT_BORDER,
-  DARK_CARD,
-  DARK_CARD_BORDER,
-  ORANGE,
   SOLAR_CHIP_ACTIVE,
   SOLAR_CHIP_BASE,
   SOLAR_CHIP_IDLE,
@@ -43,12 +38,9 @@ export function SolarShapeStep({
   onClearArea,
 }: SolarShapeStepProps) {
   return (
-    <div
-      className="rounded-xl p-4 space-y-3"
-      style={{ background: DARK_CARD, border: `1px solid ${DARK_CARD_BORDER}` }}
-    >
-      <div className="text-sm font-semibold text-white">{copy.drawTitle}</div>
-      <p className="text-[12px] text-white/40 leading-snug">{copy.drawHint}</p>
+    <div className="rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 space-y-3">
+      <div className="text-sm font-medium text-[var(--ink)]">{copy.drawTitle}</div>
+      <p className="text-[11px] text-[var(--ink-soft)] leading-snug">{copy.drawHint}</p>
 
       <div className="grid grid-cols-2 gap-1.5">
         {drawShapes.map(({ mode, label }) => (
@@ -64,30 +56,21 @@ export function SolarShapeStep({
       </div>
 
       {areaKm2 != null && (
-        <div
-          className="flex items-center justify-between rounded-lg px-3 py-2"
-          style={{ background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.14)' }}
-        >
-          <span className="text-[11px] text-white/40">{copy.areaLabel}</span>
-          <span className="font-mono text-[11px]" style={{ color: ORANGE }}>
+        <div className="flex items-center justify-between rounded-lg px-3 py-2 border border-[var(--line)] bg-[var(--surface)]">
+          <span className="text-[11px] text-[var(--ink-soft)]">{copy.areaLabel}</span>
+          <span className="font-mono text-[11px] text-[var(--yellow-strong)]">
             {areaKm2.toFixed(3)} km²
           </span>
         </div>
       )}
 
       {(step === 'drawing' || drawingInProgress) && (
-        <div
-          className="flex items-center justify-between rounded-lg px-3 py-2"
-          style={{ background: 'rgba(251,146,60,0.06)', border: '1px solid rgba(251,146,60,0.14)' }}
-        >
+        <div className="flex items-center justify-between rounded-lg px-3 py-2 border border-[var(--yellow)] bg-[rgba(240,194,76,0.06)]">
           <div className="flex items-center gap-2">
-            <span
-              className="h-1.5 w-1.5 rounded-full animate-pulse"
-              style={{ background: ORANGE }}
-            />
-            <span className="text-[11px]" style={{ color: ORANGE }}>{copy.drawingActive}</span>
+            <span className="h-1.5 w-1.5 rounded-full animate-pulse bg-[var(--yellow)]" />
+            <span className="text-[11px] text-[var(--yellow-strong)]">{copy.drawingActive}</span>
           </div>
-          <span className="text-[10px] text-white/25">{copy.drawingEsc}</span>
+          <span className="text-[10px] text-[var(--ink-soft)]">{copy.drawingEsc}</span>
         </div>
       )}
 
@@ -95,21 +78,20 @@ export function SolarShapeStep({
         <button
           type="button"
           onClick={step === 'drawing' ? onCancelDrawing : onStartDrawing}
-          className="flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold text-white transition-all duration-150"
-          style={{ background: step === 'drawing' ? 'rgba(255,255,255,0.06)' : ORANGE, border: `1px solid ${step === 'drawing' ? 'rgba(255,255,255,0.1)' : 'transparent'}` }}
+          className={cn(
+            'flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-all',
+            step === 'drawing'
+              ? 'border border-[var(--line)] text-[var(--ink-soft)] hover:text-[var(--ink)]'
+              : 'bg-[var(--yellow)] text-[#06080f]'
+          )}
         >
-          {step === 'drawing'
-            ? copy.cancelBtn
-            : hasArea
-            ? copy.redrawBtn
-            : copy.drawBtn}
+          {step === 'drawing' ? copy.cancelBtn : hasArea ? copy.redrawBtn : copy.drawBtn}
         </button>
         <button
           type="button"
           onClick={onClearArea}
           disabled={!hasArea && step !== 'drawing'}
-          className="flex items-center justify-center rounded-lg px-3 py-2 text-xs font-medium text-white/40 transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{ border: '1px solid rgba(255,255,255,0.08)' }}
+          className="flex items-center justify-center rounded-lg px-3 py-2 text-xs font-medium text-[var(--ink-soft)] border border-[var(--line)] transition-all disabled:opacity-30"
         >
           {copy.clearBtn}
         </button>
@@ -120,12 +102,7 @@ export function SolarShapeStep({
           type="button"
           onClick={onContinueToSettings}
           disabled={!hasArea}
-          className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all duration-150 disabled:opacity-30 disabled:cursor-not-allowed"
-          style={{
-            color: hasArea ? ORANGE : 'rgba(255,255,255,0.3)',
-            border: `1px solid ${hasArea ? ACCENT_BORDER : 'rgba(255,255,255,0.07)'}`,
-            background: hasArea ? ACCENT_BG : 'transparent',
-          }}
+          className="w-full flex items-center justify-center gap-2 rounded-lg px-3 py-2 text-xs font-semibold transition-all disabled:opacity-30 border border-[var(--line)] text-[var(--ink)] hover:border-[var(--yellow)] hover:bg-[rgba(240,194,76,0.06)]"
         >
           {copy.continueBtn}
         </button>

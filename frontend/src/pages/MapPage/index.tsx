@@ -49,12 +49,21 @@ import type {
 import { getTreeUiMessages } from '@/pages/MapPage/treeUiMessages';
 import { TreeScenarioPanel } from '@/pages/MapPage/TreeScenarioPanel';
 import { WorkerScenarioPanel } from '@/pages/MapPage/WorkerScenarioPanel';
+import SolarFlowersWizard from '@/components/SolarFlowersWizard';
 import { rankTreeCandidates } from '@/services/treeOptimizer';
+import { rankSolarCandidates } from '@/services/solarOptimizer';
 import {
   estimateGeometryAreaKm2,
   geometryToBounds,
 } from '@/utils/treeArea';
 import { useTranslation } from '@/i18n';
+import type {
+  SolarCandidate,
+  SolarDrawMode,
+  SolarOptimizationTarget,
+  SolarPanelType,
+  SolarWizardStep,
+} from '@/types/solar-flowers';
 export default function MapPage() {
   const { messages, language } = useTranslation();
   const { caseId } = useParams();
@@ -68,10 +77,11 @@ export default function MapPage() {
 
   const isTreeMode = caseId === 'trees';
   const isWorkerMode = caseId === 'workers';
+  const isSolarMode = caseId === 'solar-flowers';
   const showScenarioNav =
-    caseId === 'apartments' || caseId === 'trees' || caseId === 'workers';
+    caseId === 'apartments' || caseId === 'trees' || caseId === 'workers' || caseId === 'solar-flowers';
   const scenarioNavActive: ScenarioNavCase =
-    caseId === 'trees' || caseId === 'workers' ? caseId : 'apartments';
+    caseId === 'trees' || caseId === 'workers' || caseId === 'solar-flowers' ? caseId as ScenarioNavCase : 'apartments';
   const treeUi = getTreeUiMessages(language);
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
@@ -117,6 +127,23 @@ export default function MapPage() {
   const [workerStats, setWorkerStats] = useState<Record<number, WorkerExposureStat>>({});
   const [workerSimSpeedMs, setWorkerSimSpeedMs] = useState<number>(1400);
   const [selectedWorker, setSelectedWorker] = useState<SelectedWorkerInfo | null>(null);
+
+  // Solar state
+  const [solarWizardStep, setSolarWizardStep] = useState<SolarWizardStep>('shape');
+  const [solarDrawMode, setSolarDrawMode] = useState<SolarDrawMode>('rectangle');
+  const [solarDrawArmed, setSolarDrawArmed] = useState(false);
+  const [solarDrawing, setSolarDrawing] = useState(false);
+  const [solarAreaGeometry, setSolarAreaGeometry] = useState<RankAreaGeometry | null>(null);
+  const [solarDraftGeometry, setSolarDraftGeometry] = useState<RankAreaGeometry | null>(null);
+  const [solarAreaKm2, setSolarAreaKm2] = useState<number | null>(null);
+  const [solarPanelType, setSolarPanelType] = useState<SolarPanelType>('solar_flower');
+  const [solarTarget, setSolarTarget] = useState<SolarOptimizationTarget>('balanced');
+  const [solarTopK, setSolarTopK] = useState(20);
+  const [solarLoading, setSolarLoading] = useState(false);
+  const [solarError, setSolarError] = useState<string | null>(null);
+  const [solarCandidates, setSolarCandidates] = useState<SolarCandidate[]>([]);
+  const [solarSelectedCandidate, setSolarSelectedCandidate] = useState<SolarCandidate | null>(null);
+  const [solarShowPoints, setSolarShowPoints] = useState(true);
 
   const [chatOpen, setChatOpen] = useState(false);
   const chat = useChat({ language });
@@ -345,11 +372,11 @@ export default function MapPage() {
   useMapLibreAoiOverlay({
     engine,
     rawMapRef,
-    isTreeMode,
+    isTreeMode: isTreeMode || isSolarMode,
     isWorkerMode,
-    treeAreaGeometry,
-    treeDraftGeometry,
-    treeDrawMode,
+    treeAreaGeometry: isSolarMode ? solarAreaGeometry : treeAreaGeometry,
+    treeDraftGeometry: isSolarMode ? solarDraftGeometry : treeDraftGeometry,
+    treeDrawMode: isSolarMode ? solarDrawMode as TreeDrawMode : treeDrawMode,
     workerAreaGeometry,
     workerDraftGeometry,
     workerDrawMode,
@@ -382,6 +409,49 @@ export default function MapPage() {
     setWorkerDrawArmed,
     setWorkerAreaStep,
   });
+
+  // Solar reuses tree drawing infrastructure
+  const applySolarAreaGeometry = useCallback((geo: RankAreaGeometry | null) => {
+    if (!geo) return;
+    setSolarAreaGeometry(geo);
+    setSolarAreaKm2(estimateGeometryAreaKm2(geo));
+    setSolarWizardStep('shape');
+  }, []);
+
+  useMapLibreTreeAreaDrawing({
+    engine,
+    enabled: isSolarMode && solarDrawArmed,
+    rawMapRef,
+    drawMode: solarDrawMode as TreeDrawMode,
+    applyTreeAreaGeometry: applySolarAreaGeometry,
+    areaMissingMessage: 'Draw an area first',
+    setTreeDrawing: setSolarDrawing,
+    setTreeDraftGeometry: setSolarDraftGeometry,
+    setTreeExplainError: () => {},
+    setTreeError: setSolarError,
+    setTreeDrawArmed: setSolarDrawArmed,
+    setTreeWizardStep: (s) => setSolarWizardStep(s as SolarWizardStep),
+  });
+
+  const handleRunSolarRanking = useCallback(async () => {
+    if (!solarAreaGeometry) return;
+    setSolarLoading(true);
+    setSolarError(null);
+    try {
+      const candidates = await rankSolarCandidates({
+        areaGeometry: solarAreaGeometry,
+        topK: solarTopK,
+        optimizationTarget: solarTarget,
+        panelType: solarPanelType,
+      });
+      setSolarCandidates(candidates);
+      setSolarWizardStep('results');
+    } catch (e) {
+      setSolarError(e instanceof Error ? e.message : 'Ranking failed');
+    } finally {
+      setSolarLoading(false);
+    }
+  }, [solarAreaGeometry, solarTopK, solarTarget, solarPanelType]);
 
   useMapLibreTreeRankLayer({
     engine,
@@ -631,16 +701,45 @@ export default function MapPage() {
         />
       )}
 
-      {!isTreeMode && (
-        <TimeSliderBar
-          sliderValue={dt.sliderValue}
-          sliderPct={dt.sliderPct}
-          timeLabel={dt.timeLabel}
-          onSliderChange={handleTimeSliderChange}
+      {isSolarMode && (
+        <SolarFlowersWizard
+          step={solarWizardStep}
+          drawMode={solarDrawMode}
+          drawingInProgress={solarDrawing}
+          hasArea={!!solarAreaGeometry}
+          areaKm2={solarAreaKm2}
+          panelType={solarPanelType}
+          target={solarTarget}
+          topK={solarTopK}
+          showPoints={solarShowPoints}
+          loading={solarLoading}
+          error={solarError}
+          candidates={solarCandidates}
+          selectedCandidate={solarSelectedCandidate}
+          language={language}
+          onDrawModeChange={(mode) => { setSolarDrawMode(mode); setSolarDrawArmed(false); setSolarDrawing(false); setSolarDraftGeometry(null); }}
+          onStartDrawing={() => { setSolarDrawArmed(true); setSolarWizardStep('drawing'); }}
+          onCancelDrawing={() => { setSolarDrawArmed(false); setSolarDrawing(false); setSolarDraftGeometry(null); setSolarWizardStep('shape'); }}
+          onContinueToSettings={() => { if (solarAreaGeometry) { setSolarError(null); setSolarWizardStep('settings'); } }}
+          onClearArea={() => { setSolarAreaGeometry(null); setSolarAreaKm2(null); setSolarCandidates([]); setSolarSelectedCandidate(null); setSolarWizardStep('shape'); }}
+          onPanelTypeChange={setSolarPanelType}
+          onTargetChange={setSolarTarget}
+          onTopKChange={setSolarTopK}
+          onTogglePoints={() => setSolarShowPoints((v) => !v)}
+          onRunRanking={() => void handleRunSolarRanking()}
+          onBackToShape={() => { setSolarWizardStep('shape'); setSolarDrawArmed(false); setSolarDrawing(false); setSolarSelectedCandidate(null); }}
+          onCloseCandidate={() => setSolarSelectedCandidate(null)}
         />
       )}
 
-      {!isTreeMode && !isWorkerMode && clickInfo && (
+      <TimeSliderBar
+        sliderValue={dt.sliderValue}
+        sliderPct={dt.sliderPct}
+        timeLabel={dt.timeLabel}
+        onSliderChange={handleTimeSliderChange}
+      />
+
+      {!isTreeMode && !isWorkerMode && !isSolarMode && clickInfo && (
         <SunInfoPopup
           info={clickInfo}
           onClose={() => {

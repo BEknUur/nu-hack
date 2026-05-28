@@ -300,12 +300,21 @@ TELEGRAM_API = f"https://api.telegram.org/bot{telegram_settings.bot_token}"
 
 async def _send_telegram_message(chat_id: int, text: str) -> bool:
     """Send message via direct HTTP — works even when polling is conflicted."""
+    # Convert **bold** → *bold* for Telegram Markdown
+    clean = text.replace("**", "*")
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
                 f"{TELEGRAM_API}/sendMessage",
-                json={"chat_id": chat_id, "text": text[:4096]},
+                json={"chat_id": chat_id, "text": clean[:4096], "parse_mode": "Markdown"},
             )
+        if resp.status_code != 200:
+            # Fallback: send without formatting if Markdown parse fails
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                resp = await client.post(
+                    f"{TELEGRAM_API}/sendMessage",
+                    json={"chat_id": chat_id, "text": clean[:4096]},
+                )
         return resp.status_code == 200
     except Exception as e:
         print(f"[Briefing] Failed to send to {chat_id}: {e}", flush=True)
