@@ -21,7 +21,7 @@ async def generate_image(
         "size": size or text_to_image_settings.default_size,
     }
 
-    logger.info("Text-to-image request: size=%s", payload["size"])
+    logger.info("Text-to-image request: size=%s prompt=%.80s...", payload["size"], payload["prompt"])
 
     try:
         async with httpx.AsyncClient(timeout=TIMEOUT) as client:
