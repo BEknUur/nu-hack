@@ -9,7 +9,6 @@ import {
   useLocation,
 } from 'react-router-dom';
 import { AuthProvider } from '@/hooks/useAuth';
-import ProtectedRoute from '@/components/ProtectedRoute';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
 // DashboardPage removed — /app redirects to /app/apartments
@@ -70,9 +69,7 @@ export default function App() {
                 path="app/:caseId"
                 element={(
                   <NonLandingWrapper>
-                    <ProtectedRoute>
-                      <MapPage />
-                    </ProtectedRoute>
+                    <MapPage />
                   </NonLandingWrapper>
                 )}
               />
