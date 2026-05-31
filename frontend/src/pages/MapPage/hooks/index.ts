@@ -11,6 +11,7 @@ export { useMapLibreWorkerCrew } from './useMapLibreWorkerCrew';
 export { useScenarioRouteResets } from './useScenarioRouteResets';
 export { useSelectedBuildingBestSideHighlight } from './useSelectedBuildingBestSideHighlight';
 export { useShadeMapDateAndExposure } from './useShadeMapDateAndExposure';
+export { useSunExposureCursorHours } from './useSunExposureCursorHours';
 export { useTreeCandidateExplanation } from './useTreeCandidateExplanation';
 export { useTreeCandidateMapAnchor } from './useTreeCandidateMapAnchor';
 export { useWorkerShadowSimulation } from './useWorkerShadowSimulation';

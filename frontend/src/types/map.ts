@@ -14,4 +14,7 @@ export interface ClickInfo {
   predictedBestSide?: 'N' | 'E' | 'S' | 'W' | null;
   predictedConfidence?: number | null;
   predictionLoading?: boolean;
+  sunHours?: number | null;
+  sunHoursLoading?: boolean;
+  sunHoursAvailable?: boolean;
 }

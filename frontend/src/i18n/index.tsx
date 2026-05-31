@@ -117,6 +117,12 @@ interface TranslationSet {
     inShadow: string;
     coordinates: string;
     bestSide: string;
+    dailySun: string;
+    calculatingDailySun: string;
+    dailySunHours: string;
+    cursorSunHours: string;
+    dailySunUnavailable: string;
+    dailySunExposureHint: string;
     predictingOrientation: string;
     confidence: string;
     buildingContext: string;
@@ -312,6 +318,12 @@ const translations: Record<Language, TranslationSet> = {
       inShadow: 'В тени',
       coordinates: 'Координаты',
       bestSide: 'Лучшая сторона',
+      dailySun: 'Солнце за день',
+      calculatingDailySun: 'Считаю часы солнца...',
+      dailySunHours: '≈ {{value}} ч солнца',
+      cursorSunHours: '{{value}} ч солнца',
+      dailySunUnavailable: 'Не удалось считать часы для этой точки.',
+      dailySunExposureHint: 'Включи режим «Инсоляция» и кликни точку.',
       predictingOrientation: 'Определяю ориентацию...',
       confidence: 'уверенность {{value}}%',
       buildingContext: 'Контекст здания',
@@ -496,6 +508,12 @@ const translations: Record<Language, TranslationSet> = {
       inShadow: 'Көлеңкеде',
       coordinates: 'Координаттар',
       bestSide: 'Үздік бет',
+      dailySun: 'Күндік жарық',
+      calculatingDailySun: 'Күн сағаттарын есептеп жатырмын...',
+      dailySunHours: '≈ {{value}} сағ күн',
+      cursorSunHours: '{{value}} сағ күн',
+      dailySunUnavailable: 'Бұл нүкте үшін күн сағатын оқу мүмкін болмады.',
+      dailySunExposureHint: '«Инсоляция» режимін қосып, нүктені таңда.',
       predictingOrientation: 'Бағытты анықтап жатырмын...',
       confidence: 'сенімділік {{value}}%',
       buildingContext: 'Ғимарат контексті',
@@ -680,6 +698,12 @@ const translations: Record<Language, TranslationSet> = {
       inShadow: 'In shadow',
       coordinates: 'Coordinates',
       bestSide: 'Best side',
+      dailySun: 'Daily sun',
+      calculatingDailySun: 'Calculating sun hours...',
+      dailySunHours: '≈ {{value}} h of sun',
+      cursorSunHours: '{{value}} hours of sun',
+      dailySunUnavailable: 'Could not read sun hours for this point.',
+      dailySunExposureHint: 'Switch to Exposure mode and click the point.',
       predictingOrientation: 'Predicting orientation...',
       confidence: 'confidence {{value}}%',
       buildingContext: 'Building context',

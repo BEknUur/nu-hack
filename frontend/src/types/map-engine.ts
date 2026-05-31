@@ -34,6 +34,8 @@ export interface MapEngineController {
   panTo: (point: MapPoint, options?: PanToOptions) => void;
   onClick: (handler: MapInteractionHandler) => () => void;
   onContextMenu: (handler: MapInteractionHandler) => () => void;
+  onMouseMove: (handler: MapInteractionHandler) => () => void;
+  onMouseLeave: (handler: () => void) => () => void;
 }
 
 export interface MapEngineState {

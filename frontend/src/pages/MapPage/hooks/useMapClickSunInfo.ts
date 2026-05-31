@@ -1,10 +1,12 @@
 import { useEffect, type Dispatch, type MutableRefObject, type RefObject, type SetStateAction } from 'react';
 import { getBuildingMetadata } from '@/services/buildingDetails';
 import { predictBestSide } from '@/services/bestSidePrediction';
+import { SUN_EXPOSURE_CONFIG } from '@/config/map';
 import type { ClickInfo } from '@/types/map';
 import type { SelectedBuilding } from '@/types/building';
 import type { MapPoint } from '@/types/map-engine';
 import type { ShadowEngineController } from '@/types/shadow-engine';
+import { astanaLocalToDate } from '@/utils/astanaTime';
 import { findBuildingAtPoint } from '@/utils/buildings';
 
 interface MapEngineControllerLike {
@@ -22,9 +24,18 @@ export interface UseMapClickSunInfoParams {
   isWorkerMode: boolean;
   workerDrawArmed: boolean;
   workerDrawing: boolean;
+  sunExposure: boolean;
   dateStr: string;
   setSelectedBuilding: Dispatch<SetStateAction<SelectedBuilding | null>>;
   setClickInfo: Dispatch<SetStateAction<ClickInfo | null>>;
+}
+
+function getDailySunExposureRange(dateStr: string) {
+  return {
+    startDate: astanaLocalToDate(dateStr, SUN_EXPOSURE_CONFIG.startHour, 0),
+    endDate: astanaLocalToDate(dateStr, SUN_EXPOSURE_CONFIG.endHour, 0),
+    iterations: SUN_EXPOSURE_CONFIG.iterations,
+  };
 }
 
 export function useMapClickSunInfo({
@@ -37,6 +48,7 @@ export function useMapClickSunInfo({
   isWorkerMode,
   workerDrawArmed,
   workerDrawing,
+  sunExposure,
   dateStr,
   setSelectedBuilding,
   setClickInfo,
@@ -73,6 +85,9 @@ export function useMapClickSunInfo({
         predictedBestSide: null,
         predictedConfidence: null,
         predictionLoading: Boolean(pickedBuilding?.id),
+        sunHours: null,
+        sunHoursLoading: sunExposure,
+        sunHoursAvailable: sunExposure,
       });
 
       if (pickedBuilding?.id) {
@@ -134,11 +149,38 @@ export function useMapClickSunInfo({
             : null));
         })
         .catch(() => setClickInfo(null));
+
+      if (sunExposure) {
+        shadow.setSunExposure(true, getDailySunExposureRange(dateStr))
+          .then(() => shadow.getHoursOfSun(screenPoint))
+          .then((sunHours) => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  sunHours: Number.isFinite(sunHours) ? sunHours : null,
+                  sunHoursLoading: false,
+                  sunHoursAvailable: true,
+                }
+              : null));
+          })
+          .catch(() => {
+            if (menuRequestIdRef.current !== requestId) return;
+            setClickInfo((prev) => (prev
+              ? {
+                  ...prev,
+                  sunHours: null,
+                  sunHoursLoading: false,
+                  sunHoursAvailable: true,
+                }
+              : null));
+          });
+      }
     }
 
     const unsubscribeClick = controller.onClick(handleClick);
     return () => {
       unsubscribeClick();
     };
-  }, [shadow, controller, buildingsRef, dateStr, isTreeMode, isWorkerMode, workerDrawArmed, workerDrawing]);
+  }, [shadow, controller, buildingsRef, dateStr, sunExposure, isTreeMode, isWorkerMode, workerDrawArmed, workerDrawing]);
 }
