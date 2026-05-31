@@ -179,7 +179,7 @@ def _parse_suggestions(text: str) -> tuple[str, list[str]]:
 
 async def _call_llm(messages: list[dict[str, str]], language: str = "en") -> str:
     """Call RAGFlow chat API — RAG-grounded answers (~3s)."""
-    system_prompt = build_system_prompt(context=None, language=language)
+    system_prompt = build_system_prompt(context=None, language=language, channel="telegram")
     api_messages = [{"role": "system", "content": system_prompt}] + messages
 
     try:
@@ -300,21 +300,12 @@ TELEGRAM_API = f"https://api.telegram.org/bot{telegram_settings.bot_token}"
 
 async def _send_telegram_message(chat_id: int, text: str) -> bool:
     """Send message via direct HTTP — works even when polling is conflicted."""
-    # Convert **bold** → *bold* for Telegram Markdown
-    clean = text.replace("**", "*")
     try:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
                 f"{TELEGRAM_API}/sendMessage",
-                json={"chat_id": chat_id, "text": clean[:4096], "parse_mode": "Markdown"},
+                json={"chat_id": chat_id, "text": text[:4096]},
             )
-        if resp.status_code != 200:
-            # Fallback: send without formatting if Markdown parse fails
-            async with httpx.AsyncClient(timeout=10.0) as client:
-                resp = await client.post(
-                    f"{TELEGRAM_API}/sendMessage",
-                    json={"chat_id": chat_id, "text": clean[:4096]},
-                )
         return resp.status_code == 200
     except Exception as e:
         print(f"[Briefing] Failed to send to {chat_id}: {e}", flush=True)
@@ -337,7 +328,7 @@ async def _send_briefing(context: ContextTypes.DEFAULT_TYPE, prompt: str, label:
         print(f"[Briefing] Failed to generate {label} briefing", flush=True)
         return
 
-    header = "☀️ *Утренний брифинг Sun Advisor*\n\n" if label == "morning" else "🌙 *Вечерний брифинг Sun Advisor*\n\n"
+    header = "☀️ Утренний брифинг Sun Advisor\n\n" if label == "morning" else "🌙 Вечерний брифинг Sun Advisor\n\n"
     message = header + briefing
 
     for user_id in all_users:
@@ -370,16 +361,15 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     _subscribers.add(user_id)
     _conversations.pop(user_id, None)
     await update.message.reply_text(
-        "☀️ *Sun Advisor — Астана*\n\n"
+        "☀️ Sun Advisor — Астана\n\n"
         "Я интеллектуальный помощник по солнечному свету.\n\n"
         "🏠 Квартиры — инсоляция, нормы, стоимость\n"
         "🌳 Озеленение — где сажать деревья\n"
         "👷 Рабочие — ротация при жаре/холоде\n"
         "☀️ Солнечные панели — размещение и выработка\n\n"
         "📬 Вы подписаны на ежедневные брифинги (утро + вечер)\n"
-        "Отписа��ься: /unsubscribe\n"
+        "Отписаться: /unsubscribe\n"
         "Сбросить диалог: /clear",
-        parse_mode="Markdown",
     )
 
 
@@ -413,7 +403,7 @@ async def cmd_briefing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     hour = datetime.utcnow().hour + ASTANA_UTC_OFFSET
     prompt = _build_morning_prompt(weather) if hour < 15 else _build_evening_prompt(weather)
     briefing = await _call_llm_direct(prompt)
-    await update.message.reply_text(("☀️ *Брифинг Sun Advisor*\n\n" + briefing)[:4000])
+    await update.message.reply_text(("☀️ Брифинг Sun Advisor\n\n" + briefing)[:4000])
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
