@@ -36,7 +36,12 @@ interface UseMapLibreMapEngineOptions {
   onLoadingChange: (loading: boolean) => void;
 }
 
+type RefreshableShadeMap = ShadeMap & {
+  _reset?: () => Promise<unknown> | unknown;
+};
+
 export function useMapLibreMapEngine({
+  initialDate,
   onLoadingChange,
 }: UseMapLibreMapEngineOptions): MapEngineState {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -59,13 +64,15 @@ export function useMapLibreMapEngine({
   const staticRegionRef = useRef<StaticRegionBBox>(DEFAULT_STATIC_REGION);
 
   const isDisposedRef = useRef(false);
-  const currentDateRef = useRef(new Date());
+  const currentDateRef = useRef(initialDate);
   const currentSunExposureRef = useRef<{ enabled: boolean; options: SunExposureOptions | null }>({
     enabled: false,
     options: null,
   });
   const sunExposureRevisionRef = useRef(0);
   const sunExposureDrainRef = useRef<Promise<void> | null>(null);
+  const dateApplyRafRef = useRef<number | null>(null);
+  const dateApplyRevisionRef = useRef(0);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
@@ -125,7 +132,7 @@ export function useMapLibreMapEngine({
             ? EMPTY_FEATURE_COLLECTION
             : { type: 'FeatureCollection', features: createSunWallFeatures(visible) });
           return;
-        } catch (err) {
+        } catch {
           staticFeaturesRef.current = [];
           staticFeaturesLoadedRef.current = true;
           buildingsRef.current = [];
@@ -268,6 +275,10 @@ export function useMapLibreMapEngine({
     return () => {
       isDisposedRef.current = true;
       syncBuildingsRef.current = null;
+      if (dateApplyRafRef.current != null) {
+        window.cancelAnimationFrame(dateApplyRafRef.current);
+        dateApplyRafRef.current = null;
+      }
       shadeMapRef.current?.removeAllListeners();
       shadeMapRef.current?.remove();
       shadeMapRef.current = null;
@@ -327,6 +338,99 @@ export function useMapLibreMapEngine({
     window.setTimeout(resolve, ms);
   });
 
+  const applyShadowDate = (date: Date) => {
+    const shadeMap = shadeMapRef.current;
+    if (!shadeMap || isDisposedRef.current) return;
+
+    try {
+      shadeMap.setDate(date);
+    } catch (err) {
+      window.setTimeout(() => {
+        if (
+          isDisposedRef.current ||
+          currentSunExposureRef.current.enabled ||
+          sunExposureDrainRef.current
+        ) {
+          return;
+        }
+
+        try {
+          shadeMapRef.current?.setDate(currentDateRef.current);
+        } catch {
+          if (err) {
+            console.warn('setDate retry failed after transient WebGL error:', err);
+          }
+        }
+      }, 120);
+    }
+  };
+
+  const scheduleShadowDateApply = () => {
+    dateApplyRevisionRef.current += 1;
+    const revision = dateApplyRevisionRef.current;
+
+    if (dateApplyRafRef.current != null) {
+      window.cancelAnimationFrame(dateApplyRafRef.current);
+    }
+
+    dateApplyRafRef.current = window.requestAnimationFrame(() => {
+      dateApplyRafRef.current = null;
+      if (
+        revision !== dateApplyRevisionRef.current ||
+        currentSunExposureRef.current.enabled ||
+        sunExposureDrainRef.current
+      ) {
+        return;
+      }
+
+      applyShadowDate(currentDateRef.current);
+    });
+  };
+
+  const refreshShadeMapHeightMap = async () => {
+    const shadeMap = shadeMapRef.current as RefreshableShadeMap | null;
+    if (!shadeMap || isDisposedRef.current || typeof shadeMap._reset !== 'function') return;
+
+    try {
+      await shadeMap._reset();
+    } catch (err) {
+      await sleep(180);
+      try {
+        const currentShadeMap = shadeMapRef.current as RefreshableShadeMap | null;
+        await currentShadeMap?._reset?.();
+      } catch {
+        if (err) {
+          console.warn('Shade map refresh failed after transient error:', err);
+        }
+      }
+    }
+  };
+
+  const setShadeMapSunExposure = async (
+    enabled: boolean,
+    options: SunExposureOptions,
+  ) => {
+    const shadeMap = shadeMapRef.current;
+    if (!shadeMap || isDisposedRef.current) return;
+
+    try {
+      await shadeMap.setSunExposure(enabled, options);
+    } catch (err) {
+      await sleep(180);
+      if (isDisposedRef.current || !shadeMapRef.current) return;
+      await refreshShadeMapHeightMap();
+      await shadeMapRef.current.setSunExposure(enabled, options);
+      if (err) {
+        console.warn(
+          enabled
+            ? 'Sun exposure transient error recovered by retry:'
+            : 'Disable sun exposure transient error recovered by retry:',
+          err,
+        );
+      }
+    }
+  };
+
   const applySunExposureTransition = async (
     enabled: boolean,
     options: SunExposureOptions,
@@ -336,30 +440,17 @@ export function useMapLibreMapEngine({
       // Entering exposure mode: clear helper walls and refresh features first.
       sunWallsSource?.setData(EMPTY_FEATURE_COLLECTION);
       await syncBuildingsRef.current?.();
-      try {
-        await shadeMapRef.current?.setSunExposure(true, options);
-      } catch (err) {
-        await sleep(180);
-        await syncBuildingsRef.current?.();
-        await shadeMapRef.current?.setSunExposure(true, options);
-        if (err) {
-          console.warn('Sun exposure transient error recovered by retry:', err);
-        }
-      }
+      await refreshShadeMapHeightMap();
+      await setShadeMapSunExposure(true, options);
       return;
     }
 
     // Exiting exposure mode: disable simulator mode first, then redraw shadows/walls.
-    try {
-      await shadeMapRef.current?.setSunExposure(false, options);
-    } catch (err) {
-      await sleep(180);
-      await shadeMapRef.current?.setSunExposure(false, options);
-      if (err) {
-        console.warn('Disable sun exposure transient error recovered by retry:', err);
-      }
-    }
+    await setShadeMapSunExposure(false, options);
+    applyShadowDate(currentDateRef.current);
     await syncBuildingsRef.current?.();
+    await refreshShadeMapHeightMap();
+    applyShadowDate(currentDateRef.current);
   };
 
   const drainSunExposureTransitions = () => {
@@ -391,20 +482,7 @@ export function useMapLibreMapEngine({
   const shadow: ShadowEngineController = {
     setDate: (date: Date) => {
       currentDateRef.current = date;
-      try {
-        shadeMapRef.current?.setDate(date);
-      } catch (err) {
-        // Transient WebGL buffer races can happen during tile/source updates.
-        window.setTimeout(() => {
-          try {
-            shadeMapRef.current?.setDate(date);
-          } catch {
-            if (err) {
-              console.warn('setDate retry failed after transient WebGL error:', err);
-            }
-          }
-        }, 120);
-      }
+      scheduleShadowDateApply();
     },
     setSunExposure: async (enabled, options) => {
       currentSunExposureRef.current = { enabled, options };
