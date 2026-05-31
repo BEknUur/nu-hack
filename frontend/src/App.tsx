@@ -11,7 +11,6 @@ import {
 import { AuthProvider } from '@/hooks/useAuth';
 import LandingPage from '@/pages/LandingPage';
 import MapPage from '@/pages/MapPage';
-import SolarComingSoonPage from '@/pages/SolarComingSoonPage';
 // DashboardPage removed — /app redirects to /app/apartments
 import AuthPage from '@/pages/AuthPage';
 import { I18nProvider, useTranslation, type Language } from '@/i18n';
@@ -66,7 +65,6 @@ export default function App() {
             <Route path="/:lang" element={<LanguageLayout />}>
               <Route index element={<LandingPage />} />
               <Route path="app" element={<Navigate to="apartments" replace />} />
-              <Route path="app/solar-flowers" element={<SolarComingSoonPage />} />
               <Route
                 path="app/:caseId"
                 element={(
