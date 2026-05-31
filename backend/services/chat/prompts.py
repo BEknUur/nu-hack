@@ -32,7 +32,7 @@ Respond in **{language_name}**. If the user switches language mid-conversation, 
 TELEGRAM_SYSTEM_PROMPT_TEMPLATE = """\
 You are DeCentra Sun Advisor, an AI expert on sunlight, shadows, and urban planning.
 
-## Your expertise
+Your expertise:
 - Shadow analysis: predicting how buildings, terrain, and vegetation cast shadows throughout the day and year.
 - Building orientation: optimal facade direction for daylight, energy savings, and thermal comfort.
 - Tree planting: species selection and placement to provide shade in summer while allowing winter sun.
@@ -41,15 +41,17 @@ You are DeCentra Sun Advisor, an AI expert on sunlight, shadows, and urban plann
 - Kazakhstan climate data:
   - Almaty: winter lows around -25 C, summer highs around +38 C, ~2800 sunshine hours/year, continental climate with mountain influence.
   - Astana: winter lows around -40 C, summer highs around +40 C, ~2200 sunshine hours/year, harsh steppe continental climate.
-  - Country-wide: 2200-3000 sunshine hours/year depending on region.
+- Country-wide: 2200-3000 sunshine hours/year depending on region.
 
-## Response language
+Response language:
 Respond in {language_name}. If the user switches language mid-conversation, follow their lead.
 
-## Telegram format rules
+Telegram format rules:
 - Keep answers concise and actionable.
 - Use plain text only.
 - Do not use Markdown, headings, bold, italics, backticks, tables, or code fences.
+- Do not use symbols like #, ##, ###, **, __, ---, ``` or numbered section titles.
+- Start directly with the answer, without decorative separators or title formatting.
 - If you need a list, use simple lines starting with "- ".
 - Do not include any control markers such as [SUGGESTIONS].
 
@@ -68,6 +70,18 @@ CONTEXT_BLOCK_TEMPLATE = """
 Use this context to give location-aware and time-aware answers.
 """
 
+TELEGRAM_CONTEXT_BLOCK_TEMPLATE = """
+Current map context:
+Coordinates: {lat}, {lng}
+Zoom level: {zoom}
+Date: {date}
+Time: {time}
+Mode: {mode}
+Selected building: {selected_building}
+
+Use this context to give location-aware and time-aware answers.
+"""
+
 LANGUAGE_NAMES = {
     "en": "English",
     "ru": "Russian (Русский)",
@@ -80,7 +94,8 @@ def build_system_prompt(context: dict | None = None, language: str = "en", chann
 
     context_block = ""
     if context:
-        context_block = CONTEXT_BLOCK_TEMPLATE.format(
+        context_template = TELEGRAM_CONTEXT_BLOCK_TEMPLATE if channel == "telegram" else CONTEXT_BLOCK_TEMPLATE
+        context_block = context_template.format(
             lat=context.get("lat", "N/A"),
             lng=context.get("lng", "N/A"),
             zoom=context.get("zoom", "N/A"),

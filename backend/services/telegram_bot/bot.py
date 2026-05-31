@@ -26,6 +26,7 @@ from services.ragflow.config import ragflow_settings
 from services.alemllm.config import alemllm_settings
 from services.chat.prompts import build_system_prompt
 from services.voice.config import voice_stt_settings
+from services.telegram_bot.plain_text import prepare_telegram_text
 
 ALEMLLM_API_URL = "https://llm.alem.ai/v1/chat/completions"
 
@@ -125,7 +126,7 @@ def _build_morning_prompt(w: dict) -> str:
 4. ☀️ Солнечные панели: оценка выработки на сегодня (при {w['sunshine_hours']}ч солнца панель 400Вт выдаст ~X кВт·ч)
 5. 🌳 Сезонный совет по озеленению или квартирам
 
-Формат: короткий, с эмодзи, для Telegram. Максимум 400 слов. Используй реальные цифры, не выдумывай."""
+Формат: короткий, с эмодзи, для Telegram. Только plain text, без Markdown, без заголовков и без символов вроде ###, ** и ---. Максимум 400 слов. Используй реальные цифры, не выдумывай."""
 
 
 def _build_evening_prompt(w: dict) -> str:
@@ -149,7 +150,7 @@ def _build_evening_prompt(w: dict) -> str:
 4. 🌳 Сезонный совет по озеленению
 5. ⚡ Факт про солнечную энергию в Казахстане
 
-Формат: короткий, с эмодзи, для Telegram. Максимум 400 слов. Используй реальные цифры, не выдумывай."""
+Формат: короткий, с эмодзи, для Telegram. Только plain text, без Markdown, без заголовков и без символов вроде ###, ** и ---. Максимум 400 слов. Используй реальные цифры, не выдумывай."""
 
 
 def _get_history(user_id: int) -> list[dict[str, str]]:
@@ -220,6 +221,7 @@ async def _call_llm(messages: list[dict[str, str]], language: str = "en") -> str
         if suggestions:
             clean_text += "\n\n💡 " + " | ".join(suggestions)
 
+        clean_text = prepare_telegram_text(clean_text)
         return clean_text or "I couldn't generate a response. Please try again."
 
     except Exception as e:
@@ -230,8 +232,9 @@ async def _call_llm(messages: list[dict[str, str]], language: str = "en") -> str
 async def _call_llm_direct(prompt: str) -> str:
     """Call AlemLLM directly (no RAG) — for briefings with pre-injected data."""
     system = (
-        "Ты — Sun Advisor, интеллектуальный помощник по солнечному свету Астаны. "
-        "Отвечай кратко, с эмодзи, для Telegram. Используй только реальные данные из промпта. "
+        "Ты — Sun Advisor, интеллектуальный помощник по солнечному свету Астаны и не только. "
+        "Отвечай кратко, с эмодзи, для Telegram. Пиши только обычным текстом, без Markdown и без декоративных разделителей. "
+        "Не используй символы вроде #, ##, ###, **, __, ---, ``` и не делай заголовки. Используй только реальные данные из промпта. "
         "Ссылайся на нормы: СН РК 2.04-01-2011 (инсоляция 2.5ч), ТК РК ст.82 (ротация при ≥32.5°C), "
         "Закон о ВИЭ (до 200кВт в сеть). Астана: GHI ~1400 кВт·ч/м²/год, панель 400Вт ~467 кВт·ч/год."
     )
@@ -255,7 +258,8 @@ async def _call_llm_direct(prompt: str) -> str:
             print(f"[Briefing] AlemLLM error {resp.status_code}: {resp.text[:200]}", flush=True)
             return ""
         data = resp.json()
-        return data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        content = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+        return prepare_telegram_text(content)
     except Exception as e:
         print(f"[Briefing] AlemLLM call failed: {e}", flush=True)
         return ""
@@ -304,7 +308,7 @@ async def _send_telegram_message(chat_id: int, text: str) -> bool:
         async with httpx.AsyncClient(timeout=10.0) as client:
             resp = await client.post(
                 f"{TELEGRAM_API}/sendMessage",
-                json={"chat_id": chat_id, "text": text[:4096]},
+                json={"chat_id": chat_id, "text": prepare_telegram_text(text)[:4096]},
             )
         return resp.status_code == 200
     except Exception as e:
@@ -403,7 +407,7 @@ async def cmd_briefing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     hour = datetime.utcnow().hour + ASTANA_UTC_OFFSET
     prompt = _build_morning_prompt(weather) if hour < 15 else _build_evening_prompt(weather)
     briefing = await _call_llm_direct(prompt)
-    await update.message.reply_text(("☀️ Брифинг Sun Advisor\n\n" + briefing)[:4000])
+    await update.message.reply_text(prepare_telegram_text("☀️ Брифинг Sun Advisor\n\n" + briefing)[:4000])
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -430,9 +434,9 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if len(reply) > 4000:
         for i in range(0, len(reply), 4000):
-            await update.message.reply_text(reply[i:i + 4000])
+            await update.message.reply_text(prepare_telegram_text(reply[i:i + 4000])[:4000])
     else:
-        await update.message.reply_text(reply)
+        await update.message.reply_text(prepare_telegram_text(reply)[:4000])
 
 
 async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -466,9 +470,9 @@ async def handle_voice(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     if len(reply) > 4000:
         for i in range(0, len(reply), 4000):
-            await update.message.reply_text(reply[i:i + 4000])
+            await update.message.reply_text(prepare_telegram_text(reply[i:i + 4000])[:4000])
     else:
-        await update.message.reply_text(reply)
+        await update.message.reply_text(prepare_telegram_text(reply)[:4000])
 
 
 # ─── Application singleton ─────────────────────────────────────────────
