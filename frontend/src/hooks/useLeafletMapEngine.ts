@@ -211,6 +211,25 @@ export function useLeafletMapEngine({
         map.off('contextmenu', listener);
       };
     },
+    onMouseMove: (handler: MapInteractionHandler) => {
+      const map = mapRef.current;
+      if (!map) return () => {};
+      const listener = (event: L.LeafletMouseEvent) => {
+        void handler({ lat: event.latlng.lat, lng: event.latlng.lng });
+      };
+      map.on('mousemove', listener);
+      return () => {
+        map.off('mousemove', listener);
+      };
+    },
+    onMouseLeave: (handler: () => void) => {
+      const map = mapRef.current;
+      if (!map) return () => {};
+      map.on('mouseout', handler);
+      return () => {
+        map.off('mouseout', handler);
+      };
+    },
   };
 
   const shadow: ShadowEngineController = {

@@ -332,11 +332,40 @@ export function useMapLibreMapEngine({
         map.off('contextmenu', listener);
       };
     },
+    onMouseMove: (handler: MapInteractionHandler) => {
+      const map = mapRef.current;
+      if (!map) return () => {};
+      const listener = (event: maplibregl.MapMouseEvent) => {
+        void handler({ lat: event.lngLat.lat, lng: event.lngLat.lng });
+      };
+      map.on('mousemove', listener);
+      return () => {
+        map.off('mousemove', listener);
+      };
+    },
+    onMouseLeave: (handler: () => void) => {
+      const map = mapRef.current;
+      if (!map) return () => {};
+      map.on('mouseleave', handler);
+      return () => {
+        map.off('mouseleave', handler);
+      };
+    },
   };
 
   const sleep = (ms: number) => new Promise<void>((resolve) => {
     window.setTimeout(resolve, ms);
   });
+
+  const areSunExposureOptionsEqual = (
+    a: SunExposureOptions | null,
+    b: SunExposureOptions,
+  ) => Boolean(
+    a &&
+    a.startDate.getTime() === b.startDate.getTime() &&
+    a.endDate.getTime() === b.endDate.getTime() &&
+    a.iterations === b.iterations,
+  );
 
   const applyShadowDate = (date: Date) => {
     const shadeMap = shadeMapRef.current;
@@ -485,6 +514,16 @@ export function useMapLibreMapEngine({
       scheduleShadowDateApply();
     },
     setSunExposure: async (enabled, options) => {
+      if (
+        currentSunExposureRef.current.enabled === enabled &&
+        areSunExposureOptionsEqual(currentSunExposureRef.current.options, options)
+      ) {
+        if (sunExposureDrainRef.current) {
+          await sunExposureDrainRef.current;
+        }
+        return;
+      }
+
       currentSunExposureRef.current = { enabled, options };
       sunExposureRevisionRef.current += 1;
       await drainSunExposureTransitions();
@@ -492,9 +531,12 @@ export function useMapLibreMapEngine({
     isPositionInSun: (point) => (
       shadeMapRef.current?.isPositionInSun(point.x, point.y) ?? Promise.resolve(false)
     ),
-    getHoursOfSun: async (point) => (
-      Promise.resolve(shadeMapRef.current?.getHoursOfSun(point.x, point.y) ?? 0)
-    ),
+    getHoursOfSun: async (point) => {
+      if (sunExposureDrainRef.current) {
+        await sunExposureDrainRef.current;
+      }
+      return shadeMapRef.current?.getHoursOfSun(point.x, point.y) ?? 0;
+    },
   };
 
   return {

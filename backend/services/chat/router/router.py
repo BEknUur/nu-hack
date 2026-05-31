@@ -161,6 +161,7 @@ class BuildingAnalysisRequest(BaseModel):
     in_sun: bool | None = None
     best_side: str | None = None
     confidence: float | None = None
+    sun_hours: float | None = None
     address: str | None = None
     complex_name: str | None = None
     language: str = "ru"
@@ -178,11 +179,13 @@ class BuildingAnalysisResponse(BaseModel):
 async def analyze_building(req: BuildingAnalysisRequest) -> BuildingAnalysisResponse:
     sun_status = "—" if req.in_sun is None else ("на солнце" if req.in_sun else "в тени")
     conf_str = f" ({round(req.confidence * 100)}%)" if req.confidence else ""
+    sun_hours_str = f"{req.sun_hours:.1f} ч" if req.sun_hours is not None else "—"
 
     prompt = f"""Ты Sun Advisor — эксперт по солнечному свету Астаны. Проанализируй здание:
 
 Координаты: {req.lat:.5f}, {req.lng:.5f}
 Статус: {sun_status}
+Солнце за день в выбранной точке: {sun_hours_str}
 Лучшая сторона (ML): {req.best_side or '—'}{conf_str}
 {f'Адрес: {req.address}' if req.address else ''}
 {f'ЖК: {req.complex_name}' if req.complex_name else ''}

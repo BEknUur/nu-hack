@@ -17,6 +17,10 @@ function formatDirection(side: ClickInfo['predictedBestSide'], labels: Record<'N
   return '—';
 }
 
+function formatSunHours(hours: number): string {
+  return hours.toFixed(hours >= 10 ? 0 : 1);
+}
+
 async function fetchAnalysis(info: ClickInfo, lang: string): Promise<string> {
   const resp = await fetch(`${getBackendUrl()}/chat/analyze-building`, {
     method: 'POST',
@@ -27,6 +31,7 @@ async function fetchAnalysis(info: ClickInfo, lang: string): Promise<string> {
       in_sun: info.inSun,
       best_side: info.predictedBestSide,
       confidence: info.predictedConfidence,
+      sun_hours: info.sunHours,
       address: info.address,
       complex_name: info.complexName,
       language: lang,
@@ -117,6 +122,21 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
                 {t(messages.map.confidence, { value: Math.round(info.predictedConfidence * 100) })}
               </div>
             )}
+          </div>
+
+          <div className="rounded-lg border border-[color:var(--line)] bg-white/80 p-3 sm:col-span-2">
+            <div className="text-sm font-medium text-[var(--ink)]">
+              {messages.map.dailySun}
+            </div>
+            <div className="mt-2 text-sm text-[var(--ink-soft)]">
+              {info.sunHoursLoading
+                ? messages.map.calculatingDailySun
+                : typeof info.sunHours === 'number'
+                  ? t(messages.map.dailySunHours, { value: formatSunHours(info.sunHours) })
+                  : info.sunHoursAvailable
+                    ? messages.map.dailySunUnavailable
+                    : messages.map.dailySunExposureHint}
+            </div>
           </div>
         </div>
 

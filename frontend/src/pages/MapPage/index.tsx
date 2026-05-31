@@ -28,6 +28,7 @@ import {
   useScenarioRouteResets,
   useSelectedBuildingBestSideHighlight,
   useShadeMapDateAndExposure,
+  useSunExposureCursorHours,
   useTreeCandidateExplanation,
   useTreeCandidateMapAnchor,
   useWorkerShadowSimulation,
@@ -64,8 +65,13 @@ import type {
   SolarPanelType,
   SolarWizardStep,
 } from '@/types/solar-flowers';
+
+function formatCursorSunHours(hours: number): string {
+  return hours.toFixed(hours >= 10 ? 0 : 1);
+}
+
 export default function MapPage() {
-  const { messages, language } = useTranslation();
+  const { messages, t, language } = useTranslation();
   const { caseId } = useParams();
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
@@ -508,6 +514,12 @@ export default function MapPage() {
     isWorkerMode,
   });
 
+  const exposureCursorHours = useSunExposureCursorHours({
+    enabled: sunExposure && !isTreeMode && !isWorkerMode && !isSolarMode,
+    shadow,
+    controller,
+  });
+
   useMapClickSunInfo({
     shadow,
     controller,
@@ -518,6 +530,7 @@ export default function MapPage() {
     isWorkerMode,
     workerDrawArmed,
     workerDrawing,
+    sunExposure,
     dateStr: dt.dateStr,
     setSelectedBuilding,
     setClickInfo,
@@ -602,6 +615,33 @@ export default function MapPage() {
             </span>
           )}
         </div>
+      )}
+
+      {exposureCursorHours && (
+        <>
+          <div
+            className="pointer-events-none absolute z-[1100] -translate-x-1/2 -translate-y-1/2 text-[28px] leading-none text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.85)]"
+            style={{
+              left: `${exposureCursorHours.screenX}px`,
+              top: `${exposureCursorHours.screenY}px`,
+            }}
+          >
+            +
+          </div>
+          <div
+            className="pointer-events-none absolute z-[1100] rounded-md bg-[#172033] px-2.5 py-1.5 text-sm font-medium text-white shadow-[0_8px_18px_rgba(0,0,0,0.35)]"
+            style={{
+              left: `${exposureCursorHours.screenX + 12}px`,
+              top: `${exposureCursorHours.screenY + 10}px`,
+            }}
+          >
+            {exposureCursorHours.hours !== null
+              ? t(messages.map.cursorSunHours, { value: formatCursorSunHours(exposureCursorHours.hours) })
+              : exposureCursorHours.loading
+                ? messages.map.calculatingDailySun
+                : messages.map.dailySunUnavailable}
+          </div>
+        </>
       )}
 
       {!isTreeMode && !isWorkerMode && (
