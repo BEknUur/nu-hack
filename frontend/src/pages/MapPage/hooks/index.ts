@@ -10,6 +10,7 @@ export { useMapLibreWorkerAreaDrawing } from './useMapLibreWorkerAreaDrawing';
 export { useMapLibreWorkerCrew } from './useMapLibreWorkerCrew';
 export { useScenarioRouteResets } from './useScenarioRouteResets';
 export { useSelectedBuildingBestSideHighlight } from './useSelectedBuildingBestSideHighlight';
+export { useSolarPanelTool } from './useSolarPanelTool';
 export { useShadeMapDateAndExposure } from './useShadeMapDateAndExposure';
 export { useSunExposureCursorHours } from './useSunExposureCursorHours';
 export { useTreeCandidateExplanation } from './useTreeCandidateExplanation';

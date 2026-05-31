@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import maplibregl from 'maplibre-gl';
 import { useParams, useNavigate } from 'react-router-dom';
@@ -28,6 +28,7 @@ import {
   useScenarioRouteResets,
   useSelectedBuildingBestSideHighlight,
   useShadeMapDateAndExposure,
+  useSolarPanelTool,
   useSunExposureCursorHours,
   useTreeCandidateExplanation,
   useTreeCandidateMapAnchor,
@@ -51,6 +52,8 @@ import { getTreeUiMessages } from '@/pages/MapPage/treeUiMessages';
 import { TreeScenarioPanel } from '@/pages/MapPage/TreeScenarioPanel';
 import { WorkerScenarioPanel } from '@/pages/MapPage/WorkerScenarioPanel';
 import SolarFlowersWizard from '@/components/SolarFlowersWizard';
+import SolarPanelTool from '@/components/SolarPanelTool';
+import type { SolarPeriod, SolarSample } from '@/utils/solarEnergy';
 import { rankTreeCandidates } from '@/services/treeOptimizer';
 import { rankSolarCandidates } from '@/services/solarOptimizer';
 import {
@@ -83,11 +86,16 @@ export default function MapPage() {
 
   const isTreeMode = caseId === 'trees';
   const isWorkerMode = caseId === 'workers';
-  const isSolarMode = caseId === 'solar-flowers';
+  // The solar-flowers route now hosts the drag-&-drop Solar Panel tool.
+  // The old "solar flowers" ranking wizard is retired (kept inert below).
+  const isSolarPanelMode = caseId === 'solar-flowers';
+  const isSolarMode = false;
   const showScenarioNav =
     caseId === 'apartments' || caseId === 'trees' || caseId === 'workers' || caseId === 'solar-flowers';
   const scenarioNavActive: ScenarioNavCase =
-    caseId === 'trees' || caseId === 'workers' || caseId === 'solar-flowers' ? caseId as ScenarioNavCase : 'apartments';
+    caseId === 'trees' || caseId === 'workers' || caseId === 'solar-flowers'
+      ? caseId as ScenarioNavCase
+      : 'apartments';
   const treeUi = getTreeUiMessages(language);
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
@@ -150,6 +158,13 @@ export default function MapPage() {
   const [solarCandidates, setSolarCandidates] = useState<SolarCandidate[]>([]);
   const [solarSelectedCandidate, setSolarSelectedCandidate] = useState<SolarCandidate | null>(null);
   const [solarShowPoints, setSolarShowPoints] = useState(true);
+
+  // Solar panel drag & drop tool state
+  const [solarPanelPlaced, setSolarPanelPlaced] = useState(false);
+  const [solarPanelSampling, setSolarPanelSampling] = useState(false);
+  const [solarPanelSamples, setSolarPanelSamples] = useState<SolarSample[]>([]);
+  const [solarPanelPresetId, setSolarPanelPresetId] = useState('rooftop');
+  const [solarPanelPeriod, setSolarPanelPeriod] = useState<SolarPeriod>('month');
 
   const [chatOpen, setChatOpen] = useState(false);
   const chat = useChat({ language });
@@ -514,8 +529,32 @@ export default function MapPage() {
     isWorkerMode,
   });
 
+  useSolarPanelTool({
+    engine,
+    rawMapRef,
+    isActive: isSolarPanelMode,
+    placed: solarPanelPlaced,
+    shadow,
+    dateStr: dt.dateStr,
+    date: dt.date,
+    period: solarPanelPeriod,
+    onPlace: () => setSolarPanelPlaced(true),
+    onSample: setSolarPanelSamples,
+    onSamplingChange: setSolarPanelSampling,
+  });
+
+  // Reset the tool when leaving solar-panel mode. We keep sun-exposure OFF here so
+  // the live time-of-day shadow regions show and the time slider works; sampling
+  // dips into exposure mode briefly and restores the shadows afterwards.
+  useEffect(() => {
+    if (!isSolarPanelMode) {
+      setSolarPanelPlaced(false);
+      setSolarPanelSamples([]);
+    }
+  }, [isSolarPanelMode]);
+
   const exposureCursorHours = useSunExposureCursorHours({
-    enabled: sunExposure && !isTreeMode && !isWorkerMode && !isSolarMode,
+    enabled: sunExposure && !isTreeMode && !isWorkerMode && !isSolarMode && !isSolarPanelMode,
     shadow,
     controller,
   });
@@ -595,7 +634,7 @@ export default function MapPage() {
         </div>
       )}
 
-      {!isTreeMode && !isWorkerMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
+      {!isTreeMode && !isWorkerMode && !isSolarPanelMode && clickInfo?.predictedBestSide && clickInfo.screenX != null && clickInfo.screenY != null && (
         <div
           className="pointer-events-none absolute z-[990] -translate-x-1/2 -translate-y-full rounded-lg border border-[color:rgba(198,138,17,0.24)] bg-[rgba(251,248,241,0.96)] px-3 py-2 text-[11px] font-medium text-[var(--yellow-strong)] shadow-[0_10px_20px_rgba(23,32,51,0.12)] backdrop-blur-md"
           style={{
@@ -644,7 +683,7 @@ export default function MapPage() {
         </>
       )}
 
-      {!isTreeMode && !isWorkerMode && (
+      {!isTreeMode && !isWorkerMode && !isSolarPanelMode && (
         <ControlPanel
           dateStr={dt.dateStr}
           onDateChange={dt.setDateStr}
@@ -772,6 +811,25 @@ export default function MapPage() {
         />
       )}
 
+      {isSolarPanelMode && (
+        <SolarPanelTool
+          language={language}
+          dateStr={dt.dateStr}
+          onDateChange={dt.setDateStr}
+          period={solarPanelPeriod}
+          onPeriodChange={setSolarPanelPeriod}
+          placed={solarPanelPlaced}
+          sampling={solarPanelSampling}
+          samples={solarPanelSamples}
+          presetId={solarPanelPresetId}
+          onPresetChange={setSolarPanelPresetId}
+          onClear={() => {
+            setSolarPanelPlaced(false);
+            setSolarPanelSamples([]);
+          }}
+        />
+      )}
+
       <TimeSliderBar
         sliderValue={dt.sliderValue}
         sliderPct={dt.sliderPct}
@@ -779,7 +837,7 @@ export default function MapPage() {
         onSliderChange={handleTimeSliderChange}
       />
 
-      {!isTreeMode && !isWorkerMode && !isSolarMode && clickInfo && (
+      {!isTreeMode && !isWorkerMode && !isSolarMode && !isSolarPanelMode && clickInfo && (
         <SunInfoPopup
           info={clickInfo}
           onClose={() => {
