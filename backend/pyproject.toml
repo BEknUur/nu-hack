@@ -15,5 +15,4 @@ dependencies = [
     "uvicorn>=0.42.0",
     "python-multipart>=0.0.18",
     "python-telegram-bot[job-queue]>=22.5",
-    "redis>=5.0.0",
 ]

@@ -9,7 +9,6 @@ from starlette.status import HTTP_200_OK
 
 # Project modules
 from core.database.session.database import create_db_schema, get_db
-from core.redis.client import ping_redis
 from services.alemllm.router.router import router as alemllm_router
 from services.auth.router.router import router as auth_router
 from services.best_side.router.router import router as best_side_router
@@ -71,12 +70,9 @@ def health_check(db: Session = Depends(get_db)):
         db_status = "disconnected"
         status = "error"
 
-    redis_status = "connected" if ping_redis() else "disconnected"
-
     return {
         "status": status,
         "database": db_status,
-        "redis": redis_status,
     }
 
 
