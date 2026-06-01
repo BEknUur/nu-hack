@@ -19,6 +19,7 @@ import {
   useMapClickSunInfo,
   useMapLibreAoiOverlay,
   useMapLibreBasemapTiles,
+  useMapLibreHeatLayer,
   useMapLibreObliqueView,
   useMapLibreSunWallsWorkerVisibility,
   useMapLibreTreeAreaDrawing,
@@ -56,6 +57,7 @@ import SolarPanelTool from '@/components/SolarPanelTool';
 import type { SolarPeriod, SolarSample } from '@/utils/solarEnergy';
 import { rankTreeCandidates } from '@/services/treeOptimizer';
 import { rankSolarCandidates } from '@/services/solarOptimizer';
+import { fetchScenarioImpact, type ScenarioImpactResponse } from '@/services/heatGrid';
 import {
   estimateGeometryAreaKm2,
   geometryToBounds,
@@ -99,6 +101,9 @@ export default function MapPage() {
   const treeUi = getTreeUiMessages(language);
   const dt = useDateTime();
   const [sunExposure, setSunExposure] = useState(false);
+  const [heatMode, setHeatMode] = useState(false);
+  const [heatHint, setHeatHint] = useState<string | null>(null);
+  const [heatLoading, setHeatLoading] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
@@ -127,6 +132,8 @@ export default function MapPage() {
   const [treeExplanation, setTreeExplanation] = useState<TreeExplainResponse | null>(null);
   const [treeExplainLoading, setTreeExplainLoading] = useState(false);
   const [treeExplainError, setTreeExplainError] = useState<string | null>(null);
+  const [scenarioImpact, setScenarioImpact] = useState<ScenarioImpactResponse | null>(null);
+  const [scenarioLoading, setScenarioLoading] = useState(false);
   const [workerDrawMode, setWorkerDrawMode] = useState<TreeDrawMode>('rectangle');
   const [workerDrawArmed, setWorkerDrawArmed] = useState(false);
   const [workerDrawing, setWorkerDrawing] = useState(false);
@@ -251,6 +258,28 @@ export default function MapPage() {
     }
   }, [isTreeMode, treeAreaGeometry, treeMinWinterLight, treeSummerWeight, treeTopK, treeUi.areaMissing, treeUi.noCandidates, treeUi.rankFailed]);
 
+  const handleScenarioRequest = useCallback(async (targetCanopyPct: number) => {
+    if (!treeAreaGeometry) return;
+    const bounds = geometryToBounds(treeAreaGeometry);
+    setScenarioLoading(true);
+    try {
+      const impact = await fetchScenarioImpact({
+        bbox: {
+          lon_min: bounds.west,
+          lat_min: bounds.south,
+          lon_max: bounds.east,
+          lat_max: bounds.north,
+        },
+        target_canopy_pct: targetCanopyPct,
+      });
+      setScenarioImpact(impact);
+    } catch {
+      // ignore silently; UI will just not update
+    } finally {
+      setScenarioLoading(false);
+    }
+  }, [treeAreaGeometry]);
+
   const applyTreeAreaGeometry = useCallback((geometry: RankAreaGeometry | null) => {
     setTreeAreaGeometry(geometry);
     setTreeAreaKm2(geometry ? estimateGeometryAreaKm2(geometry) : null);
@@ -259,6 +288,7 @@ export default function MapPage() {
     setTreeExplanation(null);
     setTreeExplainError(null);
     setTreeError(null);
+    setScenarioImpact(null);
   }, []);
 
   const startTreeDrawing = useCallback(() => {
@@ -515,6 +545,14 @@ export default function MapPage() {
     setTreeExplainLoading,
   });
 
+  useMapLibreHeatLayer({
+    engine,
+    rawMapRef,
+    heatMode: heatMode && !isTreeMode && !isWorkerMode && !isSolarMode,
+    setHeatHint,
+    setHeatLoading,
+  });
+
   useMapLibreObliqueView({ engine, rawMapRef, is3D, setIs3D });
 
   useMapLibreBasemapTiles({ engine, rawMapRef, isSatellite });
@@ -689,6 +727,9 @@ export default function MapPage() {
           onDateChange={dt.setDateStr}
           sunExposure={sunExposure}
           onModeChange={setSunExposure}
+          heatMode={heatMode}
+          onHeatModeChange={engine === 'maplibre' ? setHeatMode : undefined}
+          heatHint={heatHint}
           is3D={is3D}
           onViewModeChange={setIs3D}
           isSatellite={isSatellite}
@@ -710,6 +751,10 @@ export default function MapPage() {
           error={treeError}
           resultCount={treeCandidates.length}
           topCandidates={treeCandidates}
+          scenarioBbox={treeAreaGeometry ? (() => { const b = geometryToBounds(treeAreaGeometry); return { lon_min: b.west, lat_min: b.south, lon_max: b.east, lat_max: b.north }; })() : null}
+          onScenarioRequest={(pct) => { void handleScenarioRequest(pct); }}
+          scenarioImpact={scenarioImpact}
+          scenarioLoading={scenarioLoading}
           onLocateCandidate={locateTreeCandidate}
           onDrawModeChange={(mode) => {
             setTreeDrawMode(mode);
