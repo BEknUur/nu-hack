@@ -7,6 +7,10 @@ Kolenke turns open satellite and map data into ranked, explainable action plans 
 - solar deployment,
 - worker heat safety.
 
+## Demo
+
+![Kolenke demo](frontend/public/vids/kolenke-demo.gif)
+
 ## Why it exists
 Cities are heating up, but city teams still lack operational tools that connect thermal evidence to concrete, local actions.
 
