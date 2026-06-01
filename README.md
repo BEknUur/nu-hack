@@ -1,107 +1,91 @@
-# Shadow Map AI Platform
+# Kolenke
 
-> Интерактивная карта теней — реальное время, реальные решения.
+AI decision-support platform for urban heat adaptation.
 
----
+Kolenke turns open satellite and map data into ranked, explainable action plans for:
+- urban greening,
+- solar deployment,
+- worker heat safety.
 
-## Что это
+## Why it exists
+Cities are heating up, but city teams still lack operational tools that connect thermal evidence to concrete, local actions.
 
-AI-продукт на основе интерактивной карты теней. Пользователь выбирает дату и время — тени на карте меняются в реальном времени. Клик по точке — мгновенный ответ: солнце или тень.
+Kolenke is built to close that gap: not just “where it is hot”, but “where to act first”.
 
----
+## Live product: 4 modes, one map
+Kolenke is already running as a browser platform with four practical workflows:
 
-## Кейсы
+1. Heat (LST) Layer
+- Landsat-based heat layer over the city.
+- Time-of-day visualization with real shadow simulation.
 
-### 1. Ротация рабочих (Workers)
-Рабочие на открытом воздухе чередуют позиции: один работает на солнце, другой — в тени. Система рассчитывает оптимальные ротации с учётом теневого покрытия на протяжении дня. Уведомления о смене позиций приходят через **Telegram-бот** в реальном времени.
+2. Tree Optimizer
+- Draw an area, set canopy target, get ranked planting sites.
+- Before/after cooling impact estimates and per-site AI explanation.
 
-### 2. Оценка квартир (Apartments)
-Анализ инсоляции конкретной квартиры или фасада здания. Квартиры с хорошим солнечным освещением стоят дороже — система показывает, сколько солнца получает жильё в любое время года, что помогает при покупке или оценке недвижимости.
+3. Solar Panel Ranker
+- Drag a panel to any roof/yard point.
+- Shadow-adjusted annual yield (kWh/yr) and CO2 offset estimates.
 
-### 3. Посадка деревьев (Trees)
-AI-ранжирование кандидатов для посадки деревьев в выбранной зоне. Система учитывает уровень инсоляции, наличие теней от зданий и оптимальные условия для роста — чтобы деревья действительно прижились.
+4. Heat Safety Planner
+- Shift-level exposure simulation for outdoor crews.
+- Rotation guidance to keep heat exposure within safer limits.
 
-### 4. Солнечные панели (Solar Flowers)
-Поиск оптимальных мест для установки солнечных трекеров — для выращивания овощей, растений или генерации энергии. Система анализирует освещённость участка по всем часам дня и рекомендует лучшие точки размещения.
+## Scientific rigor and transparency
+Kolenke is designed to be auditable:
+- explicit scoring formula (no black-box ranking),
+- peer-reviewed coefficients for cooling and impact assumptions,
+- reproducible inputs from open datasets,
+- explainable recommendations per candidate point.
 
----
+Core priority score concept:
 
-## Стек технологий
+`Priority = 0.55 * LST_norm + 0.35 * (1 - NDVI_norm) + 0.10 * exposure_norm`
 
-| Слой | Технология |
-|------|-----------|
-| Frontend | React 19 + TypeScript + Vite + MapLibre GL 5 |
-| Тени | `mapbox-gl-shadow-simulator` (WebGL) |
-| Backend | FastAPI + Python 3.12 |
-| База данных | **PostgreSQL** (alem.plus) |
-| LLM | **AlemLLM** (alem.plus) — `llm.alem.ai` |
-| RAG | **RAGFlow** (alem.plus) — база знаний по городскому планированию |
-| Хранилище | **Supabase** (alem.plus) — файлы, геоданные |
-| Генерация изображений | **Text-to-Image** (alem.plus) — визуализация сценариев |
-| Голосовой ввод | **Speech-to-Text (Казахский)** (alem.plus) — голосовые команды на казахском языке |
-| Контейнеризация | **Docker** + Docker Compose |
-| Здания | OpenStreetMap via Overpass API |
-| Геокодинг | Nominatim |
-| i18n | Русский / Казахский / Английский |
+## Indicative impact assumptions (from literature-backed model)
+- Up to `-4°C` district air temperature reduction at higher canopy coverage scenarios.
+- Around `21 kg CO2 / tree / year` sequestration reference estimate.
+- About `1350+ kWh/m²/year` solar resource level for Astana latitude context.
+- Cooling effects that can extend beyond the immediate intervention zone.
 
-**Использовано 6 инструментов alem.plus:** AlemLLM, PostgreSQL, RAGFlow, Supabase, Text-to-Image, Speech-to-Text (Kazakh).
+## Tech stack
+- Frontend: React 19, TypeScript, Vite, MapLibre GL 5
+- Shadow simulation: `mapbox-gl-shadow-simulator` (WebGL)
+- Backend: FastAPI, Python 3.12
+- Data and services: PostgreSQL, Redis, Supabase, RAGFlow, AlemLLM
+- Geodata: OpenStreetMap (Overpass), Landsat 8/9, Sentinel-2
+- Solar yield: PVGIS
+- Infra: Docker + Docker Compose
 
----
-
-## Использование alem.plus
-
-### 1. AlemLLM
-Генерирует AI-объяснения для каждого кандидата (дерево, солнечная панель): почему это место оптимально, какой уровень освещённости, рекомендации. Также используется в чат-боте для ответов на вопросы пользователя по карте.
-
-### 2. PostgreSQL
-Хранение пользовательских сессий, сохранённых зон анализа, истории запросов и результатов ранжирования.
-
-### 3. RAGFlow
-База знаний по городскому планированию, нормам озеленения и стандартам инсоляции. AI-ответы опираются на реальные документы, а не только на LLM.
-
-### 4. Supabase
-Хранение геоданных пользователей (нарисованных зон), загруженных файлов и медиа-контента.
-
-### 5. Text-to-Image
-Генерация визуализаций — как будет выглядеть двор/парк после реализации рекомендации (посадка деревьев, установка панелей).
-
-### 6. Speech-to-Text (Казахский)
-Голосовой ввод адреса и команд на казахском языке. Пользователь может произнести адрес или зону — система находит её на карте.
-
----
-
-## Быстрый старт
+## Quick start
 
 ```bash
 make app-up        # postgres + backend (Docker)
-make dev-frontend  # frontend → http://localhost:5173
+make dev-frontend  # frontend on http://localhost:5173
 ```
 
-Создайте `frontend/.env`:
-```
-VITE_SHADEMAP_API_KEY=<ключ с shademap.app>
+Create `frontend/.env`:
+
+```env
+VITE_SHADEMAP_API_KEY=<your shademap.app key>
 VITE_BACKEND_URL=http://localhost:8003
 ```
 
----
-
 ## Backend API
 
-| Метод | Путь | Описание |
-|-------|------|----------|
-| POST | `/ml/tree-optimizer/rank` | Ранжирование мест для деревьев |
-| POST | `/ml/tree-optimizer/explain` | AI-объяснение кандидата (AlemLLM) |
-| POST | `/ml/solar-optimizer/rank` | Ранжирование мест для солнечных панелей |
-| POST | `/ml/best-side/predict` | Лучшая сторона здания по инсоляции |
-| POST | `/ml-data/geocoding/search` | Геокодинг адресов |
-| POST | `/ml-data/overpass/buildings` | Здания из OSM |
-| POST | `/alemllm/chat` | Чат с AlemLLM |
-| GET | `/health` | Статус сервера |
+| Method | Path | Description |
+|---|---|---|
+| POST | `/ml/tree-optimizer/rank` | Rank tree planting candidates |
+| POST | `/ml/tree-optimizer/explain` | Explain candidate with AI |
+| POST | `/ml/solar-optimizer/rank` | Rank solar panel candidates |
+| POST | `/ml/best-side/predict` | Predict best facade side by insolation |
+| POST | `/ml-data/geocoding/search` | Geocoding |
+| POST | `/ml-data/overpass/buildings` | Building footprints from OSM |
+| POST | `/alemllm/chat` | Chat assistant |
+| GET | `/health` | Service health |
 
----
-
-## Команда
-
-Проект разработан командой Butaq
-
----
+## Roadmap
+1. Municipal integrations (planning APIs, reporting, IoT overlays).
+2. Regional rollout across Central Asia.
+3. Multi-language and policy-ready planning exports.
+4. Scalable global deployment where open satellite coverage exists.
