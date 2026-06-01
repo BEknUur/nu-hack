@@ -8,7 +8,7 @@ const HEAT_LINE_LAYER_ID = 'heat-lst-line';
 
 const CELL_HALF_DEG_LAT = 0.00045;   // ~50 m in latitude
 const CELL_HALF_DEG_LON = 0.00072;   // ~50 m in longitude at ~51°N
-const MAX_CELLS_HINT = 5_000;
+
 const DEBOUNCE_MS = 500;
 
 function cellToPolygon(cell: HeatCell): GeoJSON.Feature {

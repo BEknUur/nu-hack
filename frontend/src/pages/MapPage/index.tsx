@@ -103,7 +103,7 @@ export default function MapPage() {
   const [sunExposure, setSunExposure] = useState(false);
   const [heatMode, setHeatMode] = useState(false);
   const [heatHint, setHeatHint] = useState<string | null>(null);
-  const [heatLoading, setHeatLoading] = useState(false);
+  const [, setHeatLoading] = useState(false);
   const [is3D, setIs3D] = useState(false);
   const [isSatellite, setIsSatellite] = useState(false);
   const [clickInfo, setClickInfo] = useState<ClickInfo | null>(null);
