@@ -323,41 +323,22 @@ export default function LandingPage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 rounded-full bg-[#f0c24c]/10 ring-1 ring-[#f0c24c]/20 px-4 py-1.5 mb-2">
             <span className="h-1.5 w-1.5 rounded-full bg-[#f0c24c]" />
-            <span className="ui-mono text-[11px] text-[#f0c24c] uppercase tracking-[1px]">
-              {l.telegram.title}
-            </span>
+          
           </div>
 
           {/* Animated title */}
           <HandWrittenTitle
             title="Kolenke"
-            subtitle={l.telegram.description}
+           
           />
 
           {/* Wave divider */}
           <WavePath className="text-white/15 mb-10" />
 
           {/* Feature pills */}
-          <div className="flex flex-wrap justify-center gap-2 mb-12 max-w-lg">
-            {l.telegram.features.map((feat, i) => (
-              <span
-                key={i}
-                className="inline-flex items-center rounded-full bg-white/[0.05] ring-1 ring-white/[0.08] px-4 py-2 text-[13px] text-white/50"
-              >
-                {feat}
-              </span>
-            ))}
-          </div>
+      
 
-          {/* CTA */}
-          <a
-            href="https://t.me/alem_aiI_bot"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-2 rounded-xl bg-[#f0c24c] px-7 py-3 text-sm font-semibold text-[#06080f] hover:bg-[#f0c24c]/90 transition-colors shadow-[0_4px_24px_rgba(240,194,76,0.25)]"
-          >
-            {l.telegram.cta}
-          </a>
+          
         </div>
       </section>
 
