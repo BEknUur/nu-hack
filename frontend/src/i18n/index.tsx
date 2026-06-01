@@ -144,7 +144,7 @@ interface TranslationSet {
   };
 }
 
-const STORAGE_KEY = 'decentra-language';
+const STORAGE_KEY = 'kolenke-language';
 
 export const LANGUAGE_LABELS: Record<Language, string> = {
   ru: 'RU',
@@ -155,7 +155,7 @@ export const LANGUAGE_LABELS: Record<Language, string> = {
 const translations: Record<Language, TranslationSet> = {
   ru: {
     common: {
-      appName: 'DeCentra',
+      appName: 'Kolenke',
       appTagline: 'карта солнца и тени',
       openApp: 'Открыть приложение',
       startAnalysis: 'Начать анализ',
@@ -227,7 +227,7 @@ const translations: Record<Language, TranslationSet> = {
         },
       ],
       showreelTag: 'Продуктовый showreel',
-      showreelTitle: 'DeCentra в движении',
+      showreelTitle: 'Kolenke в движении',
       showreelPlaceholderHint: '/videos/landing/showreel.mp4',
       showreelPlaceholderTitle: 'Добавь один ролик сюда, и он объяснит весь поток работы.',
       workflowTag: 'Поток работы',
@@ -346,7 +346,7 @@ const translations: Record<Language, TranslationSet> = {
   },
   kk: {
     common: {
-      appName: 'DeCentra',
+      appName: 'Kolenke',
       appTagline: 'күн мен көлеңке картасы',
       openApp: 'Қосымшаны ашу',
       startAnalysis: 'Талдауды бастау',
@@ -418,7 +418,7 @@ const translations: Record<Language, TranslationSet> = {
         },
       ],
       showreelTag: 'Өнім showreel-і',
-      showreelTitle: 'DeCentra қозғалыста',
+      showreelTitle: 'Kolenke қозғалыста',
       showreelPlaceholderHint: '/videos/landing/showreel.mp4',
       showreelPlaceholderTitle: 'Бір видеоны осында қос, сонда бүкіл жұмыс ағынын түсіндіреді.',
       workflowTag: 'Жұмыс ағымы',
@@ -536,7 +536,7 @@ const translations: Record<Language, TranslationSet> = {
   },
   en: {
     common: {
-      appName: 'DeCentra',
+      appName: 'Kolenke',
       appTagline: 'sun and shadow mapping',
       openApp: 'Open app',
       startAnalysis: 'Start analysis',
@@ -608,7 +608,7 @@ const translations: Record<Language, TranslationSet> = {
         },
       ],
       showreelTag: 'Showreel video',
-      showreelTitle: 'DeCentra in motion',
+      showreelTitle: 'Kolenke in motion',
       showreelPlaceholderHint: '/videos/landing/showreel.mp4',
       showreelPlaceholderTitle: 'Drop one product video here and let it explain the whole flow.',
       workflowTag: 'Workflow',

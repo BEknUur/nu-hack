@@ -265,7 +265,7 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
         <div className="mx-auto grid w-[350px] gap-4">
           {/* Logo */}
           <a href="/" className="flex flex-col items-center leading-none mb-2">
-            <span className="font-display text-xl font-medium text-white tracking-[-0.04em]">DeCentra</span>
+            <span className="font-display text-xl font-medium text-white tracking-[-0.04em]">Kolenke</span>
             <span className="ui-mono text-[10px] text-white/30 mt-1 tracking-widest uppercase">Shadow Map</span>
           </a>
 
@@ -299,7 +299,7 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
             <p className="text-lg font-medium text-white">
               "<Typewriter key={isSignIn ? signInQuote : signUpQuote} text={isSignIn ? signInQuote : signUpQuote} speed={60} />"
             </p>
-            <cite className="block text-sm font-light text-white/30 not-italic">— DeCentra</cite>
+            <cite className="block text-sm font-light text-white/30 not-italic">— Kolenke</cite>
           </blockquote>
         </div>
       </div>

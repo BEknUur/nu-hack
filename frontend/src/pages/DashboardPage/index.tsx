@@ -57,7 +57,7 @@ export default function DashboardPage() {
       <header className="border-b border-white/[0.06]">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
           <a href={langPath('/')} className="flex flex-col leading-none">
-            <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">DeCentra</span>
+            <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">Kolenke</span>
             <span className="ui-mono text-[10px] text-white/30 mt-0.5">sunlight and shadow map</span>
           </a>
           <div className="flex items-center gap-3">

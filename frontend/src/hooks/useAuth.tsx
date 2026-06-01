@@ -1,9 +1,9 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
 import { authLogin, authLogout, authRegister,  } from '@/services/auth';
 
-const TOKEN_KEY = 'decentra_access_token';
-const REFRESH_KEY = 'decentra_refresh_token';
-const USER_KEY = 'decentra_user';
+const TOKEN_KEY = 'kolenke_access_token';
+const REFRESH_KEY = 'kolenke_refresh_token';
+const USER_KEY = 'kolenke_user';
 
 interface AuthUser {
     userId: string;

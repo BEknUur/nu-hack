@@ -8,12 +8,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { HandWrittenTitle } from '@/components/ui/hand-writing-text';
 import { WavePath } from '@/components/ui/wave-path';
 
-// ─── DeCentra logo ───────────────────────────────────────────────────────────
+// ─── Kolenke logo ───────────────────────────────────────────────────────────
 
-function DeCentraLogo({ tagline, homeHref }: { tagline: string; homeHref: string }) {
+function KolenkeLogo({ tagline, homeHref }: { tagline: string; homeHref: string }) {
   return (
     <a href={homeHref} className="flex flex-col leading-none">
-      <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">DeCentra</span>
+      <span className="font-display text-[15px] font-medium text-white tracking-[-0.04em]">Kolenke</span>
       <span className="ui-mono text-[10px] text-white/35 mt-0.5">{tagline}</span>
     </a>
   );
@@ -212,7 +212,7 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <ResponsiveHeroBanner
-        logoSlot={<DeCentraLogo tagline={l.footer.tagline} homeHref={langPath('/')} />}
+        logoSlot={<KolenkeLogo tagline={l.footer.tagline} homeHref={langPath('/')} />}
         backgroundSlides={[
           '/imgs/image2.png',
           '/imgs/astana2.png',
@@ -373,7 +373,7 @@ export default function LandingPage() {
           { href: '#', label: 'Terms'   },
         ]}
         copyright={{
-          text: `© ${new Date().getFullYear()} DeCentra`,
+          text: `© ${new Date().getFullYear()} Kolenke`,
           license: l.footer.tagline,
         }}
       />
