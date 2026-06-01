@@ -69,6 +69,7 @@ const FEATURE_CONFIG: FeatureConfig[] = [
   {
     num: '04',
     path: '/app/solar-flowers',
+    videoSrc: '/vids/solar.mp4',
     accent: 'rgba(251,146,60,0.06)',
     glow: 'rgba(251,146,60,0.16)',
     border: 'rgba(251,146,60,0.12)',
