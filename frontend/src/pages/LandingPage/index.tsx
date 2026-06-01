@@ -214,7 +214,7 @@ export default function LandingPage() {
       <ResponsiveHeroBanner
         logoSlot={<KolenkeLogo tagline={l.footer.tagline} homeHref={langPath('/')} />}
         backgroundSlides={[
-          '/imgs/image2.png',
+          '/imgs/image2.jpg',
           '/imgs/astana2.png',
           '/imgs/image.png',
         ]}
@@ -305,7 +305,7 @@ export default function LandingPage() {
         ))}
       </div>
 
-      {/* ── Telegram / Sun Advisor section ── */}
+      {/* ── Telegram / Kolenke section ── */}
       <section className="relative overflow-hidden">
         {/* Background image with overlay */}
         <div className="absolute inset-0">
@@ -329,7 +329,7 @@ export default function LandingPage() {
 
           {/* Animated title */}
           <HandWrittenTitle
-            title="Sun Advisor"
+            title="Kolenke"
             subtitle={l.telegram.description}
           />
 
@@ -357,7 +357,6 @@ export default function LandingPage() {
           >
             {l.telegram.cta}
           </a>
-          <p className="mt-4 ui-mono text-[11px] text-white/20">@alem_aiI_bot</p>
         </div>
       </section>
 

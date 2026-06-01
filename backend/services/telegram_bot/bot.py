@@ -117,7 +117,7 @@ def _build_morning_prompt(w: dict) -> str:
 - Прогноз солнечных часов: {w['sunshine_hours']}ч
 - UV индекс (макс): {w['uv_max']}
 
-На основе этих РЕАЛЬНЫХ данных и своей базы знаний, сгенерируй утренний брифинг Sun Advisor.
+На основе этих РЕАЛЬНЫХ данных и своей базы знаний, сгенерируй утренний брифинг Kolenke.
 
 Включи:
 1. ☀️ Солнечные данные на сегодня (используй реальные цифры выше)
@@ -141,7 +141,7 @@ def _build_evening_prompt(w: dict) -> str:
 - UV индекс: {w['tomorrow_uv']}
 - Прогноз солнечных часов: {w['tomorrow_sunshine']}ч
 
-На основе этих РЕАЛЬНЫХ данных и базы знаний, сгенерируй вечерний брифинг Sun Advisor.
+На основе этих РЕАЛЬНЫХ данных и базы знаний, сгенерируй вечерний брифинг Kolenke.
 
 Включи:
 1. 📊 Итоги дня (солнечные часы, какой был день)
@@ -232,7 +232,7 @@ async def _call_llm(messages: list[dict[str, str]], language: str = "en") -> str
 async def _call_llm_direct(prompt: str) -> str:
     """Call AlemLLM directly (no RAG) — for briefings with pre-injected data."""
     system = (
-        "Ты — Sun Advisor, интеллектуальный помощник по солнечному свету Астаны и не только. "
+        "Ты — Kolenke, интеллектуальный помощник по солнечному свету Астаны и не только. "
         "Отвечай кратко, с эмодзи, для Telegram. Пиши только обычным текстом, без Markdown и без декоративных разделителей. "
         "Не используй символы вроде #, ##, ###, **, __, ---, ``` и не делай заголовки. Используй только реальные данные из промпта. "
         "Ссылайся на нормы: СН РК 2.04-01-2011 (инсоляция 2.5ч), ТК РК ст.82 (ротация при ≥32.5°C), "
@@ -332,7 +332,7 @@ async def _send_briefing(context: ContextTypes.DEFAULT_TYPE, prompt: str, label:
         print(f"[Briefing] Failed to generate {label} briefing", flush=True)
         return
 
-    header = "☀️ Утренний брифинг Sun Advisor\n\n" if label == "morning" else "🌙 Вечерний брифинг Sun Advisor\n\n"
+    header = "☀️ Утренний брифинг Kolenke\n\n" if label == "morning" else "🌙 Вечерний брифинг Kolenke\n\n"
     message = header + briefing
 
     for user_id in all_users:
@@ -365,7 +365,7 @@ async def cmd_start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     _subscribers.add(user_id)
     _conversations.pop(user_id, None)
     await update.message.reply_text(
-        "☀️ Sun Advisor — Астана\n\n"
+        "☀️ Kolenke — Астана\n\n"
         "Я интеллектуальный помощник по солнечному свету.\n\n"
         "🏠 Квартиры — инсоляция, нормы, стоимость\n"
         "🌳 Озеленение — где сажать деревья\n"
@@ -386,7 +386,7 @@ async def cmd_clear(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 async def cmd_subscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user_id = update.effective_user.id
     _subscribers.add(user_id)
-    await update.message.reply_text("📬 Вы подписаны на ежедневные брифинги Sun Advisor (утро 7:00, вечер 20:00 по Астане).")
+    await update.message.reply_text("📬 Вы подписаны на ежедневные брифинги Kolenke (утро 7:00, вечер 20:00 по Астане).")
 
 
 async def cmd_unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -407,7 +407,7 @@ async def cmd_briefing(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     hour = datetime.utcnow().hour + ASTANA_UTC_OFFSET
     prompt = _build_morning_prompt(weather) if hour < 15 else _build_evening_prompt(weather)
     briefing = await _call_llm_direct(prompt)
-    await update.message.reply_text(prepare_telegram_text("☀️ Брифинг Sun Advisor\n\n" + briefing)[:4000])
+    await update.message.reply_text(prepare_telegram_text("☀️ Брифинг Kolenke\n\n" + briefing)[:4000])
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

@@ -289,7 +289,7 @@ export function AuthUI({ onSignIn, onSignUp }: AuthUIProps) {
       {/* Right — photo */}
       <div
         className="hidden md:block relative bg-cover bg-center"
-        style={{ backgroundImage: `url(/imgs/image2.png)` }}
+        style={{ backgroundImage: `url(/imgs/image2.)` }}
       >
         <div className="absolute inset-0 bg-[#06080f]/60" />
         <div className="pointer-events-none absolute inset-0" style={{ background: 'radial-gradient(ellipse 80% 60% at 50% 70%, rgba(240,194,76,0.06) 0%, transparent 70%)' }} />

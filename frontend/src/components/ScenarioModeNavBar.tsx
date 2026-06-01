@@ -78,7 +78,7 @@ export function ScenarioModeNavBar({ active, className }: ScenarioModeNavBarProp
             target="_blank"
             rel="noopener noreferrer"
             className="flex h-8 w-8 items-center justify-center rounded-full text-white/45 hover:text-[#f0c24c] hover:bg-white/5 transition-colors"
-            title="Sun Advisor — Telegram Bot"
+            title="Kolenke — Telegram Bot"
           >
             <Send className="h-3.5 w-3.5" />
           </a>

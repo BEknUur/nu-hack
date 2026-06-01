@@ -181,7 +181,7 @@ async def analyze_building(req: BuildingAnalysisRequest) -> BuildingAnalysisResp
     conf_str = f" ({round(req.confidence * 100)}%)" if req.confidence else ""
     sun_hours_str = f"{req.sun_hours:.1f} ч" if req.sun_hours is not None else "—"
 
-    prompt = f"""Ты Sun Advisor — эксперт по солнечному свету Астаны. Проанализируй здание:
+    prompt = f"""Ты Kolenke — эксперт по солнечному свету Астаны. Проанализируй здание:
 
 Координаты: {req.lat:.5f}, {req.lng:.5f}
 Статус: {sun_status}

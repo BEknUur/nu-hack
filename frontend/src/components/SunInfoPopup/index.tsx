@@ -175,7 +175,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
           </div>
         )}
 
-        {/* Sun Advisor AI Analysis */}
+        {/* Kolenke AI Analysis */}
         {!analysis && (
           <button
             onClick={handleAnalyze}
@@ -185,12 +185,12 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
             {analyzing ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Sun Advisor...
+                Kolenke...
               </>
             ) : (
               <>
                 <Sparkles className="h-4 w-4" />
-                Sun Advisor Analysis
+                Kolenke Analysis
               </>
             )}
           </button>
@@ -200,7 +200,7 @@ export default function SunInfoPopup({ info, onClose }: SunInfoPopupProps) {
           <div className="mt-4 rounded-lg border border-[var(--yellow)]/30 bg-[var(--yellow)]/5 p-3">
             <div className="flex items-center gap-2 mb-2">
               <Sparkles className="h-3.5 w-3.5 text-[var(--yellow-strong)]" />
-              <span className="ui-mono text-[11px] font-medium text-[var(--yellow-strong)] uppercase tracking-[0.5px]">Sun Advisor</span>
+              <span className="ui-mono text-[11px] font-medium text-[var(--yellow-strong)] uppercase tracking-[0.5px]">Kolenke</span>
             </div>
             <div
               className="text-[13px] leading-[1.6] text-[var(--ink)]"

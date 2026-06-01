@@ -27,7 +27,7 @@ interface ChatSidebarProps {
 const I18N = {
   en: {
     tag: 'AI assistant',
-    title: 'Sun Advisor',
+    title: 'Kolenke',
     placeholder: 'Ask about sun, shadows\u2026',
     welcome: 'Ask me about sunlight, shadows, buildings, or urban planning.',
     welcomeTitle: 'Hello!',
@@ -41,7 +41,7 @@ const I18N = {
   },
   ru: {
     tag: '\u0418\u0418-\u0430\u0441\u0441\u0438\u0441\u0442\u0435\u043d\u0442',
-    title: 'Sun Advisor',
+    title: 'Kolenke',
     placeholder: '\u0421\u043f\u0440\u043e\u0441\u0438\u0442\u0435 \u043e \u0441\u043e\u043b\u043d\u0446\u0435, \u0442\u0435\u043d\u044f\u0445\u2026',
     welcome: '\u041f\u043e\u043c\u043e\u0433\u0443 \u0441 \u0430\u043d\u0430\u043b\u0438\u0437\u043e\u043c \u043e\u0441\u0432\u0435\u0449\u0451\u043d\u043d\u043e\u0441\u0442\u0438, \u0437\u0434\u0430\u043d\u0438\u0439 \u0438 \u0433\u043e\u0440\u043e\u0434\u0441\u043a\u043e\u0433\u043e \u043f\u043b\u0430\u043d\u0438\u0440\u043e\u0432\u0430\u043d\u0438\u044f.',
     welcomeTitle: '\u041f\u0440\u0438\u0432\u0435\u0442!',
@@ -55,7 +55,7 @@ const I18N = {
   },
   kk: {
     tag: 'AI \u043a\u0435\u04a3\u0435\u0441\u0448\u0456',
-    title: 'Sun Advisor',
+    title: 'Kolenke',
     placeholder: '\u041a\u04af\u043d, \u043a\u04e9\u043b\u0435\u04a3\u043a\u0435 \u0442\u0443\u0440\u0430\u043b\u044b \u0441\u04b1\u0440\u0430\u04a3\u044b\u0437\u2026',
     welcome: '\u0416\u0430\u0440\u044b\u049b, \u0493\u0438\u043c\u0430\u0440\u0430\u0442 \u0431\u0430\u0493\u0434\u0430\u0440\u044b, \u049b\u0430\u043b\u0430 \u0436\u043e\u0441\u043f\u0430\u0440\u043b\u0430\u0443 \u0431\u043e\u0439\u044b\u043d\u0448\u0430 \u043a\u04e9\u043c\u0435\u043a\u0442\u0435\u0441\u0435\u043c\u0456\u043d.',
     welcomeTitle: '\u0421\u04d9\u043b\u0435\u043c!',
@@ -298,7 +298,7 @@ export default function ChatSidebar({
               ? 'bg-[var(--blue-strong)] text-white border-[var(--blue-strong)]'
               : 'bg-[var(--surface)] text-[var(--blue-strong)] hover:shadow-[0_8px_24px_rgba(31,79,156,0.16)]',
           )}
-          aria-label={isOpen ? 'Close chat' : 'Open Sun Advisor'}
+          aria-label={isOpen ? 'Close chat' : 'Open Kolenke'}
         >
           {isOpen ? (
             <X className="h-5 w-5" />

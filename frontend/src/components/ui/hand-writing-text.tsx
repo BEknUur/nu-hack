@@ -6,7 +6,7 @@ interface HandWrittenTitleProps {
 }
 
 export function HandWrittenTitle({
-    title = 'Sun Advisor',
+    title = 'Kolenke',
     subtitle,
 }: HandWrittenTitleProps) {
     const draw = {
