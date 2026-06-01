@@ -20,6 +20,8 @@ from services.telegram_bot.router.router import router as telegram_router
 from services.tree_optimizer.router.router import router as tree_optimizer_router
 from services.voice.router.router import router as voice_router
 from services.text_to_image.router.router import router as text_to_image_router
+from services.heat.router.router import router as heat_router
+from services.heat_engine import get_grid, get_grid_source, get_grid_cell_count
 
 app = FastAPI(
     title="BUTAQ Team Backend",
@@ -44,12 +46,14 @@ app.include_router(voice_router)
 app.include_router(telegram_router)
 app.include_router(auth_router)
 app.include_router(text_to_image_router)
+app.include_router(heat_router)
 
 
 @app.on_event("startup")
 async def startup_event() -> None:
     create_db_schema()
     await startup_telegram()
+    get_grid()  # preload LST/NDVI grid once at startup
 
 
 @app.on_event("shutdown")
@@ -58,21 +62,25 @@ async def shutdown_event() -> None:
 
 
 @app.get("/health", tags=["health"], status_code=HTTP_200_OK)
-def health_check(db: Session = Depends(get_db)):
+def health_check():
     """
-    Health check endpoint to verify that the server and database are running.
+    Health check endpoint. Works without a database connection.
     """
     try:
-        db.execute(text("SELECT 1"))
+        from core.database.session.database import SessionLocal
+        from sqlalchemy import text as _text
+        db = SessionLocal()
+        db.execute(_text("SELECT 1"))
+        db.close()
         db_status = "connected"
-        status = "ok"
     except Exception:
-        db_status = "disconnected"
-        status = "error"
+        db_status = "unavailable"
 
     return {
-        "status": status,
+        "status": "ok",
         "database": db_status,
+        "grid_source": get_grid_source(),
+        "cells": get_grid_cell_count(),
     }
 
 

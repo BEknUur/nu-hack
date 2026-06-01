@@ -1,7 +1,9 @@
+import { type CSSProperties, useState } from 'react';
 import { useTranslation } from '@/i18n';
 import type { TreeDrawMode, TreeRankCandidate } from '@/types/tree-optimizer';
 import { TreeAreaDrawControls } from '@/components/treeShared/TreeAreaDrawControls';
 import { TreeRankingControls } from '@/components/treeShared/TreeRankingControls';
+import type { ScenarioImpactResponse } from '@/services/heatGrid';
 
 export type TreeWizardStep = 'shape' | 'drawing' | 'settings' | 'results';
 
@@ -30,6 +32,11 @@ interface TreeOptimizerWizardProps {
   onRunRanking: () => void;
   onBackToShape: () => void;
   onBackToSettings: () => void;
+  // Scenario panel (shown after results)
+  scenarioBbox?: { lon_min: number; lat_min: number; lon_max: number; lat_max: number } | null;
+  onScenarioRequest?: (targetCanopyPct: number) => void;
+  scenarioImpact?: ScenarioImpactResponse | null;
+  scenarioLoading?: boolean;
 }
 
 export interface WizardCopy {
@@ -254,9 +261,14 @@ export default function TreeOptimizerWizard({
   onRunRanking,
   onBackToShape,
   onBackToSettings,
+  scenarioBbox,
+  onScenarioRequest,
+  scenarioImpact,
+  scenarioLoading,
 }: TreeOptimizerWizardProps) {
   const { language } = useTranslation();
   const copy = WIZARD_COPY[language];
+  const [canopyPct, setCanopyPct] = useState(20);
 
   const summerPct = Math.round(summerWeight * 100);
   const winterPct = 100 - summerPct;
@@ -386,6 +398,60 @@ export default function TreeOptimizerWizard({
                   ))}
                 </ul>
               </>
+            )}
+          </div>
+        )}
+
+        {step === 'results' && scenarioBbox && onScenarioRequest && (
+          <div className={stepCardClass}>
+            <div className="ui-mono text-[10px] text-[var(--ink-soft)]">Scenario</div>
+            <div className="mt-2">
+              <div className="flex items-center justify-between text-[11px] text-[var(--ink)]">
+                <span>Canopy cover target</span>
+                <span className="ui-mono font-semibold">+{canopyPct}%</span>
+              </div>
+              <input
+                type="range"
+                min={5}
+                max={40}
+                step={5}
+                value={canopyPct}
+                className="time-slider mt-1 w-full"
+                style={{ '--pct': `${((canopyPct - 5) / 35) * 100}%` } as CSSProperties}
+                onChange={(e) => {
+                  const v = Number(e.target.value);
+                  setCanopyPct(v);
+                  onScenarioRequest(v);
+                }}
+              />
+              <div className="mt-0.5 flex justify-between ui-mono text-[9px] text-[var(--ink-soft)]">
+                <span>+5%</span><span>+40%</span>
+              </div>
+            </div>
+
+            {scenarioLoading && (
+              <p className="mt-2 text-[11px] text-[var(--ink-soft)]">Calculating...</p>
+            )}
+
+            {scenarioImpact && !scenarioLoading && !scenarioImpact.error && (
+              <div className="mt-2 rounded-md border border-[color:var(--line)] bg-white/72 px-2 py-1.5 space-y-0.5">
+                <div className="text-[12px] font-semibold text-[#2e6b3e]">
+                  −{scenarioImpact.estimated_air_cooling_c.toFixed(1)}°C air cooling
+                </div>
+                <div className="text-[11px] text-[var(--ink)]">
+                  {scenarioImpact.trees_needed.toLocaleString()} trees needed
+                </div>
+                <div className="text-[11px] text-[var(--ink)]">
+                  −{scenarioImpact.co2_uptake_t_per_year.toFixed(1)} t CO₂/yr
+                </div>
+                <div className="text-[11px] text-[var(--ink-soft)]">
+                  Zone: {scenarioImpact.zone_area_ha.toFixed(1)} ha ·{' '}
+                  LST now: {scenarioImpact.mean_surface_temp_now_c.toFixed(1)}°C
+                </div>
+                <p className="text-[9px] text-[var(--ink-soft)] leading-tight mt-1">
+                  Air temp estimate per npj Urban Sustainability 2025. CO₂ approx.
+                </p>
+              </div>
             )}
           </div>
         )}

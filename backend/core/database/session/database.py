@@ -21,11 +21,15 @@ Base = declarative_base()
 def create_db_schema() -> None:
     """
     Ensure database tables exist for all registered ORM models.
+    Fails gracefully when the database is unavailable (local dev without Postgres).
     """
     import services.ml_data.models  # noqa: F401
     import services.auth.models  # noqa: F401
 
-    Base.metadata.create_all(bind=engine)
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception:
+        pass
 
 def get_db():
     """
