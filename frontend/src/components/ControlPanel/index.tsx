@@ -31,6 +31,9 @@ interface ControlPanelProps {
   onDateChange: (v: string) => void;
   sunExposure: boolean;
   onModeChange: (exposure: boolean) => void;
+  heatMode?: boolean;
+  onHeatModeChange?: (enabled: boolean) => void;
+  heatHint?: string | null;
   is3D?: boolean;
   onViewModeChange?: (enabled: boolean) => void;
   isSatellite?: boolean;
@@ -167,6 +170,9 @@ export default function ControlPanel({
   onDateChange,
   sunExposure,
   onModeChange,
+  heatMode,
+  onHeatModeChange,
+  heatHint,
   is3D,
   onViewModeChange,
   isSatellite,
@@ -215,12 +221,54 @@ export default function ControlPanel({
           <PanelSection title={messages.map.analysisMode}>
             <SegmentedOptionGroup
               value={sunExposure}
-              onChange={(value) => onModeChange(value as boolean)}
+              onChange={(value) => {
+                onModeChange(value as boolean);
+                if (value && onHeatModeChange) onHeatModeChange(false);
+              }}
               options={[
                 { label: messages.map.shadows, value: false },
                 { label: messages.map.exposure, value: true },
               ]}
             />
+            {onHeatModeChange && (
+              <div className="mt-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !heatMode;
+                    onHeatModeChange(next);
+                    if (next) onModeChange(false);
+                  }}
+                  className={`w-full rounded-md border px-2.5 py-1.5 text-[12px] font-medium transition-colors ${
+                    heatMode
+                      ? 'border-[#b03020] bg-[rgba(176,48,32,0.12)] text-[#b03020]'
+                      : 'border-[color:var(--line)] bg-transparent text-[var(--ink-soft)] hover:text-[var(--ink)]'
+                  }`}
+                >
+                  {heatMode ? '🌡 Heat (LST) — ON' : '🌡 Heat (LST)'}
+                </button>
+                {heatMode && (
+                  <div className="mt-2 rounded-md border border-[color:var(--line)] bg-white/70 px-2 py-1.5">
+                    <div className="text-[10px] font-medium text-[var(--ink-soft)] mb-1">Surface temperature (°C)</div>
+                    <div className="flex h-3 w-full rounded overflow-hidden">
+                      <div className="flex-1" style={{ background: 'rgba(33,102,172,1)' }} />
+                      <div className="flex-1" style={{ background: 'rgba(90,180,100,1)' }} />
+                      <div className="flex-1" style={{ background: 'rgba(255,220,50,1)' }} />
+                      <div className="flex-1" style={{ background: 'rgba(220,60,20,1)' }} />
+                      <div className="flex-1" style={{ background: 'rgba(100,0,30,1)' }} />
+                    </div>
+                    <div className="mt-0.5 flex justify-between text-[9px] text-[var(--ink-soft)]">
+                      <span>≤25°C</span>
+                      <span>35°C</span>
+                      <span>≥50°C</span>
+                    </div>
+                    {heatHint && (
+                      <p className="mt-1 text-[10px] text-[#9c3b2a]">{heatHint}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
           </PanelSection>
         )}
 
