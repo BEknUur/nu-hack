@@ -320,11 +320,7 @@ export default function LandingPage() {
         </div>
 
         <div className="relative z-10 flex flex-col items-center px-4 pt-24 pb-28">
-          {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full bg-[#f0c24c]/10 ring-1 ring-[#f0c24c]/20 px-4 py-1.5 mb-2">
-            <span className="h-1.5 w-1.5 rounded-full bg-[#f0c24c]" />
-          
-          </div>
+        
 
           {/* Animated title */}
           <HandWrittenTitle
@@ -332,10 +328,8 @@ export default function LandingPage() {
            
           />
 
-          {/* Wave divider */}
-          <WavePath className="text-white/15 mb-10" />
 
-          {/* Feature pills */}
+         
       
 
           
