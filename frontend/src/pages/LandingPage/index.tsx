@@ -6,7 +6,7 @@ import { Footer } from '@/components/ui/footer';
 import { useLangPath, useTranslation } from '@/i18n';
 import { useAuth } from '@/hooks/useAuth';
 import { HandWrittenTitle } from '@/components/ui/hand-writing-text';
-import { WavePath } from '@/components/ui/wave-path';
+
 
 // ─── Kolenke logo ───────────────────────────────────────────────────────────
 
