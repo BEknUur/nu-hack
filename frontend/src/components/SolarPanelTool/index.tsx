@@ -42,6 +42,10 @@ const COPY: Record<Language, {
   sunAvg: string;
   perYear: string;
   perYearLabel: string;
+  savingsTitle: string;
+  periodSavingsLabel: string;
+  annualSavingsLabel: string;
+  tariffNote: string;
   noSun: string;
   hours: string;
 }> = {
@@ -62,6 +66,10 @@ const COPY: Record<Language, {
     sunAvg: 'Avg direct sun',
     perYear: 'Over a year that is',
     perYearLabel: 'Per year',
+    savingsTitle: 'Estimated bill savings',
+    periodSavingsLabel: 'This period',
+    annualSavingsLabel: 'Per year',
+    tariffNote: 'At Kazakhstan household avg. 30.75 ₸/kWh',
     noSun: 'This spot is fully shaded in this period — try another spot or change the date.',
     hours: 'h',
   },
@@ -82,6 +90,10 @@ const COPY: Record<Language, {
     sunAvg: 'Сред. прямое солнце',
     perYear: 'За год это',
     perYearLabel: 'За год',
+    savingsTitle: 'Оценка экономии',
+    periodSavingsLabel: 'За период',
+    annualSavingsLabel: 'За год',
+    tariffNote: 'По среднему бытовому тарифу РК 30.75 ₸/кВт⋅ч',
     noSun: 'В этот период точка полностью в тени — выберите другое место или измените дату.',
     hours: 'ч',
   },
@@ -102,17 +114,27 @@ const COPY: Record<Language, {
     sunAvg: 'Орташа тікелей күн',
     perYear: 'Жыл бойы бұл',
     perYearLabel: 'Жылына',
+    savingsTitle: 'Үнемдеу бағасы',
+    periodSavingsLabel: 'Кезең үшін',
+    annualSavingsLabel: 'Жылына',
+    tariffNote: 'ҚР тұрмыстық орташа тарифі бойынша 30.75 ₸/кВт⋅сағ',
     noSun: 'Бұл кезеңде нүкте толық көлеңкеде — басқа орын таңдаңыз немесе күнді өзгертіңіз.',
     hours: 'сағ',
   },
 };
 
 const PERIOD_ORDER: SolarPeriod[] = ['day', 'week', 'month'];
+const KZ_RESIDENTIAL_ELECTRICITY_TARIFF_KZT_PER_KWH = 30.75;
 
 function fmtKwh(n: number): string {
   if (n >= 100) return Math.round(n).toLocaleString();
   if (n >= 10) return n.toFixed(0);
   return n.toFixed(1);
+}
+
+function fmtTenge(n: number): string {
+  const rounded = Math.max(0, Math.round(n));
+  return `${rounded.toLocaleString('en-US')} ₸`;
 }
 
 function handleDragStart(e: React.DragEvent) {
@@ -152,6 +174,14 @@ export default function SolarPanelTool({
   const exposurePct =
     estimate.shadingFactor != null ? Math.round(estimate.shadingFactor * 100) : null;
   const hasOutput = estimate.periodKwh != null && estimate.periodKwh > 0.001;
+  const periodSavingsKzt =
+    estimate.periodKwh != null
+      ? estimate.periodKwh * KZ_RESIDENTIAL_ELECTRICITY_TARIFF_KZT_PER_KWH
+      : null;
+  const annualSavingsKzt =
+    estimate.annualKwh != null
+      ? estimate.annualKwh * KZ_RESIDENTIAL_ELECTRICITY_TARIFF_KZT_PER_KWH
+      : null;
 
   return (
     <aside className="map-panel absolute right-4 top-4 z-[1000] hidden max-h-[calc(100vh-2rem)] w-[300px] max-w-[calc(100vw-2rem)] overflow-y-auto rounded-lg p-3 text-[var(--ink)] md:block">
@@ -306,6 +336,26 @@ export default function SolarPanelTool({
               {/* Relatable examples */}
               <div className="rounded-lg border border-[color:var(--line)] bg-white/70 p-2.5">
                 <div className="mb-1.5 text-[11px] font-medium text-[var(--ink)]">{c.powersOver[period]}</div>
+                {periodSavingsKzt != null && annualSavingsKzt != null && (
+                  <div className="mb-2 rounded-md border border-[var(--yellow-strong)]/25 bg-[var(--yellow-strong)]/8 p-2">
+                    <div className="mb-1 text-[11px] font-medium text-[var(--ink)]">{c.savingsTitle}</div>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <div className="text-[10px] leading-4 text-[var(--ink-soft)]">{c.periodSavingsLabel}</div>
+                        <div className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--yellow-strong)]">
+                          {fmtTenge(periodSavingsKzt)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[10px] leading-4 text-[var(--ink-soft)]">{c.annualSavingsLabel}</div>
+                        <div className="text-[15px] font-semibold tracking-[-0.02em] text-[var(--yellow-strong)]">
+                          {fmtTenge(annualSavingsKzt)}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="mt-1 text-[10px] leading-4 text-[var(--ink-soft)]">{c.tariffNote}</div>
+                  </div>
+                )}
                 <ul className="space-y-1">
                   {periodExamples.map((ex, i) => (
                     <li key={i} className="flex items-center gap-2 text-[12px] text-[var(--ink)]">
