@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import math
 from dataclasses import dataclass
 from pathlib import Path
@@ -11,10 +12,36 @@ import httpx
 
 from services.alemllm.config import alemllm_settings
 
+_LOGGER = logging.getLogger(__name__)
+
 SUMMARY_DATASET_PATH = Path(__file__).resolve().parents[3] / "dataset" / "output" / "block-summary.json"
+BUILDING_FOOTPRINTS_PATH = Path(__file__).resolve().parents[3] / "dataset" / "output" / "block-buildings.geojson"
 
 _BUCKET_DEG = 0.003
+_FOOTPRINT_BUCKET_DEG = 0.0015
 _LLM_TIMEOUT_SECONDS = 18.0
+_OSM_CONTEXT_TIMEOUT_SECONDS = 5.0
+_OSM_CONTEXT_CACHE_LIMIT = 32
+_MIN_BUILDING_CLEARANCE_M = 5.0
+
+_OVERPASS_ENDPOINTS = (
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+)
+
+_EXCLUDED_HIGHWAYS = {
+    "construction",
+    "elevator",
+    "motorway",
+    "motorway_link",
+    "platform",
+    "proposed",
+    "raceway",
+    "steps",
+    "trunk",
+    "trunk_link",
+}
 
 
 @dataclass(frozen=True)
@@ -22,6 +49,28 @@ class BuildingSignal:
     lat: float
     lng: float
     height: float
+
+
+@dataclass(frozen=True)
+class BuildingFootprint:
+    geometry: dict[str, Any]
+    bbox: tuple[float, float, float, float]
+
+
+@dataclass(frozen=True)
+class RoadSegment:
+    a_lat: float
+    a_lng: float
+    b_lat: float
+    b_lng: float
+    highway: str
+    access_weight: float
+
+
+@dataclass(frozen=True)
+class OSMContext:
+    roads: list[RoadSegment]
+    footprints: list[BuildingFootprint]
 
 
 @dataclass(frozen=True)
@@ -40,6 +89,10 @@ class CandidateScore:
 
 _DATASET_LOCK = Lock()
 _DATASET_CACHE: tuple[list[BuildingSignal], dict[tuple[int, int], list[int]]] | None = None
+_FOOTPRINTS_LOCK = Lock()
+_FOOTPRINTS_CACHE: tuple[list[BuildingFootprint], dict[tuple[int, int], list[int]]] | None = None
+_OSM_CONTEXT_LOCK = Lock()
+_OSM_CONTEXT_CACHE: dict[tuple[int, int, int, int], OSMContext] = {}
 
 
 def _close_ring(ring: list[tuple[float, float]]) -> list[tuple[float, float]]:
@@ -142,6 +195,32 @@ def _geometry_bbox(geometry: dict[str, Any]) -> tuple[float, float, float, float
     return min(lats), min(lngs), max(lats), max(lngs)
 
 
+def _index_bucket(lat: float, lng: float, bucket_deg: float) -> tuple[int, int]:
+    return math.floor(lat / bucket_deg), math.floor(lng / bucket_deg)
+
+
+def _bbox_bucket_keys(
+    bbox: tuple[float, float, float, float],
+    bucket_deg: float,
+) -> list[tuple[int, int]]:
+    south, west, north, east = bbox
+    s_key, w_key = _index_bucket(south, west, bucket_deg)
+    n_key, e_key = _index_bucket(north, east, bucket_deg)
+    return [
+        (lat_key, lng_key)
+        for lat_key in range(s_key, n_key + 1)
+        for lng_key in range(w_key, e_key + 1)
+    ]
+
+
+def _index_footprints(footprints: list[BuildingFootprint]) -> dict[tuple[int, int], list[int]]:
+    buckets: dict[tuple[int, int], list[int]] = {}
+    for idx, footprint in enumerate(footprints):
+        for key in _bbox_bucket_keys(footprint.bbox, _FOOTPRINT_BUCKET_DEG):
+            buckets.setdefault(key, []).append(idx)
+    return buckets
+
+
 def _point_in_ring(lat: float, lng: float, ring: list[tuple[float, float]]) -> bool:
     inside = False
     for i in range(len(ring) - 1):
@@ -193,6 +272,79 @@ def _meters_between(a_lat: float, a_lng: float, b_lat: float, b_lng: float) -> f
     dx = (b_lng - a_lng) * lng_meters
     dy = (b_lat - a_lat) * lat_meters
     return math.hypot(dx, dy)
+
+
+def _meters_per_lng_degree(lat: float) -> float:
+    return 111_320.0 * max(0.01, math.cos(math.radians(lat)))
+
+
+def _meters_to_lat_delta(meters: float) -> float:
+    return meters / 111_320.0
+
+
+def _meters_to_lng_delta(meters: float, lat: float) -> float:
+    return meters / _meters_per_lng_degree(lat)
+
+
+def _expand_bbox(
+    *,
+    south: float,
+    west: float,
+    north: float,
+    east: float,
+    meters: float,
+) -> tuple[float, float, float, float]:
+    mid_lat = (south + north) / 2.0
+    lat_delta = _meters_to_lat_delta(meters)
+    lng_delta = _meters_to_lng_delta(meters, mid_lat)
+    return south - lat_delta, west - lng_delta, north + lat_delta, east + lng_delta
+
+
+def _point_to_segment_distance_m(
+    *,
+    lat: float,
+    lng: float,
+    a: tuple[float, float],
+    b: tuple[float, float],
+) -> float:
+    a_lng, a_lat = a
+    b_lng, b_lat = b
+    lng_meters = _meters_per_lng_degree(lat)
+    ax = (a_lng - lng) * lng_meters
+    ay = (a_lat - lat) * 111_320.0
+    bx = (b_lng - lng) * lng_meters
+    by = (b_lat - lat) * 111_320.0
+    dx = bx - ax
+    dy = by - ay
+    denom = dx * dx + dy * dy
+    if denom <= 1e-9:
+        return math.hypot(ax, ay)
+
+    t = _clamp((-(ax * dx + ay * dy)) / denom)
+    closest_x = ax + t * dx
+    closest_y = ay + t * dy
+    return math.hypot(closest_x, closest_y)
+
+
+def _distance_to_ring_m(lat: float, lng: float, ring: list[tuple[float, float]]) -> float:
+    if len(ring) < 2:
+        return float("inf")
+    return min(
+        _point_to_segment_distance_m(lat=lat, lng=lng, a=ring[i], b=ring[i + 1])
+        for i in range(len(ring) - 1)
+    )
+
+
+def _distance_to_geometry_m(lat: float, lng: float, geometry: dict[str, Any]) -> float:
+    geometry_type = geometry.get("type")
+    coordinates = geometry.get("coordinates", [])
+    distances: list[float] = []
+    if geometry_type == "Polygon":
+        distances.extend(_distance_to_ring_m(lat, lng, ring) for ring in coordinates)
+    elif geometry_type == "MultiPolygon":
+        for polygon in coordinates:
+            distances.extend(_distance_to_ring_m(lat, lng, ring) for ring in polygon)
+    return min(distances) if distances else float("inf")
 
 
 def _estimate_area_km2(south: float, west: float, north: float, east: float) -> float:
@@ -247,6 +399,201 @@ def _load_building_signals() -> tuple[list[BuildingSignal], dict[tuple[int, int]
         return _DATASET_CACHE
 
 
+def _load_building_footprints() -> tuple[list[BuildingFootprint], dict[tuple[int, int], list[int]]]:
+    global _FOOTPRINTS_CACHE
+
+    with _FOOTPRINTS_LOCK:
+        if _FOOTPRINTS_CACHE is not None:
+            return _FOOTPRINTS_CACHE
+
+        if not BUILDING_FOOTPRINTS_PATH.exists():
+            _FOOTPRINTS_CACHE = ([], {})
+            return _FOOTPRINTS_CACHE
+
+        raw = json.loads(BUILDING_FOOTPRINTS_PATH.read_text(encoding="utf-8"))
+        features = raw.get("features", []) if isinstance(raw, dict) else []
+        if not isinstance(features, list):
+            _FOOTPRINTS_CACHE = ([], {})
+            return _FOOTPRINTS_CACHE
+
+        footprints: list[BuildingFootprint] = []
+        for feature in features:
+            if not isinstance(feature, dict):
+                continue
+            geometry = _normalize_geometry(feature.get("geometry"))
+            if geometry is None:
+                continue
+            bbox = _geometry_bbox(geometry)
+            if bbox is None:
+                continue
+            footprints.append(BuildingFootprint(geometry=geometry, bbox=bbox))
+
+        _FOOTPRINTS_CACHE = (footprints, _index_footprints(footprints))
+        return _FOOTPRINTS_CACHE
+
+
+def _road_access_weight(highway: str) -> float:
+    weights = {
+        "pedestrian": 1.00,
+        "footway": 0.96,
+        "living_street": 0.92,
+        "residential": 0.88,
+        "cycleway": 0.84,
+        "service": 0.80,
+        "path": 0.76,
+        "tertiary": 0.74,
+        "unclassified": 0.72,
+        "secondary": 0.68,
+        "primary": 0.62,
+    }
+    return weights.get(highway, 0.66)
+
+
+def _road_offsets_m(highway: str) -> tuple[float, ...]:
+    if highway in {"footway", "path", "cycleway"}:
+        return (-3.0, 3.0)
+    if highway in {"pedestrian", "living_street"}:
+        return (-4.0, 4.0, -7.0, 7.0)
+    if highway in {"primary", "secondary", "tertiary"}:
+        return (-8.0, 8.0, -13.0, 13.0)
+    return (-6.0, 6.0, -10.0, 10.0)
+
+
+def _context_cache_key(south: float, west: float, north: float, east: float) -> tuple[int, int, int, int]:
+    return (
+        round(south * 10_000),
+        round(west * 10_000),
+        round(north * 10_000),
+        round(east * 10_000),
+    )
+
+
+def _build_osm_context_query(south: float, west: float, north: float, east: float) -> str:
+    excluded = "|".join(sorted(_EXCLUDED_HIGHWAYS))
+    return (
+        "[out:json][timeout:12];"
+        "("
+        f'way["highway"]["highway"!~"^({excluded})$"]({south},{west},{north},{east});'
+        f'way["building"]({south},{west},{north},{east});'
+        ");"
+        "out tags geom;"
+    )
+
+
+def _parse_way_geometry(element: dict[str, Any]) -> list[tuple[float, float]] | None:
+    raw_geometry = element.get("geometry")
+    if not isinstance(raw_geometry, list) or len(raw_geometry) < 2:
+        return None
+
+    points: list[tuple[float, float]] = []
+    for point in raw_geometry:
+        if not isinstance(point, dict):
+            return None
+        lat = point.get("lat")
+        lng = point.get("lon")
+        if not isinstance(lat, (int, float)) or not isinstance(lng, (int, float)):
+            return None
+        points.append((float(lat), float(lng)))
+    return points
+
+
+def _parse_osm_context(raw: Any) -> OSMContext:
+    if not isinstance(raw, dict):
+        return OSMContext(roads=[], footprints=[])
+
+    roads: list[RoadSegment] = []
+    footprints: list[BuildingFootprint] = []
+    elements = raw.get("elements", [])
+    if not isinstance(elements, list):
+        return OSMContext(roads=[], footprints=[])
+
+    for element in elements:
+        if not isinstance(element, dict) or element.get("type") != "way":
+            continue
+        tags = element.get("tags", {})
+        if not isinstance(tags, dict):
+            tags = {}
+
+        highway = tags.get("highway")
+        building = tags.get("building")
+        points = _parse_way_geometry(element)
+        if points is None:
+            continue
+
+        if isinstance(highway, str) and highway not in _EXCLUDED_HIGHWAYS:
+            access_weight = _road_access_weight(highway)
+            for idx in range(len(points) - 1):
+                a_lat, a_lng = points[idx]
+                b_lat, b_lng = points[idx + 1]
+                if _meters_between(a_lat, a_lng, b_lat, b_lng) < 8.0:
+                    continue
+                roads.append(
+                    RoadSegment(
+                        a_lat=a_lat,
+                        a_lng=a_lng,
+                        b_lat=b_lat,
+                        b_lng=b_lng,
+                        highway=highway,
+                        access_weight=access_weight,
+                    )
+                )
+
+        if building is not None and len(points) >= 4:
+            raw_ring = [[lng, lat] for lat, lng in points]
+            ring = _normalize_ring(raw_ring)
+            if ring is None:
+                continue
+            geometry = {"type": "Polygon", "coordinates": [ring]}
+            bbox = _geometry_bbox(geometry)
+            if bbox is not None:
+                footprints.append(BuildingFootprint(geometry=geometry, bbox=bbox))
+
+    return OSMContext(roads=roads, footprints=footprints)
+
+
+def _fetch_osm_context(south: float, west: float, north: float, east: float) -> OSMContext:
+    query = _build_osm_context_query(south, west, north, east)
+    last_error: Exception | None = None
+
+    for endpoint in _OVERPASS_ENDPOINTS:
+        try:
+            with httpx.Client(timeout=_OSM_CONTEXT_TIMEOUT_SECONDS) as client:
+                response = client.get(
+                    endpoint,
+                    params={"data": query},
+                    headers={"User-Agent": "BUTAQ-Backend/1.0"},
+                )
+            response.raise_for_status()
+            return _parse_osm_context(response.json())
+        except Exception as exc:
+            last_error = exc if isinstance(exc, Exception) else None
+            continue
+
+    if last_error is not None:
+        _LOGGER.warning("Tree optimizer OSM context unavailable: %s", last_error)
+    return OSMContext(roads=[], footprints=[])
+
+
+def _load_osm_context(south: float, west: float, north: float, east: float) -> OSMContext:
+    expanded = _expand_bbox(south=south, west=west, north=north, east=east, meters=80.0)
+    cache_key = _context_cache_key(*expanded)
+
+    with _OSM_CONTEXT_LOCK:
+        cached = _OSM_CONTEXT_CACHE.get(cache_key)
+        if cached is not None:
+            return cached
+
+    context = _fetch_osm_context(*expanded)
+
+    with _OSM_CONTEXT_LOCK:
+        if len(_OSM_CONTEXT_CACHE) >= _OSM_CONTEXT_CACHE_LIMIT:
+            oldest_key = next(iter(_OSM_CONTEXT_CACHE))
+            _OSM_CONTEXT_CACHE.pop(oldest_key, None)
+        _OSM_CONTEXT_CACHE[cache_key] = context
+
+    return context
+
+
 def _iter_grid_points(
     *,
     south: float,
@@ -276,6 +623,122 @@ def _iter_grid_points(
     return points
 
 
+def _offset_point_from_segment(segment: RoadSegment, t: float, offset_m: float) -> tuple[float, float] | None:
+    lat = segment.a_lat + (segment.b_lat - segment.a_lat) * t
+    lng = segment.a_lng + (segment.b_lng - segment.a_lng) * t
+    lng_meters = _meters_per_lng_degree(lat)
+    dx = (segment.b_lng - segment.a_lng) * lng_meters
+    dy = (segment.b_lat - segment.a_lat) * 111_320.0
+    length = math.hypot(dx, dy)
+    if length <= 1e-6:
+        return None
+
+    normal_x = -dy / length
+    normal_y = dx / length
+    return (
+        lat + (normal_y * offset_m) / 111_320.0,
+        lng + (normal_x * offset_m) / lng_meters,
+    )
+
+
+def _iter_roadside_points(
+    *,
+    road_segments: list[RoadSegment],
+    step_m: float,
+    max_points: int,
+) -> list[tuple[float, float, float]]:
+    points: list[tuple[float, float, float]] = []
+    seen: set[tuple[int, int]] = set()
+    sample_spacing_m = max(18.0, min(45.0, step_m * 0.6))
+
+    for segment in road_segments:
+        length_m = _meters_between(segment.a_lat, segment.a_lng, segment.b_lat, segment.b_lng)
+        samples = max(1, math.ceil(length_m / sample_spacing_m))
+        for sample_idx in range(samples):
+            t = (sample_idx + 0.5) / samples
+            for offset_m in _road_offsets_m(segment.highway):
+                candidate = _offset_point_from_segment(segment, t, offset_m)
+                if candidate is None:
+                    continue
+                lat, lng = candidate
+                key = (round(lat * 1_000_000), round(lng * 1_000_000))
+                if key in seen:
+                    continue
+                seen.add(key)
+                points.append((lat, lng, segment.access_weight))
+                if len(points) >= max_points:
+                    return points
+
+    return points
+
+
+def _nearby_footprint_indices(
+    *,
+    lat: float,
+    lng: float,
+    buckets: dict[tuple[int, int], list[int]],
+    radius_m: float,
+) -> list[int]:
+    lat_delta = _meters_to_lat_delta(radius_m)
+    lng_delta = _meters_to_lng_delta(radius_m, lat)
+    bbox = (lat - lat_delta, lng - lng_delta, lat + lat_delta, lng + lng_delta)
+    seen: set[int] = set()
+    indices: list[int] = []
+    for key in _bbox_bucket_keys(bbox, _FOOTPRINT_BUCKET_DEG):
+        for idx in buckets.get(key, []):
+            if idx in seen:
+                continue
+            seen.add(idx)
+            indices.append(idx)
+    return indices
+
+
+def _building_clearance_m(
+    *,
+    lat: float,
+    lng: float,
+    footprints: list[BuildingFootprint],
+    buckets: dict[tuple[int, int], list[int]],
+    search_radius_m: float = 70.0,
+) -> float | None:
+    if not footprints or not buckets:
+        return None
+
+    nearest_m = float("inf")
+    lat_margin = _meters_to_lat_delta(search_radius_m)
+    lng_margin = _meters_to_lng_delta(search_radius_m, lat)
+
+    for idx in _nearby_footprint_indices(lat=lat, lng=lng, buckets=buckets, radius_m=search_radius_m):
+        footprint = footprints[idx]
+        south, west, north, east = footprint.bbox
+        if lat < south - lat_margin or lat > north + lat_margin:
+            continue
+        if lng < west - lng_margin or lng > east + lng_margin:
+            continue
+        if _point_in_geometry(lat, lng, footprint.geometry):
+            return 0.0
+        nearest_m = min(nearest_m, _distance_to_geometry_m(lat, lng, footprint.geometry))
+
+    return nearest_m if math.isfinite(nearest_m) else 999.0
+
+
+def _nearest_building_clearance_m(
+    *,
+    lat: float,
+    lng: float,
+    footprint_indexes: list[tuple[list[BuildingFootprint], dict[tuple[int, int], list[int]]]],
+) -> float | None:
+    nearest: float | None = None
+    for footprints, buckets in footprint_indexes:
+        clearance = _building_clearance_m(lat=lat, lng=lng, footprints=footprints, buckets=buckets)
+        if clearance is None:
+            continue
+        nearest = clearance if nearest is None else min(nearest, clearance)
+        if nearest <= 0.0:
+            return 0.0
+    return nearest
+
+
 def _score_candidate(
     *,
     candidate_lat: float,
@@ -284,6 +747,8 @@ def _score_candidate(
     buckets: dict[tuple[int, int], list[int]],
     summer_weight: float,
     min_winter_light: float,
+    nearest_footprint_m: float | None = None,
+    road_access_weight: float | None = None,
 ) -> CandidateScore | None:
     center_bucket = _to_bucket(candidate_lat, candidate_lng)
     nearby_indices: list[int] = []
@@ -327,6 +792,17 @@ def _score_candidate(
         conflict_risk = _clamp((20.0 - nearest_m) / 20.0) if nearest_m < 20.0 else 0.0
         confidence = _clamp(0.35 + 0.65 * min(1.0, nearby_count / 16.0))
 
+    if nearest_footprint_m is not None:
+        nearest_m = nearest_footprint_m if not math.isfinite(nearest_m) else min(nearest_m, nearest_footprint_m)
+        footprint_risk = _clamp((12.0 - nearest_footprint_m) / 12.0) if nearest_footprint_m < 12.0 else 0.0
+        conflict_risk = max(conflict_risk, footprint_risk)
+
+    road_bonus = 0.0
+    if road_access_weight is not None:
+        access_balance = _clamp(max(access_balance, 0.55 + 0.40 * road_access_weight))
+        confidence = _clamp(max(confidence, 0.50 + 0.35 * road_access_weight))
+        road_bonus = 0.10 * road_access_weight
+
     if winter_light < min_winter_light:
         return None
 
@@ -336,6 +812,7 @@ def _score_candidate(
         + winter_weight * winter_light
         + 0.12 * access_balance
         - 0.20 * conflict_risk
+        + road_bonus
     )
 
     return CandidateScore(
@@ -375,7 +852,7 @@ def rank_tree_points(
             return {
                 "candidates": [],
                 "meta": {
-                    "model_version": "tree-ranker-v1",
+                    "model_version": "tree-ranker-v2-roadside",
                     "selection_mode": selection_mode,
                     "area_km2": 0.0,
                     "step_m": 100.0,
@@ -396,6 +873,18 @@ def rank_tree_points(
     else:
         step_m = 140.0
 
+    local_footprints, local_footprint_buckets = _load_building_footprints()
+    osm_context = _load_osm_context(south, west, north, east)
+    dynamic_footprint_buckets = _index_footprints(osm_context.footprints)
+    footprint_indexes = [
+        (footprints, buckets_for_footprints)
+        for footprints, buckets_for_footprints in (
+            (local_footprints, local_footprint_buckets),
+            (osm_context.footprints, dynamic_footprint_buckets),
+        )
+        if footprints and buckets_for_footprints
+    ]
+
     grid_points = _iter_grid_points(
         south=south,
         west=west,
@@ -405,21 +894,52 @@ def rank_tree_points(
         max_points=1_800,
     )
 
-    scored: list[CandidateScore] = []
-    for lat, lng in grid_points:
-        if normalized_geometry is not None and not _point_in_geometry(lat, lng, normalized_geometry):
-            continue
+    road_points = _iter_roadside_points(
+        road_segments=osm_context.roads,
+        step_m=step_m,
+        max_points=3_000,
+    )
 
-        candidate = _score_candidate(
-            candidate_lat=lat,
-            candidate_lng=lng,
-            buildings=buildings,
-            buckets=buckets,
-            summer_weight=summer_weight,
-            min_winter_light=min_winter_light,
-        )
-        if candidate is not None:
-            scored.append(candidate)
+    def score_points(points: list[tuple[float, float, float | None]]) -> list[CandidateScore]:
+        scored_points: list[CandidateScore] = []
+        for lat, lng, road_access_weight in points:
+            if normalized_geometry is not None and not _point_in_geometry(lat, lng, normalized_geometry):
+                continue
+
+            nearest_footprint_m = _nearest_building_clearance_m(
+                lat=lat,
+                lng=lng,
+                footprint_indexes=footprint_indexes,
+            )
+            if nearest_footprint_m is not None and nearest_footprint_m < _MIN_BUILDING_CLEARANCE_M:
+                continue
+
+            candidate = _score_candidate(
+                candidate_lat=lat,
+                candidate_lng=lng,
+                buildings=buildings,
+                buckets=buckets,
+                summer_weight=summer_weight,
+                min_winter_light=min_winter_light,
+                nearest_footprint_m=nearest_footprint_m,
+                road_access_weight=road_access_weight,
+            )
+            if candidate is not None:
+                scored_points.append(candidate)
+        return scored_points
+
+    using_roadside = bool(road_points)
+    candidate_points: list[tuple[float, float, float | None]]
+    if using_roadside:
+        candidate_points = [(lat, lng, access_weight) for lat, lng, access_weight in road_points]
+    else:
+        candidate_points = [(lat, lng, None) for lat, lng in grid_points]
+
+    scored = score_points(candidate_points)
+    if using_roadside and not scored:
+        using_roadside = False
+        candidate_points = [(lat, lng, None) for lat, lng in grid_points]
+        scored = score_points(candidate_points)
 
     scored.sort(key=lambda item: item.score, reverse=True)
 
@@ -461,11 +981,11 @@ def rank_tree_points(
     return {
         "candidates": candidates_payload,
         "meta": {
-            "model_version": "tree-ranker-v1",
+            "model_version": "tree-ranker-v2-roadside" if using_roadside else "tree-ranker-v2-grid",
             "selection_mode": selection_mode,
             "area_km2": round(area_km2, 3),
             "step_m": step_m,
-            "generated_points": len(grid_points),
+            "generated_points": len(candidate_points),
             "scored_points": len(scored),
         },
     }
