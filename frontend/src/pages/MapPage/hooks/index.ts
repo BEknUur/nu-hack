@@ -15,3 +15,4 @@ export { useSunExposureCursorHours } from './useSunExposureCursorHours';
 export { useTreeCandidateExplanation } from './useTreeCandidateExplanation';
 export { useTreeCandidateMapAnchor } from './useTreeCandidateMapAnchor';
 export { useWorkerShadowSimulation } from './useWorkerShadowSimulation';
+export { useMapLibreHeatLayer } from './useMapLibreHeatLayer';
